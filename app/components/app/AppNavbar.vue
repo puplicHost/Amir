@@ -33,7 +33,7 @@ const cartHref = computed(() => `${prefix.value}/cart`)
   <header class="sticky top-0 z-40 border-b bg-white/95 backdrop-blur dark:bg-[#0B1520]/95" :style="{ borderColor: 'var(--color-border)' }">
     <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4" aria-label="Main">
       <NuxtLink :to="localePath('index')" class="flex items-center gap-2">
-        <span class="flex h-9 w-9 items-center justify-center rounded bg-[#2B71AE] font-heading text-lg font-extrabold text-[#F5CC07]">M</span>
+        <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain" width="36" height="36" />
         <span class="font-heading text-lg font-bold">{{ t('brand.name') }}</span>
       </NuxtLink>
 

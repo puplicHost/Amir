@@ -11,7 +11,7 @@ const items = computed(() => [
 <template>
   <aside class="border-b bg-[#162032] text-slate-200 lg:min-h-screen lg:w-64 lg:border-b-0 lg:border-e dark:border-[#1E3048]">
     <div class="flex items-center gap-2 px-4 py-4">
-      <span class="flex h-9 w-9 items-center justify-center rounded bg-[#2B71AE] font-heading text-lg font-extrabold text-[#F5CC07]">M</span>
+      <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain" width="36" height="36" />
       <span class="font-heading text-base font-bold text-white">{{ t('brand.name') }}</span>
     </div>
     <nav class="px-2 pb-4" aria-label="Admin">
