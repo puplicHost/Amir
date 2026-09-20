@@ -1,0 +1,36 @@
+{
+  "brand": {
+    "name": "Mango Electronics",
+    "tagline": "Do It Right, Do It Smart"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "allProducts": "All Products",
+    "services": "Services",
+    "contact": "Contact",
+    "cart": "Cart",
+    "admin": "Admin"
+  },
+  "home": {
+    "title": "Mango Electronics",
+    "subtitle": "Foundation shell — real content arrives in later phases."
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "categories": "Categories",
+    "orders": "Orders",
+    "services": "Services",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Logout",
+    "shellNotice": "Admin shell — functional modules arrive in later phases."
+  },
+  "common": {
+    "toggleTheme": "Toggle color mode",
+    "toggleLanguage": "Switch language",
+    "light": "Light",
+    "dark": "Dark"
+  }
+}

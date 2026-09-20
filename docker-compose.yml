@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mango
+      POSTGRES_PASSWORD: mango
+      POSTGRES_DB: mango
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mango -d mango"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://mango:mango@db:5432/mango?schema=public"
+      NUXT_SESSION_SECRET: "${NUXT_SESSION_SECRET:-dev-only-change-me}"
+      NODE_ENV: production
+      NITRO_PORT: "3000"
+      NITRO_HOST: "0.0.0.0"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

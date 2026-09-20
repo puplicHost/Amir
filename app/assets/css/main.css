@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Mango Electronics design tokens — light mode */
+  --color-primary-dark: #285e8e;
+  --color-primary: #2b71ae;
+  --color-accent: #f5cc07;
+
+  --color-bg: #ffffff;
+  --color-surface: #f8f9fa;
+  --color-border: #e2e8f0;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  --color-success: #22c55e;
+  --color-warning: #f5cc07;
+  --color-error: #ef4444;
+  --color-info: #2b71ae;
+}
+
+.dark {
+  /* Mango Electronics design tokens — dark mode */
+  --color-bg: #0b1520;
+  --color-surface: #162032;
+  --color-border: #1e3048;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #475569;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply font-body text-base leading-normal antialiased;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading leading-tight;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
