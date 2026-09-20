@@ -55,7 +55,8 @@ The project is strictly divided into 6 self-contained phases. The Coding Agent m
 *   **Completion Criteria:** Public site is fully functional, styled according to Stitch, and populated with dynamic settings. SEO metadata and JSON-LD are implemented.
 
 ## 4. Testing & Verification Requirements
-*   **Basic Verification:** Must be run by the Coding Agent at the end of every task/phase (unit tests, component rendering, API response validation, Lint/Typecheck).
+*   **Efficient Verification:** No verification after every step/file; batched and proportional to change size (see `agent.md` Section 20).
+*   **Strict Approval:** DEFAULT — no testing or verification without explicit human approval. `start next phase` and similar phrases are NOT approval. On phase completion report `Implementation complete. Testing/verification not run — awaiting human approval.`
 *   **Heavy Testing:** (Playwright E2E, full user journey tests) will **only** be executed if explicitly requested and approved by the human after a phase is completed.
 
 ## 5. Blocking Decisions for Human Approval

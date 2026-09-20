@@ -1,5 +1,3 @@
-import { prisma } from '../utils/prisma'
-
 export default defineEventHandler(async () => {
   try {
     await prisma.$queryRaw`SELECT 1`

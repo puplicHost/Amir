@@ -1,6 +1,5 @@
-// Phase 1: connection only — no models yet.
-// Full domain models (AdminUser, Category, Product, Order, Service,
-// SiteSettings, ...) land in Phase 2.
+// Phase 2: complete domain schema. Phases 3-6 use these models
+// without introducing new ones unless explicitly required.
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,4 +7,289 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ─── Admin & RBAC ──────────────────────────────────────────────
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  isSuper      Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  permissions   AdminPermission[]
+  statusChanges OrderStatusHistory[]
+}
+
+model AdminPermission {
+  id         String @id @default(cuid())
+  userId     String
+  permission String
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permission])
+  @@index([userId])
+}
+
+// ─── Catalog ───────────────────────────────────────────────────
+
+model Category {
+  id                 String   @id @default(cuid())
+  nameAr             String
+  nameEn             String
+  slug               String   @unique
+  descriptionAr      String?  @db.Text
+  descriptionEn      String?  @db.Text
+  coverImagePath     String?
+  coverVideoUrl      String?
+  featuredOnHomepage Boolean  @default(false)
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  products Product[]
+
+  @@index([featuredOnHomepage])
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  nameAr         String
+  nameEn         String
+  slug           String   @unique
+  descriptionAr  String?  @db.Text
+  descriptionEn  String?  @db.Text
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  categoryId     String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  category   Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images     ProductImage[]
+  attributes ProductAttribute[]
+  seo        ProductSeo?
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  path      String
+  altAr     String?
+  altEn     String?
+  sortOrder Int     @default(0)
+  isCover   Boolean @default(false)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductAttribute {
+  id        String @id @default(cuid())
+  productId String
+  keyAr     String
+  keyEn     String
+  valueAr   String
+  valueEn   String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductSeo {
+  id                String  @id @default(cuid())
+  productId         String  @unique
+  metaTitleAr       String?
+  metaTitleEn       String?
+  metaDescriptionAr String? @db.Text
+  metaDescriptionEn String? @db.Text
+  keywords          String?
+  geoContent        String? @db.Text
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ─── Orders ────────────────────────────────────────────────────
+
+model Order {
+  id                 String   @id @default(cuid())
+  orderNumber        String   @unique
+  customerName       String
+  customerPhone      String
+  customerEmail      String?
+  customerAddress    String?  @db.Text
+  customerGovernorat String
+  totalAmount        Decimal  @db.Decimal(10, 2)
+  paymentMethod      String   @default("COD")
+  status             String   @default("Pending")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id                   String  @id @default(cuid())
+  orderId              String
+  productId            String?
+  productNameSnapshot  String
+  productPriceSnapshot Decimal @db.Decimal(10, 2)
+  quantity             Int
+  subtotal             Decimal @db.Decimal(10, 2)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id              String   @id @default(cuid())
+  orderId         String
+  status          String
+  changedAt       DateTime @default(now())
+  changedByUserId String?
+
+  order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy   AdminUser? @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+// ─── Services ──────────────────────────────────────────────────
+
+model Service {
+  id            String   @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  descriptionAr String?  @db.Text
+  descriptionEn String?  @db.Text
+  iconPath      String?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  formFields ServiceFormField[]
+  requests   ServiceRequest[]
+
+  @@index([isActive])
+}
+
+model ServiceFormField {
+  id         String  @id @default(cuid())
+  serviceId  String
+  labelAr    String
+  labelEn    String
+  fieldType  String
+  isRequired Boolean @default(false)
+  sortOrder  Int     @default(0)
+  options    Json?
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+}
+
+model ServiceRequest {
+  id          String   @id @default(cuid())
+  serviceId   String
+  status      String   @default("New")
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  service     Service                  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  values      ServiceRequestValue[]
+  attachments ServiceRequestAttachment[]
+
+  @@index([serviceId])
+  @@index([status])
+}
+
+model ServiceRequestValue {
+  id        String  @id @default(cuid())
+  requestId String
+  fieldId   String
+  value     String? @db.Text
+
+  request ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model ServiceRequestAttachment {
+  id           String @id @default(cuid())
+  requestId    String
+  filePath     String
+  originalName String
+
+  request ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+// ─── Site settings (singleton, id = 1) ─────────────────────────
+
+model SiteSettings {
+  id Int @id @default(autoincrement())
+
+  siteNameAr String  @default("مانجو إلكترونيكس")
+  siteNameEn String  @default("Mango Electronics")
+  taglineAr  String? @db.Text
+  taglineEn  String? @db.Text
+  logoPath   String?
+  faviconPath String?
+  heroImagePath String?
+
+  bannerTextAr       String? @db.Text
+  bannerTextEn       String? @db.Text
+  bannerButtonTextAr String?
+  bannerButtonTextEn String?
+  bannerButtonUrl    String?
+
+  contactPhone1     String?
+  contactPhone2     String?
+  contactWhatsapp   String?
+  contactEmail      String?
+  contactAddressAr  String? @db.Text
+  contactAddressEn  String? @db.Text
+  socialFacebook    String?
+  socialInstagram   String?
+  googleMapsEmbedUrl String? @db.Text
+
+  seoMetaTitleTemplateAr String?
+  seoMetaTitleTemplateEn String?
+  seoMetaDescriptionAr   String? @db.Text
+  seoMetaDescriptionEn   String? @db.Text
+  seoKeywords            String?
+  geoDescription         String? @db.Text
+
+  defaultCurrency String @default("EGP")
+  productsPerPage Int    @default(16)
+
+  paymentCodEnabled           Boolean @default(true)
+  paymentOnlineEnabled        Boolean @default(false)
+  paymentGatewayName          String?
+  paymentGatewayMode          String?
+  paymentGatewayCredentials   String? @db.Text // AES-256-GCM encrypted JSON, never returned raw
+
+  updatedAt DateTime @updatedAt
 }

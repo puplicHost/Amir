@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { LayoutDashboard, LogOut } from 'lucide-vue-next'
+import { FolderTree, LayoutDashboard, LogOut, Settings, ShoppingCart, Users, Wrench } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const { data } = useAdminSession()
+
+const canProductsView = useAdminCan('products.view')
+const canCategoriesManage = useAdminCan('categories.manage')
+const canOrdersView = useAdminCan('orders.view')
+const canServicesView = useAdminCan('services.view')
+const canUsersManage = useAdminCan('users.manage')
+const canSettingsView = useAdminCan('settings.view')
 
 const items = computed(() => [
-  { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard },
+  { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, show: true },
+  { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value },
+  { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value },
+  { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
+  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
+  { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },
+  { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value },
 ])
 </script>
 
@@ -16,24 +30,40 @@ const items = computed(() => [
     </div>
     <nav class="px-2 pb-4" aria-label="Admin">
       <ul class="flex gap-1 overflow-x-auto lg:flex-col">
-        <li v-for="item in items" :key="item.label">
-          <NuxtLink
-            :to="item.to"
-            class="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
-            active-class="bg-[#2B71AE] text-white"
-          >
-            <component :is="item.icon" class="h-5 w-5" aria-hidden="true" />
-            {{ item.label }}
-          </NuxtLink>
-        </li>
+        <template v-for="item in items" :key="item.label">
+          <li v-if="item.show">
+            <NuxtLink
+              v-if="item.to === '/admin' || item.to === '/admin/users'"
+              :to="item.to"
+              class="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
+              active-class="bg-[#2B71AE] text-white"
+            >
+              <component :is="item.icon" class="h-5 w-5" aria-hidden="true" />
+              {{ item.label }}
+            </NuxtLink>
+            <span
+              v-else
+              class="flex cursor-not-allowed items-center gap-2 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium opacity-40"
+              :title="item.to"
+            >
+              <component :is="item.icon" class="h-5 w-5" aria-hidden="true" />
+              {{ item.label }}
+            </span>
+          </li>
+        </template>
       </ul>
-      <button
-        type="button"
-        class="mt-2 flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-      >
-        <LogOut class="h-5 w-5" aria-hidden="true" />
-        {{ t('admin.logout') }}
-      </button>
+      <div class="mt-3 border-t border-white/10 px-3 pt-3">
+        <p class="truncate text-sm font-medium text-white">{{ data?.user.name }}</p>
+        <p class="truncate text-xs text-slate-400">{{ data?.user.email }}</p>
+        <button
+          type="button"
+          class="mt-2 flex w-full items-center gap-2 rounded-md px-1 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+          @click="adminLogout"
+        >
+          <LogOut class="h-5 w-5" aria-hidden="true" />
+          {{ t('admin.logout') }}
+        </button>
+      </div>
     </nav>
   </aside>
 </template>

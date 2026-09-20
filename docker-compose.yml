@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: mango
       POSTGRES_DB: mango
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://mango:mango@db:5432/mango?schema=public"
-      NUXT_SESSION_SECRET: "${NUXT_SESSION_SECRET:-dev-only-change-me}"
+      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:-dev-only-change-me-min-32-chars}"
       NODE_ENV: production
       NITRO_PORT: "3000"
       NITRO_HOST: "0.0.0.0"

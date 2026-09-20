@@ -581,7 +581,6 @@ Use testing skills when:
 Heavy testing is still controlled by `AGENTS.md`.
 
 The existence of testing skills does NOT authorize the Agent to automatically run:
-
 - Playwright
     
 - browser/MCP tests
@@ -597,6 +596,10 @@ The existence of testing skills does NOT authorize the Agent to automatically ru
 
 The Agent may plan them, but execution requires the approval rules defined in `AGENTS.md`.
 
+Strict approval (see `agent.md` Section 20) applies to ALL testing and
+verification — not only heavy testing. DEFAULT: no test/verification execution
+without explicit human approval. `start`, `continue`, `start next phase` and
+similar phrases are NOT approval.
 ---
 
 # 12. Debugging
@@ -1053,7 +1056,8 @@ When implementing a phase:
     
 - Implement only the approved scope.
     
-- Verify according to the applicable skills and `AGENTS.md`.
+- Perform static / code review only. Do NOT run any verification —
+  request explicit human approval first (see `agent.md` Section 20).
     
 
 ---

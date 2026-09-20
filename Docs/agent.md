@@ -629,31 +629,56 @@ Do not produce generic AI-sounding marketing language.
 
 ---
 
-# 20. Testing Policy
+# 20. Testing Policy — Efficient Verification + Strict Approval
 
-Testing is intentionally divided into two levels.
+## Efficient Verification (preserved)
 
-## Level 1 — Basic Verification
+* Do NOT run verification after every step or every file change.
+* Do NOT run build/test/smoke checks repeatedly without cause.
+* Verification is batched and proportional to the change size.
+* Never repeat the same verification without cause.
+* Goal: reduce time and resource consumption — not continuous verification.
 
-Basic verification is allowed during normal implementation.
+## Strict Testing & Verification Approval
 
-Use the appropriate focused tests:
+**DEFAULT: NO TESTING OR VERIFICATION WITHOUT EXPLICIT HUMAN APPROVAL.**
 
-* Unit tests
-* Focused component tests
-* Focused API tests
-* Relevant existing local checks
+The Coding Agent must stop and request human approval before executing any
+testing or verification, including:
 
-Relevant skills:
+* `npm run build`, `npm run test`
+* Vitest / Jest, Playwright / E2E, browser testing
+* Smoke tests, HTTP / API health checks
+* Starting a production server for verification purposes
+* Database verification scripts
+* Type checking or linting when run as verification
+* Log inspection as part of verification
+* Any automated verification script
 
-* `vue-testing-best-practices`
-* `verification-before-completion`
+Before running any of the above, ask:
 
-Keep basic verification proportional to the task.
+> Testing/verification is ready. May I run it?
 
-A tiny task must not trigger hours of testing.
+Approval must be explicit, e.g. `yes, run the tests`, `run verification`,
+`build it`, `test now`.
 
-Do not run the entire application test ecosystem after every small change.
+The following are NOT approval: `start`, `continue`, `proceed`, `implement`,
+`finish`, `start phase`, `start next phase`, `next phase`.
+
+## During Phase Implementation
+
+1. Read the Phase files, Docs, and required skills.
+2. Implement only the approved scope.
+3. Perform static / code review only during implementation.
+4. Do NOT run tests, builds, smoke checks, or server verification automatically.
+5. When implementation is done, stop.
+6. Report completion and request explicit approval before verification.
+
+## Conflict Priority
+
+If any Phase execution file or skill instructs automatic testing or
+verification, this section takes priority: do NOT test — stop and request
+human approval.
 
 ---
 
@@ -679,13 +704,21 @@ Relevant skills:
 * `playwright-best-practices`
 * `webapp-testing`
 
-After implementation and basic verification, stop and tell the human:
+After implementation, stop and tell the human:
 
-> Done — implementation and basic verification are complete. Heavy testing is available if you want me to run it.
+> Implementation complete. Testing/verification not run — awaiting human approval.
 
-Wait for explicit approval.
+Wait for explicit approval (see Section 20).
 
-Do not start heavy testing without approval.
+Do not start any testing or verification without approval.
+
+## Phase Transitions
+
+When a new phase starts:
+
+* Do NOT automatically verify the previous phase.
+* Do NOT re-run builds or tests merely because a new phase began.
+* `start next phase` is NOT approval for testing.
 
 ---
 
@@ -921,10 +954,14 @@ Do NOT provide:
 * repeated summaries
 * unnecessary technical details
 
-Default response format:
+Default response format (implementation done, verification NOT run):
 
 > Done — implemented [short description].
-> Next: [next action or phase].
+> Implementation complete. Testing/verification not run — awaiting human approval.
+
+If there is nothing meaningful to suggest, omit the second line only when no
+verification could apply. Never claim tested or verified unless approved
+checks actually ran.
 
 If there is nothing meaningful to suggest:
 
@@ -1025,16 +1062,15 @@ Plan Smallest Correct Change
     ↓
 Implement
     ↓
-Run Appropriate Basic Verification
-    ↓
-Review Changed Code
+Static / Code Review Only (no test execution)
     ↓
 Stop
     ↓
-Concise Completion Message
+Concise Completion Message + Approval Request (Section 20)
 ```
 
-Heavy testing is a separate human-approved operation.
+Testing and verification run only after explicit human approval, as a single
+batch. Heavy testing is a separate human-approved operation.
 
 ---
 

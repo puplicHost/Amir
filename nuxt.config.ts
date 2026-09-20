@@ -5,6 +5,11 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    // Server-only. Min 32 chars; enforced in server/utils/auth.ts.
+    sessionPassword: '',
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@nuxtjs/color-mode',
