@@ -3,11 +3,15 @@ definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 const { t } = useI18n()
 
+const { data } = await useAsyncData('admin-dashboard-stats', () =>
+  $fetch<{ stats: { totalOrders: number, pendingOrders: number, newServiceRequests: number, totalProducts: number } }>('/api/admin/dashboard/stats'),
+)
+
 const cards = computed(() => [
-  { label: t('admin.orders'), value: '—' },
-  { label: t('admin.products'), value: '—' },
-  { label: t('admin.services'), value: '—' },
-  { label: t('admin.users'), value: '—' },
+  { label: t('admin.orders'), value: data.value?.stats?.totalOrders ?? '—' },
+  { label: 'Pending Orders', value: data.value?.stats?.pendingOrders ?? '—' },
+  { label: t('admin.services'), value: data.value?.stats?.newServiceRequests ?? '—' },
+  { label: t('admin.products'), value: data.value?.stats?.totalProducts ?? '—' },
 ])
 </script>
 

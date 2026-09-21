@@ -44,6 +44,19 @@ useSeoMeta(() => ({
   ogImage: cover.value || undefined,
 }))
 
+const cart = useCartStore()
+
+function addToCart() {
+  cart.addItem({
+    productId: p.value.id,
+    slug: p.value.slug,
+    nameAr: p.value.nameAr,
+    nameEn: p.value.nameEn,
+    price: Number(p.value.price),
+    coverImage: cover.value,
+  })
+}
+
 async function copyLink() {
   try {
     await navigator.clipboard.writeText(pageUrl.value)
@@ -100,9 +113,9 @@ const waHref = computed(() => `https://wa.me/?text=${encodeURIComponent(`${name.
         <p v-if="desc" class="mt-4 leading-relaxed text-slate-600 dark:text-slate-300">{{ desc }}</p>
 
         <div class="mt-6 flex flex-wrap gap-2">
-          <NuxtLink to="/cart" class="flex h-12 items-center rounded bg-[#2B71AE] px-8 font-semibold text-white hover:bg-[#285E8E]">
+          <button type="button" class="flex h-12 items-center rounded bg-[#2B71AE] px-8 font-semibold text-white hover:bg-[#285E8E]" @click="addToCart">
             {{ t('products.addToCart') }}
-          </NuxtLink>
+          </button>
           <button type="button" class="flex h-12 items-center gap-2 rounded border px-4 text-sm font-medium" :style="{ borderColor: 'var(--color-border)' }" @click="copyLink">
             <Check v-if="copied" class="h-4 w-4" />
             <Share2 v-else class="h-4 w-4" />

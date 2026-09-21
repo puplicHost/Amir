@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PERMISSION_GROUPS } from '../../../shared/permissions'
+import { PERMISSION_GROUPS } from '~~/shared/permissions'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 

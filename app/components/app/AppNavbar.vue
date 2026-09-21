@@ -16,6 +16,7 @@ const links = computed(() => [
   { label: t('nav.contact'), to: `${prefix.value}/contact`, ready: false },
 ])
 const productsHref = computed(() => `${prefix.value}/products`)
+const cartStore = useCartStore()
 const cartHref = computed(() => `${prefix.value}/cart`)
 
 const { data: navCats } = await useAsyncData('navbar-categories', () =>
@@ -105,14 +106,14 @@ function toggleLocale() {
           <Moon v-if="!isDark" class="h-5 w-5" aria-hidden="true" />
           <Sun v-else class="h-5 w-5" aria-hidden="true" />
         </button>
-        <a
-          :href="cartHref"
+        <NuxtLink
+          :to="localePath('/cart')"
           :aria-label="t('nav.cart')"
           class="relative flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <ShoppingCart class="h-5 w-5" aria-hidden="true" />
-          <span class="absolute -end-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F5CC07] px-1 text-xs font-bold text-slate-900">0</span>
-        </a>
+          <span v-if="cartStore.itemCount" class="absolute -end-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F5CC07] px-1 text-xs font-bold text-slate-900">{{ cartStore.itemCount }}</span>
+        </NuxtLink>
       </div>
 
       <button
