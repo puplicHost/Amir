@@ -67,3 +67,38 @@ export function resolveUploadPath(parts: string[]): string | null {
   if (!full.startsWith(storageRoot() + sep)) return null
   return full
 }
+
+import fsSync from 'fs'
+
+export async function storeFile(data: Buffer, folder: string, filename: string): Promise<{ relativePath: string }> {
+  assertSafeId(folder.replace(/\//g, '')) // basic check, though folder might have slashes
+  const dir = join(storageRoot(), folder)
+  await mkdir(dir, { recursive: true })
+  
+  // sanitize filename
+  const safeName = filename.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+  
+  await writeFile(join(dir, safeName), data)
+  return { relativePath: `/uploads/${folder}/${safeName}` }
+}
+
+export async function getFileStream(relativePath: string): Promise<{ stream: fsSync.ReadStream, mimeType: string, size: number }> {
+  // relativePath is like /uploads/service-requests/xxx/file.pdf
+  const parts = relativePath.replace(/^\/uploads\//, '').split('/')
+  const path = resolveUploadPath(parts)
+  if (!path || !fsSync.existsSync(path)) {
+    throw createError({ statusCode: 404, statusMessage: 'File not found' })
+  }
+  
+  const stat = fsSync.statSync(path)
+  const mimeType = path.endsWith('.pdf') ? 'application/pdf' : 
+                   path.endsWith('.png') ? 'image/png' : 
+                   path.endsWith('.webp') ? 'image/webp' : 
+                   path.endsWith('.jpg') || path.endsWith('.jpeg') ? 'image/jpeg' : 'application/octet-stream'
+
+  return {
+    stream: fsSync.createReadStream(path),
+    mimeType,
+    size: stat.size
+  }
+}

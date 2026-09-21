@@ -1,13 +1,13 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
-const activeTab = ref('payment')
+const activeTab = ref('general')
 
 const tabs = [
-  { id: 'general', label: 'General', ready: false },
-  { id: 'contact', label: 'Contact', ready: false },
-  { id: 'seo', label: 'SEO / GEO', ready: false },
-  { id: 'store', label: 'Store Config', ready: false },
+  { id: 'general', label: 'General', ready: true },
+  { id: 'contact', label: 'Contact', ready: true },
+  { id: 'seo', label: 'SEO / GEO', ready: true },
+  { id: 'store', label: 'Store Config', ready: true },
   { id: 'payment', label: 'Payment', ready: true },
 ]
 </script>
@@ -37,11 +37,20 @@ const tabs = [
     </div>
 
     <div class="mt-6 max-w-2xl">
-      <div v-if="activeTab === 'payment'">
-        <AdminSettingsPayment />
+      <div v-if="activeTab === 'general'">
+        <AdminSettingsGeneral />
       </div>
-      <div v-else class="rounded-md border p-8 text-center text-sm text-slate-500" :style="{ borderColor: 'var(--color-border)' }">
-        Available in Phase 6.
+      <div v-else-if="activeTab === 'contact'">
+        <AdminSettingsContact />
+      </div>
+      <div v-else-if="activeTab === 'seo'">
+        <AdminSettingsSeo />
+      </div>
+      <div v-else-if="activeTab === 'store'">
+        <AdminSettingsStore />
+      </div>
+      <div v-else-if="activeTab === 'payment'">
+        <AdminSettingsPayment />
       </div>
     </div>
   </div>

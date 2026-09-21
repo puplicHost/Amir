@@ -7,20 +7,21 @@ const colorMode = useColorMode()
 const mobileOpen = ref(false)
 const productsOpen = ref(false)
 
-// Placeholder routes (services/contact/cart) land in later phases.
-// Plain prefixed hrefs avoid vue-router resolution warnings for missing routes.
-const prefix = computed(() => (locale.value === 'ar' ? '/ar' : ''))
 const links = computed(() => [
-  { label: t('nav.home'), to: localePath('index'), ready: true },
-  { label: t('nav.services'), to: `${prefix.value}/services`, ready: false },
-  { label: t('nav.contact'), to: `${prefix.value}/contact`, ready: false },
+  { label: t('nav.home'), to: localePath('/') },
+  { label: t('nav.services'), to: localePath('/services') },
+  { label: t('nav.contact'), to: localePath('/contact') },
 ])
-const productsHref = computed(() => `${prefix.value}/products`)
+const productsHref = computed(() => localePath('/products'))
 const cartStore = useCartStore()
-const cartHref = computed(() => `${prefix.value}/cart`)
 
 const { data: navCats } = await useAsyncData('navbar-categories', () =>
   $fetch<{ categories: { slug: string, nameAr: string, nameEn: string }[] }>('/api/categories'),
+  { server: true, lazy: true },
+)
+
+const { data: generalSettings } = await useAsyncData('navbar-settings-general', () =>
+  $fetch<any>('/api/settings/general'),
   { server: true, lazy: true },
 )
 
@@ -39,9 +40,10 @@ function toggleLocale() {
 <template>
   <header class="sticky top-0 z-40 border-b bg-white/95 backdrop-blur dark:bg-[#0B1520]/95" :style="{ borderColor: 'var(--color-border)' }">
     <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4" aria-label="Main">
-      <NuxtLink :to="localePath('index')" class="flex items-center gap-2">
-        <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain" width="36" height="36" />
-        <span class="font-heading text-lg font-bold">{{ t('brand.name') }}</span>
+      <NuxtLink :to="localePath('/')" class="flex items-center gap-2">
+        <img v-if="generalSettings?.logoPath" :src="generalSettings.logoPath" :alt="generalSettings?.siteNameEn || t('brand.name')" class="h-9 w-auto max-w-[120px] rounded object-contain" />
+        <img v-else src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain" />
+        <span v-if="!generalSettings?.logoPath" class="font-heading text-lg font-bold">{{ generalSettings ? (locale === 'ar' ? generalSettings.siteNameAr : generalSettings.siteNameEn) : t('brand.name') }}</span>
       </NuxtLink>
 
       <ul class="hidden items-center gap-6 md:flex">
@@ -51,8 +53,8 @@ function toggleLocale() {
           </NuxtLink>
         </li>
         <li class="relative" @mouseenter="productsOpen = true" @mouseleave="productsOpen = false">
-          <a
-            :href="productsHref"
+          <NuxtLink
+            :to="productsHref"
             class="flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]"
             aria-haspopup="true"
             :aria-expanded="productsOpen"
@@ -60,28 +62,28 @@ function toggleLocale() {
           >
             {{ t('nav.products') }}
             <ChevronDown class="h-4 w-4" aria-hidden="true" />
-          </a>
+          </NuxtLink>
           <ul
             v-if="productsOpen"
             class="absolute start-0 top-full min-w-52 rounded-md border bg-white py-1 shadow-md dark:bg-[#162032]"
             :style="{ borderColor: 'var(--color-border)' }"
           >
             <li>
-              <a :href="productsHref" class="block px-4 py-2.5 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">
+              <NuxtLink :to="productsHref" class="block px-4 py-2.5 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" @click="productsOpen = false">
                 {{ t('nav.allProducts') }}
-              </a>
+              </NuxtLink>
             </li>
             <li v-for="c in navCats?.categories || []" :key="c.slug">
-              <a :href="`${productsHref}/${c.slug}`" class="block px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">
+              <NuxtLink :to="`${productsHref}/${c.slug}`" class="block px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="productsOpen = false">
                 {{ locale === 'ar' ? c.nameAr : c.nameEn }}
-              </a>
+              </NuxtLink>
             </li>
           </ul>
         </li>
         <li v-for="link in links.slice(1)" :key="link.label">
-          <a :href="link.to" class="text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]">
+          <NuxtLink :to="link.to" class="text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]">
             {{ link.label }}
-          </a>
+          </NuxtLink>
         </li>
       </ul>
 
@@ -116,16 +118,26 @@ function toggleLocale() {
         </NuxtLink>
       </div>
 
-      <button
-        type="button"
-        class="flex h-11 w-11 items-center justify-center rounded-md hover:bg-slate-100 md:hidden dark:hover:bg-slate-800"
-        :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
-        :aria-expanded="mobileOpen"
-        @click="mobileOpen = !mobileOpen"
-      >
-        <X v-if="mobileOpen" class="h-6 w-6" aria-hidden="true" />
-        <Menu v-else class="h-6 w-6" aria-hidden="true" />
-      </button>
+      <div class="flex items-center gap-2 md:hidden">
+        <NuxtLink
+          :to="localePath('/cart')"
+          :aria-label="t('nav.cart')"
+          class="relative flex h-11 w-11 items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          <ShoppingCart class="h-6 w-6" aria-hidden="true" />
+          <span v-if="cartStore.itemCount" class="absolute -end-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F5CC07] px-1 text-xs font-bold text-slate-900">{{ cartStore.itemCount }}</span>
+        </NuxtLink>
+        <button
+          type="button"
+          class="flex h-11 w-11 items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+          :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
+          :aria-expanded="mobileOpen"
+          @click="mobileOpen = !mobileOpen"
+        >
+          <X v-if="mobileOpen" class="h-6 w-6" aria-hidden="true" />
+          <Menu v-else class="h-6 w-6" aria-hidden="true" />
+        </button>
+      </div>
     </nav>
 
     <div v-if="mobileOpen" class="border-t px-4 py-3 md:hidden" :style="{ borderColor: 'var(--color-border)' }">
@@ -140,34 +152,34 @@ function toggleLocale() {
           </NuxtLink>
         </li>
         <li>
-          <a
-            :href="productsHref"
+          <NuxtLink
+            :to="productsHref"
             class="block rounded-md px-3 py-3 text-base font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
             @click="mobileOpen = false"
           >
             {{ t('nav.products') }}
-          </a>
+          </NuxtLink>
           <ul class="ms-3 border-s ps-2" :style="{ borderColor: 'var(--color-border)' }">
             <li>
-              <a :href="productsHref" class="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="mobileOpen = false">
+              <NuxtLink :to="productsHref" class="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="mobileOpen = false">
                 {{ t('nav.allProducts') }}
-              </a>
+              </NuxtLink>
             </li>
             <li v-for="c in navCats?.categories || []" :key="c.slug">
-              <a :href="`${productsHref}/${c.slug}`" class="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="mobileOpen = false">
+              <NuxtLink :to="`${productsHref}/${c.slug}`" class="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="mobileOpen = false">
                 {{ locale === 'ar' ? c.nameAr : c.nameEn }}
-              </a>
+              </NuxtLink>
             </li>
           </ul>
         </li>
         <li v-for="link in links.slice(1)" :key="link.label">
-          <a
-            :href="link.to"
+          <NuxtLink
+            :to="link.to"
             class="block rounded-md px-3 py-3 text-base font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
             @click="mobileOpen = false"
           >
             {{ link.label }}
-          </a>
+          </NuxtLink>
         </li>
       </ul>
       <div class="mt-2 flex items-center gap-2 border-t pt-3" :style="{ borderColor: 'var(--color-border)' }">
