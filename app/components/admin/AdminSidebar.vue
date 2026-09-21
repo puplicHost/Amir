@@ -15,8 +15,8 @@ const items = computed(() => [
   { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, ready: true },
   { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value, ready: true },
   { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value, ready: true },
-  { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value, ready: false },
-  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value, ready: false },
+  { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value, ready: true },
+  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value, ready: true },
   { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value, ready: true },
   { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value, ready: false },
 ])

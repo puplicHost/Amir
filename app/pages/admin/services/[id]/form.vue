@@ -1,4 +1,5 @@
 <script setup lang="ts">
+definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
@@ -53,7 +54,7 @@ async function removeField(id: string) {
 <template>
   <div>
     <div class="mb-6 flex items-center justify-between">
-      <AdminPageHeader title="Form Builder" />
+      <h1 class="text-2xl font-bold">Form Builder</h1>
       <NuxtLink :to="localePath('/admin/services')" class="text-sm text-[#2B71AE] hover:underline">
         &larr; Back to Services
       </NuxtLink>

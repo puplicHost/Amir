@@ -1,4 +1,5 @@
 <script setup lang="ts">
+definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
@@ -35,7 +36,7 @@ function getLabel(fieldId: string) {
 <template>
   <div v-if="request">
     <div class="mb-6 flex items-center justify-between">
-      <AdminPageHeader :title="`Request #${request.id.slice(-6)}`" />
+      <h1 class="text-2xl font-bold">Request #{{ request.id.slice(-6) }}</h1>
       <NuxtLink :to="localePath('/admin/services')" class="text-sm text-[#2B71AE] hover:underline">
         &larr; Back to Services
       </NuxtLink>

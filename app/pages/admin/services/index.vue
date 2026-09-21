@@ -1,4 +1,5 @@
 <script setup lang="ts">
+definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 const { t } = useI18n()
 const localePath = useLocalePath()
 
@@ -47,7 +48,7 @@ async function toggleActive(service: any) {
 
 <template>
   <div>
-    <AdminPageHeader title="Services Management" />
+    <div class="mb-6 flex items-center justify-between"> <h1 class="text-2xl font-bold">Services Management</h1> </div>
 
     <div class="mb-6 flex space-x-4 border-b border-slate-200 rtl:space-x-reverse dark:border-slate-800">
       <button 
