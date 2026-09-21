@@ -1,0 +1,33 @@
+export default defineEventHandler(async (event) => {
+  await requirePermission(event, 'products.view')
+  const q = getQuery(event)
+  const page = Math.max(1, Number(q.page) || 1)
+  const limit = Math.min(50, Math.max(1, Number(q.limit) || 20))
+  const where: Record<string, unknown> = {}
+
+  if (typeof q.search === 'string' && q.search.trim()) {
+    const s = q.search.trim()
+    where.OR = [
+      { nameEn: { contains: s, mode: 'insensitive' } },
+      { nameAr: { contains: s, mode: 'insensitive' } },
+    ]
+  }
+  if (typeof q.categoryId === 'string' && q.categoryId) where.categoryId = q.categoryId
+  if (q.status === 'active') where.isActive = true
+  if (q.status === 'inactive') where.isActive = false
+
+  const [total, products] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
+        images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+      },
+    }),
+  ])
+  return { products, total, page, limit, pages: Math.ceil(total / limit) }
+})

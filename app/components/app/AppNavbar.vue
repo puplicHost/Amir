@@ -1,10 +1,27 @@
 <script setup lang="ts">
-import { Globe, Menu, Moon, ShoppingCart, Sun, X } from 'lucide-vue-next'
+import { ChevronDown, Globe, Menu, Moon, ShoppingCart, Sun, X } from 'lucide-vue-next'
 
 const { t, locale, setLocale } = useI18n()
 const localePath = useLocalePath()
 const colorMode = useColorMode()
 const mobileOpen = ref(false)
+const productsOpen = ref(false)
+
+// Placeholder routes (services/contact/cart) land in later phases.
+// Plain prefixed hrefs avoid vue-router resolution warnings for missing routes.
+const prefix = computed(() => (locale.value === 'ar' ? '/ar' : ''))
+const links = computed(() => [
+  { label: t('nav.home'), to: localePath('index'), ready: true },
+  { label: t('nav.services'), to: `${prefix.value}/services`, ready: false },
+  { label: t('nav.contact'), to: `${prefix.value}/contact`, ready: false },
+])
+const productsHref = computed(() => `${prefix.value}/products`)
+const cartHref = computed(() => `${prefix.value}/cart`)
+
+const { data: navCats } = await useAsyncData('navbar-categories', () =>
+  $fetch<{ categories: { slug: string, nameAr: string, nameEn: string }[] }>('/api/categories'),
+  { server: true, lazy: true },
+)
 
 const isDark = computed(() => colorMode.value === 'dark')
 
@@ -16,17 +33,6 @@ function toggleLocale() {
   setLocale(locale.value === 'ar' ? 'en' : 'ar')
   mobileOpen.value = false
 }
-
-// Placeholder routes (products/services/contact/cart) land in later phases.
-// Plain prefixed hrefs avoid vue-router resolution warnings for missing routes.
-const prefix = computed(() => (locale.value === 'ar' ? '/ar' : ''))
-const links = computed(() => [
-  { label: t('nav.home'), to: localePath('index'), ready: true },
-  { label: t('nav.products'), to: `${prefix.value}/products`, ready: false },
-  { label: t('nav.services'), to: `${prefix.value}/services`, ready: false },
-  { label: t('nav.contact'), to: `${prefix.value}/contact`, ready: false },
-])
-const cartHref = computed(() => `${prefix.value}/cart`)
 </script>
 
 <template>
@@ -38,11 +44,41 @@ const cartHref = computed(() => `${prefix.value}/cart`)
       </NuxtLink>
 
       <ul class="hidden items-center gap-6 md:flex">
-        <li v-for="link in links" :key="link.label">
-          <NuxtLink v-if="link.ready" :to="link.to" class="text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]">
+        <li v-for="link in links.slice(0, 1)" :key="link.label">
+          <NuxtLink :to="link.to" class="text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]">
             {{ link.label }}
           </NuxtLink>
-          <a v-else :href="link.to" class="text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]">
+        </li>
+        <li class="relative" @mouseenter="productsOpen = true" @mouseleave="productsOpen = false">
+          <a
+            :href="productsHref"
+            class="flex items-center gap-1 text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]"
+            aria-haspopup="true"
+            :aria-expanded="productsOpen"
+            @click="productsOpen = !productsOpen"
+          >
+            {{ t('nav.products') }}
+            <ChevronDown class="h-4 w-4" aria-hidden="true" />
+          </a>
+          <ul
+            v-if="productsOpen"
+            class="absolute start-0 top-full min-w-52 rounded-md border bg-white py-1 shadow-md dark:bg-[#162032]"
+            :style="{ borderColor: 'var(--color-border)' }"
+          >
+            <li>
+              <a :href="productsHref" class="block px-4 py-2.5 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">
+                {{ t('nav.allProducts') }}
+              </a>
+            </li>
+            <li v-for="c in navCats?.categories || []" :key="c.slug">
+              <a :href="`${productsHref}/${c.slug}`" class="block px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">
+                {{ locale === 'ar' ? c.nameAr : c.nameEn }}
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li v-for="link in links.slice(1)" :key="link.label">
+          <a :href="link.to" class="text-sm font-medium text-slate-600 transition-colors hover:text-[#2B71AE] dark:text-slate-300 dark:hover:text-[#F5CC07]">
             {{ link.label }}
           </a>
         </li>
@@ -93,17 +129,38 @@ const cartHref = computed(() => `${prefix.value}/cart`)
 
     <div v-if="mobileOpen" class="border-t px-4 py-3 md:hidden" :style="{ borderColor: 'var(--color-border)' }">
       <ul class="flex flex-col gap-1">
-        <li v-for="link in links" :key="link.label">
+        <li v-for="link in links.slice(0, 1)" :key="link.label">
           <NuxtLink
-            v-if="link.ready"
             :to="link.to"
             class="block rounded-md px-3 py-3 text-base font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
             @click="mobileOpen = false"
           >
             {{ link.label }}
           </NuxtLink>
+        </li>
+        <li>
           <a
-            v-else
+            :href="productsHref"
+            class="block rounded-md px-3 py-3 text-base font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
+            @click="mobileOpen = false"
+          >
+            {{ t('nav.products') }}
+          </a>
+          <ul class="ms-3 border-s ps-2" :style="{ borderColor: 'var(--color-border)' }">
+            <li>
+              <a :href="productsHref" class="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="mobileOpen = false">
+                {{ t('nav.allProducts') }}
+              </a>
+            </li>
+            <li v-for="c in navCats?.categories || []" :key="c.slug">
+              <a :href="`${productsHref}/${c.slug}`" class="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" @click="mobileOpen = false">
+                {{ locale === 'ar' ? c.nameAr : c.nameEn }}
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li v-for="link in links.slice(1)" :key="link.label">
+          <a
             :href="link.to"
             class="block rounded-md px-3 py-3 text-base font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
             @click="mobileOpen = false"

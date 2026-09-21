@@ -12,13 +12,13 @@ const canUsersManage = useAdminCan('users.manage')
 const canSettingsView = useAdminCan('settings.view')
 
 const items = computed(() => [
-  { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, show: true },
-  { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value },
-  { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value },
-  { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
-  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
-  { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },
-  { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value },
+  { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, ready: true },
+  { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value, ready: true },
+  { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value, ready: true },
+  { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value, ready: false },
+  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value, ready: false },
+  { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value, ready: true },
+  { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value, ready: false },
 ])
 </script>
 
@@ -33,7 +33,7 @@ const items = computed(() => [
         <template v-for="item in items" :key="item.label">
           <li v-if="item.show">
             <NuxtLink
-              v-if="item.to === '/admin' || item.to === '/admin/users'"
+              v-if="item.ready"
               :to="item.to"
               class="flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
               active-class="bg-[#2B71AE] text-white"

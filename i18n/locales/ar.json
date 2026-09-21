@@ -31,6 +31,34 @@
     "toggleTheme": "تبديل المظهر",
     "toggleLanguage": "تغيير اللغة",
     "light": "فاتح",
-    "dark": "داكن"
+    "dark": "داكن",
+    "apply": "تطبيق",
+    "noImage": "لا توجد صورة"
+  },
+  "products": {
+    "title": "المنتجات",
+    "subtitle": "تصفح الكتالوج الكامل.",
+    "search": "ابحث في المنتجات…",
+    "sortDefault": "الافتراضي",
+    "sortPriceAsc": "السعر: من الأقل للأعلى",
+    "sortPriceDesc": "السعر: من الأعلى للأقل",
+    "sortNewest": "الأحدث",
+    "filters": "الفلاتر",
+    "category": "الفئة",
+    "priceRange": "نطاق السعر (ج.م)",
+    "min": "من",
+    "max": "إلى",
+    "attribute": "المواصفة",
+    "attrKeyPh": "مثال: العلامة التجارية",
+    "attrValuePh": "مثال: أردوينو",
+    "applyFilters": "تطبيق الفلاتر",
+    "noResults": "لا توجد منتجات",
+    "noResultsHint": "جرّب فلاتر مختلفة أو تصفح الكل.",
+    "browseAll": "تصفح الكل",
+    "addToCart": "أضف إلى السلة",
+    "specs": "المواصفات",
+    "copied": "تم النسخ",
+    "copyLink": "نسخ الرابط",
+    "shareWhatsApp": "واتساب"
   }
 }

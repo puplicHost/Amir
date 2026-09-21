@@ -31,6 +31,34 @@
     "toggleTheme": "Toggle color mode",
     "toggleLanguage": "Switch language",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "apply": "Apply",
+    "noImage": "No image"
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Browse the full catalog.",
+    "search": "Search products…",
+    "sortDefault": "Default",
+    "sortPriceAsc": "Price: low to high",
+    "sortPriceDesc": "Price: high to low",
+    "sortNewest": "Newest",
+    "filters": "Filters",
+    "category": "Category",
+    "priceRange": "Price range (EGP)",
+    "min": "Min",
+    "max": "Max",
+    "attribute": "Attribute",
+    "attrKeyPh": "e.g. Brand",
+    "attrValuePh": "e.g. Arduino",
+    "applyFilters": "Apply filters",
+    "noResults": "No products found",
+    "noResultsHint": "Try different filters, or browse everything.",
+    "browseAll": "Browse all",
+    "addToCart": "Add to cart",
+    "specs": "Specifications",
+    "copied": "Copied",
+    "copyLink": "Copy link",
+    "shareWhatsApp": "WhatsApp"
   }
 }
