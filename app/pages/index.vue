@@ -5,7 +5,13 @@ const localePath = useLocalePath()
 const { data: general } = await useAsyncData('home-general', () => $fetch<any>('/api/settings/general'))
 const { data: contact } = await useAsyncData('home-contact', () => $fetch<any>('/api/settings/contact'))
 const { data: services } = await useAsyncData('home-services', () => $fetch<any[]>('/api/services'))
-const { data: categories } = await useAsyncData('home-categories', () => $fetch<any[]>('/api/categories/featured'))
+const { data: categoryData } = await useAsyncData('home-categories', () => $fetch<{ categories: any[] } | any[]>('/api/categories/featured'))
+
+const categories = computed(() => {
+  if (!categoryData.value) return []
+  if (Array.isArray(categoryData.value)) return categoryData.value
+  return categoryData.value.categories || []
+})
 
 useHead(() => {
   const siteName = general.value ? (locale.value === 'ar' ? general.value.siteNameAr : general.value.siteNameEn) : t('brand.name')
@@ -95,7 +101,7 @@ useHead(() => {
             :to="localePath(`/products/${cat.slug}`)"
             class="group relative h-64 overflow-hidden rounded-xl bg-slate-200"
           >
-            <img v-if="cat.coverImagePath" :src="cat.coverImagePath" class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img v-if="cat.coverImagePath" :src="cat.coverImagePath" :alt="locale === 'ar' ? cat.nameAr : cat.nameEn" class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
               <div>

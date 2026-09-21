@@ -1,6 +1,23 @@
 <script setup lang="ts">
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Eye,
+  Filter,
+  Package,
+  Phone,
+  RotateCcw,
+  Search,
+  ShoppingCart,
+  User,
+} from 'lucide-vue-next'
+
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
+const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 
@@ -22,99 +39,264 @@ interface Order {
   _count: { items: number }
 }
 
-const { data, refresh } = await useAsyncData('admin-orders', () =>
+const { data, refresh, pending } = await useAsyncData('admin-orders', () =>
   $fetch<{ orders: Order[], pages: number, total: number }>(`/api/admin/orders?${new URLSearchParams({
     search: search.value,
     status: status.value,
     paymentMethod: paymentMethod.value,
     page: String(page.value),
   })}`),
-  { watch: [page] }
+  { watch: [page] },
 )
+
+const hasFilters = computed(() => !!(search.value || status.value || paymentMethod.value))
 
 async function applyFilters() {
   page.value = 1
-  await router.replace({ query: { search: search.value || undefined, status: status.value || undefined, paymentMethod: paymentMethod.value || undefined } })
+  await router.replace({
+    query: {
+      search: search.value || undefined,
+      status: status.value || undefined,
+      paymentMethod: paymentMethod.value || undefined,
+    },
+  })
+  await refresh()
+}
+
+async function resetFilters() {
+  search.value = ''
+  status.value = ''
+  paymentMethod.value = ''
+  page.value = 1
+  await router.replace({ query: {} })
   await refresh()
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleString()
-}
-
-const statusColor = (s: string) => {
-  switch (s) {
-    case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-    case 'Processing': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-    case 'Shipped': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-    case 'Delivered': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-    case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-    default: return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-  }
+  return new Date(d).toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 </script>
 
 <template>
   <div>
-    <h1 class="font-heading text-2xl font-bold">Orders</h1>
+    <!-- Page Header -->
+    <AdminPageHeader
+      :title="t('admin.orders')"
+      :description="locale === 'ar' ? 'متابعة وإدارة طلبات المتجر وتحديث حالات الشحن والتسليم.' : 'Monitor e-commerce orders, customer information, and dispatch lifecycles.'"
+    />
 
-    <div class="mt-6 flex flex-wrap gap-2">
-      <input v-model="search" placeholder="Search orders, names, phones..." class="h-10 min-w-64 rounded border bg-transparent px-3 text-sm" :style="{ borderColor: 'var(--color-border)' }" @keyup.enter="applyFilters" />
-      <select v-model="status" class="h-10 rounded border bg-transparent px-2 text-sm" :style="{ borderColor: 'var(--color-border)' }" @change="applyFilters">
-        <option value="">All statuses</option>
-        <option value="Pending">Pending</option>
-        <option value="Processing">Processing</option>
-        <option value="Shipped">Shipped</option>
-        <option value="Delivered">Delivered</option>
-        <option value="Cancelled">Cancelled</option>
-      </select>
-      <select v-model="paymentMethod" class="h-10 rounded border bg-transparent px-2 text-sm" :style="{ borderColor: 'var(--color-border)' }" @change="applyFilters">
-        <option value="">All payment methods</option>
-        <option value="COD">Cash on Delivery</option>
-        <option value="ONLINE">Online Payment</option>
-      </select>
-      <button type="button" class="h-10 rounded border px-4 text-sm" :style="{ borderColor: 'var(--color-border)' }" @click="applyFilters">Apply</button>
+    <!-- Filter Toolbar -->
+    <div
+      class="mb-4 rounded-md border bg-white p-3.5 shadow-xs dark:bg-[#162032]"
+      :style="{ borderColor: 'var(--color-border)' }"
+    >
+      <form class="flex flex-wrap items-center gap-2.5" @submit.prevent="applyFilters">
+        <!-- Search Input -->
+        <div class="relative min-w-48 flex-1 sm:min-w-64">
+          <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <input
+            v-model="search"
+            type="search"
+            :placeholder="locale === 'ar' ? 'بحث برقم الطلب، اسم العميل، الهاتف…' : 'Search by order #, customer, phone…'"
+            class="h-9 w-full rounded-md border bg-white ps-9 pe-3 text-xs placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]"
+            :style="{ borderColor: 'var(--color-border)' }"
+          />
+        </div>
+
+        <!-- Status Filter -->
+        <select
+          v-model="status"
+          class="h-9 rounded-md border bg-white px-3 text-xs text-slate-700 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-300"
+          :style="{ borderColor: 'var(--color-border)' }"
+          @change="applyFilters"
+        >
+          <option value="">{{ locale === 'ar' ? 'جميع الحالات' : 'All Statuses' }}</option>
+          <option value="Pending">Pending (قيد الانتظار)</option>
+          <option value="Processing">Processing (قيد التجهيز)</option>
+          <option value="Shipped">Shipped (تم الشحن)</option>
+          <option value="Delivered">Delivered (تم التسليم)</option>
+          <option value="Cancelled">Cancelled (ملغي)</option>
+        </select>
+
+        <!-- Payment Method Filter -->
+        <select
+          v-model="paymentMethod"
+          class="h-9 rounded-md border bg-white px-3 text-xs text-slate-700 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-300"
+          :style="{ borderColor: 'var(--color-border)' }"
+          @change="applyFilters"
+        >
+          <option value="">{{ locale === 'ar' ? 'جميع طرق الدفع' : 'All Payment Methods' }}</option>
+          <option value="COD">{{ locale === 'ar' ? 'الدفع عند الاستلام (COD)' : 'Cash on Delivery' }}</option>
+          <option value="ONLINE">{{ locale === 'ar' ? 'دفع إلكتروني (Online)' : 'Online Payment' }}</option>
+        </select>
+
+        <!-- Apply Button -->
+        <button
+          type="submit"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
+          <Filter class="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'تصفية' : 'Filter' }}</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button
+          v-if="hasFilters"
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          @click="resetFilters"
+        >
+          <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'إلغاء' : 'Reset' }}</span>
+        </button>
+      </form>
     </div>
 
-    <div class="mt-4 overflow-x-auto rounded-md border" :style="{ borderColor: 'var(--color-border)' }">
-      <table class="w-full min-w-[960px] text-left text-sm">
-        <thead>
-          <tr class="border-b text-xs uppercase tracking-wide text-slate-500" :style="{ borderColor: 'var(--color-border)' }">
-            <th class="px-4 py-3 font-semibold">Order</th>
-            <th class="px-4 py-3 font-semibold">Date</th>
-            <th class="px-4 py-3 font-semibold">Customer</th>
-            <th class="px-4 py-3 font-semibold">Total</th>
-            <th class="px-4 py-3 font-semibold">Status</th>
-            <th class="px-4 py-3 text-right font-semibold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="o in data?.orders || []" :key="o.id" class="border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50" :style="{ borderColor: 'var(--color-border)' }">
-            <td class="px-4 py-3 font-medium">{{ o.orderNumber }}</td>
-            <td class="px-4 py-3 text-slate-500">{{ formatDate(o.createdAt) }}</td>
-            <td class="px-4 py-3">
-              <p>{{ o.customerName }}</p>
-              <p class="text-xs text-slate-500">{{ o.customerPhone }}</p>
-            </td>
-            <td class="px-4 py-3 font-semibold">{{ o.totalAmount }} EGP</td>
-            <td class="px-4 py-3">
-              <span class="rounded-full px-2.5 py-0.5 text-xs font-bold" :class="statusColor(o.status)">{{ o.status }}</span>
-            </td>
-            <td class="px-4 py-3 text-right">
-              <NuxtLink :to="`/admin/orders/${o.id}`" class="rounded px-3 py-1.5 font-medium text-[#2B71AE] hover:bg-slate-100 dark:hover:bg-slate-800">
-                View
-              </NuxtLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-if="!data?.orders?.length" class="px-4 py-8 text-center text-sm text-slate-500">No orders found.</p>
-    </div>
+    <!-- Orders Table Card -->
+    <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[860px] text-start text-sm">
+          <thead>
+            <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'رقم الطلب' : 'Order #' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'تاريخ الإنشاء' : 'Date' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'العميل' : 'Customer' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الإجمالي' : 'Total' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الدفع' : 'Payment' }}</th>
+              <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
+              <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tr
+              v-for="o in data?.orders || []"
+              :key="o.id"
+              class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+            >
+              <!-- Order Number -->
+              <td class="px-4 py-3 font-medium">
+                <NuxtLink
+                  :to="localePath(`/admin/orders/${o.id}`)"
+                  class="font-mono text-xs font-bold text-[#2B71AE] hover:underline dark:text-blue-400"
+                >
+                  {{ o.orderNumber }}
+                </NuxtLink>
+              </td>
 
-    <div v-if="(data?.pages || 0) > 1" class="mt-4 flex items-center gap-2">
-      <button type="button" class="h-10 rounded border px-4 text-sm" :style="{ borderColor: 'var(--color-border)' }" :disabled="page <= 1" @click="page--">‹ Prev</button>
-      <span class="text-sm">Page {{ page }} of {{ data?.pages }}</span>
-      <button type="button" class="h-10 rounded border px-4 text-sm" :style="{ borderColor: 'var(--color-border)' }" :disabled="page >= (data?.pages || 1)" @click="page++">Next ›</button>
+              <!-- Date -->
+              <td class="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+                {{ formatDate(o.createdAt) }}
+              </td>
+
+              <!-- Customer Details -->
+              <td class="px-4 py-3">
+                <div>
+                  <p class="font-semibold text-slate-900 dark:text-slate-100">{{ o.customerName }}</p>
+                  <p class="font-mono text-xs text-slate-500 dark:text-slate-400" dir="ltr">{{ o.customerPhone }}</p>
+                </div>
+              </td>
+
+              <!-- Total -->
+              <td class="px-4 py-3">
+                <div class="flex items-baseline gap-1">
+                  <span class="font-bold text-slate-900 dark:text-slate-100">{{ o.totalAmount }}</span>
+                  <span class="text-xs text-slate-500">EGP</span>
+                  <span class="ms-1 rounded bg-slate-100 px-1.5 py-0.2 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                    {{ o._count?.items || 1 }} {{ locale === 'ar' ? 'عنصر' : 'items' }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Payment -->
+              <td class="px-4 py-3 text-xs">
+                <span
+                  class="inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium"
+                  :class="o.paymentMethod === 'ONLINE' ? 'bg-blue-50 text-[#2B71AE] dark:bg-blue-950/40 dark:text-blue-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                >
+                  <CreditCard class="h-3 w-3" aria-hidden="true" />
+                  <span>{{ o.paymentMethod }}</span>
+                </span>
+              </td>
+
+              <!-- Status Badge -->
+              <td class="px-4 py-3 text-center">
+                <AdminStatusBadge :status="o.status" size="sm" />
+              </td>
+
+              <!-- Actions -->
+              <td class="px-4 py-3 text-end">
+                <NuxtLink
+                  :to="localePath(`/admin/orders/${o.id}`)"
+                  class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                >
+                  <Eye class="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>{{ locale === 'ar' ? 'تفاصيل' : 'Details' }}</span>
+                </NuxtLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="!data?.orders?.length" class="p-8">
+        <AdminEmptyState
+          :title="hasFilters ? (locale === 'ar' ? 'لا توجد طلبات مطابقة للبحث' : 'No orders matching filter') : (locale === 'ar' ? 'لا توجد طلبات مسجلة بعد' : 'No customer orders yet')"
+          :description="hasFilters ? (locale === 'ar' ? 'جرب البحث بمعايير أخرى أو إعادة ضبط الفلاتر.' : 'Try changing status or search criteria.') : (locale === 'ar' ? 'ستظهر هنا طلبات الشراء الواردة من المتجر.' : 'Orders placed on the storefront will appear here.')"
+          :icon="ShoppingCart"
+        >
+          <template #action>
+            <button
+              v-if="hasFilters"
+              type="button"
+              class="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              @click="resetFilters"
+            >
+              <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ locale === 'ar' ? 'إلغاء الفلاتر' : 'Reset filters' }}</span>
+            </button>
+          </template>
+        </AdminEmptyState>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div
+        v-if="(data?.pages || 0) > 1"
+        class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-xs sm:flex-row"
+        :style="{ borderColor: 'var(--color-border)' }"
+      >
+        <span class="text-slate-500">
+          {{ locale === 'ar' ? `الصفحة ${page} من إجمالي ${data?.pages} (${data?.total} طلب)` : `Page ${page} of ${data?.pages} (${data?.total} total orders)` }}
+        </span>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            :disabled="page <= 1"
+            @click="page--"
+          >
+            <ChevronRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
+            <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{{ locale === 'ar' ? 'السابق' : 'Previous' }}</span>
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            :disabled="page >= (data?.pages || 1)"
+            @click="page++"
+          >
+            <span>{{ locale === 'ar' ? 'التالي' : 'Next' }}</span>
+            <ChevronLeft v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
+            <ChevronRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

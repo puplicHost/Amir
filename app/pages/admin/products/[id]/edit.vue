@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
+const { t, locale } = useI18n()
 const route = useRoute()
 const id = String(route.params.id)
 
@@ -11,8 +12,15 @@ const { data, error } = await useAsyncData(`admin-product-${id}`, () =>
 
 <template>
   <div>
-    <h1 class="mb-6 font-heading text-2xl font-bold">Edit product</h1>
-    <p v-if="error" class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">Product not found.</p>
+    <AdminPageHeader
+      :title="locale === 'ar' ? 'تعديل بيانات المنتج' : 'Edit Product'"
+      :description="locale === 'ar' ? 'تعديل المواصفات الفنية، التسعير، والصور.' : 'Update product attributes, retail pricing, and media gallery.'"
+      back-to="/admin/products"
+      :back-label="locale === 'ar' ? 'العودة للمنتجات' : 'Back to Products'"
+    />
+    <p v-if="error" class="rounded-md border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+      {{ locale === 'ar' ? 'المنتج غير موجود أو تعذر تحميل بياناته.' : 'Product not found or failed to load.' }}
+    </p>
     <AdminProductForm v-else-if="data?.product" :existing="data.product as never" />
   </div>
 </template>

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-const { data, refresh } = await useAsyncData('settings-general', () => $fetch('/api/admin/settings'))
+import { Check, Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-vue-next'
+
+const { locale } = useI18n()
+const { data, refresh } = await useAsyncData('settings-general', () => $fetch<any>('/api/admin/settings'))
 
 const form = reactive({
   siteNameAr: '',
@@ -14,6 +17,9 @@ const form = reactive({
 })
 
 const loading = ref(false)
+const uploadingType = ref<string | null>(null)
+const statusMessage = ref('')
+const isError = ref(false)
 
 onMounted(() => {
   if (data.value) Object.assign(form, data.value)
@@ -21,108 +27,217 @@ onMounted(() => {
 
 async function save() {
   loading.value = true
+  statusMessage.value = ''
+  isError.value = false
   try {
     await $fetch('/api/admin/settings/general', { method: 'PUT', body: form })
-    alert('Settings saved')
-  } catch (e: any) {
-    alert('Failed to save')
+    statusMessage.value = locale.value === 'ar' ? 'تم حفظ الإعدادات العامة بنجاح.' : 'General brand settings saved successfully.'
   }
-  loading.value = false
+  catch (e: any) {
+    isError.value = true
+    statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'حدث خطأ أثناء الحفظ.' : 'Failed to save settings.')
+  }
+  finally {
+    loading.value = false
+    setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
+  }
 }
 
-async function uploadFile(type: 'logo'|'favicon'|'hero', event: Event) {
+async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  uploadingType.value = type
+  statusMessage.value = ''
+  isError.value = false
   const fd = new FormData()
   fd.append('file', file)
   try {
     await $fetch(`/api/admin/settings/${type}`, { method: 'POST', body: fd })
     await refresh()
-    alert('Uploaded successfully')
-  } catch (e: any) {
-    alert('Upload failed')
+    statusMessage.value = locale.value === 'ar' ? `تم رفع ملف ${type} بنجاح.` : `${type} uploaded successfully.`
+  }
+  catch (e: any) {
+    isError.value = true
+    statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'فشل رفع الملف.' : 'Upload failed.')
+  }
+  finally {
+    uploadingType.value = null
+    setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
+    ;(event.target as HTMLInputElement).value = ''
   }
 }
+
+const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
 </script>
 
 <template>
-  <form @submit.prevent="save" class="space-y-6">
-    <div class="grid grid-cols-2 gap-4">
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Site Name (EN)</span>
-        <input v-model="form.siteNameEn" type="text" class="w-full rounded border p-2 bg-transparent" />
-      </label>
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Site Name (AR)</span>
-        <input v-model="form.siteNameAr" type="text" class="w-full rounded border p-2 bg-transparent" />
-      </label>
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Tagline (EN)</span>
-        <input v-model="form.taglineEn" type="text" class="w-full rounded border p-2 bg-transparent" />
-      </label>
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Tagline (AR)</span>
-        <input v-model="form.taglineAr" type="text" class="w-full rounded border p-2 bg-transparent" />
-      </label>
+  <form class="space-y-6" @submit.prevent="save">
+    <!-- Inline Feedback Banner -->
+    <div
+      v-if="statusMessage"
+      role="alert"
+      class="rounded-md border p-3 text-xs font-medium transition-all"
+      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
+    >
+      {{ statusMessage }}
     </div>
-    
-    <div class="space-y-4">
-      <h3 class="font-bold text-lg">Assets</h3>
-      <div class="flex gap-4 items-center">
-        <div v-if="data?.logoPath" class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center">
-          <img :src="data.logoPath" class="max-w-full max-h-full object-contain" />
+
+    <!-- Section 1: Brand & Identity -->
+    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+        {{ locale === 'ar' ? 'هوية العلامة التجارية' : 'Brand Identity' }}
+      </h2>
+      <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+        {{ locale === 'ar' ? 'اسم المنصة والشعار اللفظي باللغتين العربية والإنجليزية.' : 'Platform name and corporate tagline displayed across storefront and notifications.' }}
+      </p>
+
+      <div class="space-y-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Site Name (EN)</span>
+            <input v-model="form.siteNameEn" type="text" placeholder="Mango Electronics" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Site Name (AR)</span>
+            <input v-model="form.siteNameAr" type="text" placeholder="مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
         </div>
-        <label class="block flex-1">
-          <span class="mb-1 block text-sm font-medium">Logo</span>
-          <input type="file" @change="uploadFile('logo', $event)" class="text-sm" accept="image/*" />
-        </label>
-      </div>
-      <div class="flex gap-4 items-center">
-        <div v-if="data?.faviconPath" class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center">
-          <img :src="data.faviconPath" class="max-w-full max-h-full object-contain" />
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Tagline (EN)</span>
+            <input v-model="form.taglineEn" type="text" placeholder="Do It Right, Do It Smart" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Tagline (AR)</span>
+            <input v-model="form.taglineAr" type="text" placeholder="اعملها صح، اعملها بذكاء" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
         </div>
-        <label class="block flex-1">
-          <span class="mb-1 block text-sm font-medium">Favicon</span>
-          <input type="file" @change="uploadFile('favicon', $event)" class="text-sm" accept="image/*" />
-        </label>
-      </div>
-      <div class="flex gap-4 items-center">
-        <div v-if="data?.heroImagePath" class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center">
-          <img :src="data.heroImagePath" class="max-w-full max-h-full object-cover" />
-        </div>
-        <label class="block flex-1">
-          <span class="mb-1 block text-sm font-medium">Hero Image</span>
-          <input type="file" @change="uploadFile('hero', $event)" class="text-sm" accept="image/*" />
-        </label>
       </div>
     </div>
 
-    <div class="space-y-4">
-      <h3 class="font-bold text-lg">Banner</h3>
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Banner Text (EN)</span>
-        <textarea v-model="form.bannerTextEn" rows="2" class="w-full rounded border p-2 bg-transparent"></textarea>
-      </label>
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Banner Text (AR)</span>
-        <textarea v-model="form.bannerTextAr" rows="2" class="w-full rounded border p-2 bg-transparent"></textarea>
-      </label>
-      <div class="grid grid-cols-2 gap-4">
-        <label class="block">
-          <span class="mb-1 block text-sm font-medium">Button Text (EN)</span>
-          <input v-model="form.bannerButtonTextEn" type="text" class="w-full rounded border p-2 bg-transparent" />
-        </label>
-        <label class="block">
-          <span class="mb-1 block text-sm font-medium">Button Text (AR)</span>
-          <input v-model="form.bannerButtonTextAr" type="text" class="w-full rounded border p-2 bg-transparent" />
-        </label>
+    <!-- Section 2: Visual Brand Assets -->
+    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+        {{ locale === 'ar' ? 'الأصول والوسائط البصرية' : 'Visual Assets' }}
+      </h2>
+      <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+        {{ locale === 'ar' ? 'الشعار الرسمي، أيقونة المتصفح، وخلفية القسم الترحيبي (Hero).' : 'Official logo, favicon, and hero section background imagery.' }}
+      </p>
+
+      <div class="space-y-4">
+        <!-- Logo Upload -->
+        <div class="flex flex-col gap-3 rounded-md border p-3.5 sm:flex-row sm:items-center sm:justify-between" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="flex items-center gap-3">
+            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border bg-slate-50 p-1.5 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+              <img v-if="data?.logoPath" :src="data.logoPath" alt="Logo preview" class="max-h-full max-w-full object-contain" />
+              <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-900 dark:text-slate-100">Storefront Logo</p>
+              <p class="text-[11px] text-slate-400">PNG or SVG with transparent background recommended.</p>
+            </div>
+          </div>
+          <div>
+            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#2B71AE] px-3.5 py-1.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400">
+              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ uploadingType === 'logo' ? 'Uploading…' : 'Upload Logo' }}</span>
+              <input type="file" accept="image/*" class="hidden" @change="uploadFile('logo', $event)" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Favicon Upload -->
+        <div class="flex flex-col gap-3 rounded-md border p-3.5 sm:flex-row sm:items-center sm:justify-between" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="flex items-center gap-3">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border bg-slate-50 p-1.5 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+              <img v-if="data?.faviconPath" :src="data.faviconPath" alt="Favicon preview" class="h-6 w-6 object-contain" />
+              <ImageIcon v-else class="h-5 w-5 text-slate-400" aria-hidden="true" />
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-900 dark:text-slate-100">Favicon</p>
+              <p class="text-[11px] text-slate-400">Square 32x32px or 64x64px browser icon.</p>
+            </div>
+          </div>
+          <div>
+            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ uploadingType === 'favicon' ? 'Uploading…' : 'Upload Favicon' }}</span>
+              <input type="file" accept="image/x-icon,image/png" class="hidden" @change="uploadFile('favicon', $event)" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Hero Background Upload -->
+        <div class="flex flex-col gap-3 rounded-md border p-3.5 sm:flex-row sm:items-center sm:justify-between" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="flex items-center gap-3">
+            <div class="flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-slate-50 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+              <img v-if="data?.heroImagePath" :src="data.heroImagePath" alt="Hero background" class="h-full w-full object-cover" />
+              <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-900 dark:text-slate-100">Homepage Hero Image</p>
+              <p class="text-[11px] text-slate-400">High-resolution banner background (1920x800 recommended).</p>
+            </div>
+          </div>
+          <div>
+            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ uploadingType === 'hero' ? 'Uploading…' : 'Upload Hero Image' }}</span>
+              <input type="file" accept="image/*" class="hidden" @change="uploadFile('hero', $event)" />
+            </label>
+          </div>
+        </div>
       </div>
-      <label class="block">
-        <span class="mb-1 block text-sm font-medium">Button URL</span>
-        <input v-model="form.bannerButtonUrl" type="text" class="w-full rounded border p-2 bg-transparent" />
-      </label>
     </div>
 
-    <button type="submit" :disabled="loading" class="rounded bg-[#2B71AE] px-4 py-2 font-bold text-white hover:bg-[#285E8E] disabled:opacity-50">Save General Settings</button>
+    <!-- Section 3: Promotional Banner -->
+    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3.5 flex items-center gap-2">
+        <Sparkles class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
+        <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+          {{ locale === 'ar' ? 'البانر الترويجي العام' : 'Store Promotional Banner' }}
+        </h2>
+      </div>
+
+      <div class="space-y-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Banner Text (EN)</span>
+            <textarea v-model="form.bannerTextEn" rows="2" placeholder="e.g. 20% off all maintenance services" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Banner Text (AR)</span>
+            <textarea v-model="form.bannerTextAr" rows="2" dir="rtl" placeholder="مثال: خصم 20% على جميع خدمات الصيانة" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (EN)</span>
+            <input v-model="form.bannerButtonTextEn" type="text" placeholder="Book Now" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (AR)</span>
+            <input v-model="form.bannerButtonTextAr" type="text" placeholder="احجز الآن" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Target URL</span>
+            <input v-model="form.bannerButtonUrl" type="text" placeholder="/services" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Action Button -->
+    <div class="flex items-center justify-end gap-3 pt-2">
+      <button
+        type="submit"
+        :disabled="loading"
+        class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:opacity-50"
+      >
+        <span>{{ loading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الإعدادات العامة' : 'Save General Settings') }}</span>
+      </button>
+    </div>
   </form>
 </template>

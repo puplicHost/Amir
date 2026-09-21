@@ -1,10 +1,17 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+
+const { t, locale } = useI18n()
 </script>
 
 <template>
   <div>
-    <h1 class="mb-6 font-heading text-2xl font-bold">Add product</h1>
+    <AdminPageHeader
+      :title="locale === 'ar' ? 'إضافة منتج جديد' : 'Add New Product'"
+      :description="locale === 'ar' ? 'أدخل تفاصيل ومواصفات وأسعار وصور المنتج الجديد.' : 'Configure technical specs, inventory pricing, and high-resolution product media.'"
+      back-to="/admin/products"
+      :back-label="locale === 'ar' ? 'العودة للمنتجات' : 'Back to Products'"
+    />
     <AdminProductForm />
   </div>
 </template>

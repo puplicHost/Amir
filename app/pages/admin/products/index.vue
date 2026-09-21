@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ChevronLeft, ChevronRight, ExternalLink, Filter, Package, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next'
+
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 interface Row {
@@ -7,11 +9,14 @@ interface Row {
   nameAr: string
   nameEn: string
   price: string | number
+  compareAtPrice: string | number | null
   isActive: boolean
   category: { id: string, slug: string, nameAr: string, nameEn: string }
   images: { path: string }[]
 }
 
+const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 
@@ -19,12 +24,13 @@ const search = ref(String(route.query.search || ''))
 const categoryId = ref(String(route.query.categoryId || ''))
 const status = ref(String(route.query.status || ''))
 const page = ref(Number(route.query.page) || 1)
+const deletingId = ref<string | null>(null)
 
 const { data: catData } = await useAsyncData('admin-product-categories', () =>
-  $fetch<{ categories: { id: string, nameEn: string }[] }>('/api/categories'),
+  $fetch<{ categories: { id: string, nameEn: string, nameAr: string }[] }>('/api/categories'),
 )
 
-const { data, refresh } = await useAsyncData('admin-products', () => $fetch<{ products: Row[], total: number, pages: number }>(
+const { data, refresh, pending } = await useAsyncData('admin-products', () => $fetch<{ products: Row[], total: number, pages: number }>(
   `/api/admin/products?${new URLSearchParams({
     search: search.value,
     categoryId: categoryId.value,
@@ -33,80 +39,292 @@ const { data, refresh } = await useAsyncData('admin-products', () => $fetch<{ pr
   })}`,
 ), { watch: [page] })
 
+const hasFilters = computed(() => !!(search.value || categoryId.value || status.value))
+
 async function applyFilters() {
   page.value = 1
-  await router.replace({ query: { search: search.value || undefined, categoryId: categoryId.value || undefined, status: status.value || undefined } })
+  await router.replace({
+    query: {
+      search: search.value || undefined,
+      categoryId: categoryId.value || undefined,
+      status: status.value || undefined,
+    },
+  })
+  await refresh()
+}
+
+async function resetFilters() {
+  search.value = ''
+  categoryId.value = ''
+  status.value = ''
+  page.value = 1
+  await router.replace({ query: {} })
   await refresh()
 }
 
 async function removeProduct(p: Row) {
-  if (!confirm(`Delete ${p.nameEn}? Images will be removed from storage.`)) return
-  await $fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
-  await refresh()
+  if (!confirm(`Are you sure you want to delete "${p.nameEn}"? All product images will be permanently removed.`)) return
+  deletingId.value = p.id
+  try {
+    await $fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
+    await refresh()
+  }
+  catch (e) {
+    alert((e as { data?: { message?: string } })?.data?.message || 'Delete failed')
+  }
+  finally {
+    deletingId.value = null
+  }
 }
 </script>
 
 <template>
   <div>
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="font-heading text-2xl font-bold">Products</h1>
-      <NuxtLink to="/admin/products/new" class="flex h-10 items-center rounded bg-[#2B71AE] px-4 font-semibold text-white hover:bg-[#285E8E]">
-        Add product
-      </NuxtLink>
+    <!-- Page Header -->
+    <AdminPageHeader
+      :title="t('admin.products')"
+      :description="locale === 'ar' ? 'إدارة كتالوج المنتجات، المواصفات، الأسعار، وصور العرض.' : 'Manage product catalog, technical attributes, prices, and media galleries.'"
+    >
+      <template #actions>
+        <NuxtLink
+          :to="localePath('/admin/products/new')"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
+        >
+          <Plus class="h-4 w-4" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'إضافة منتج' : 'Add Product' }}</span>
+        </NuxtLink>
+      </template>
+    </AdminPageHeader>
+
+    <!-- Filter Toolbar -->
+    <div
+      class="mb-4 rounded-md border bg-white p-3.5 shadow-xs dark:bg-[#162032]"
+      :style="{ borderColor: 'var(--color-border)' }"
+    >
+      <form class="flex flex-wrap items-center gap-2.5" @submit.prevent="applyFilters">
+        <!-- Search Input -->
+        <div class="relative min-w-48 flex-1 sm:min-w-64">
+          <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <input
+            v-model="search"
+            type="search"
+            :placeholder="locale === 'ar' ? 'بحث بالاسم أو الكود…' : 'Search by product name or slug…'"
+            class="h-9 w-full rounded-md border bg-white ps-9 pe-3 text-xs placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]"
+            :style="{ borderColor: 'var(--color-border)' }"
+          />
+        </div>
+
+        <!-- Category Dropdown -->
+        <select
+          v-model="categoryId"
+          class="h-9 rounded-md border bg-white px-3 text-xs text-slate-700 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-300"
+          :style="{ borderColor: 'var(--color-border)' }"
+          @change="applyFilters"
+        >
+          <option value="">{{ locale === 'ar' ? 'جميع الفئات' : 'All Categories' }}</option>
+          <option v-for="c in catData?.categories || []" :key="c.id" :value="c.id">
+            {{ locale === 'ar' ? (c.nameAr || c.nameEn) : c.nameEn }}
+          </option>
+        </select>
+
+        <!-- Status Dropdown -->
+        <select
+          v-model="status"
+          class="h-9 rounded-md border bg-white px-3 text-xs text-slate-700 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-300"
+          :style="{ borderColor: 'var(--color-border)' }"
+          @change="applyFilters"
+        >
+          <option value="">{{ locale === 'ar' ? 'جميع الحالات' : 'All Statuses' }}</option>
+          <option value="active">{{ locale === 'ar' ? 'نشط فقط' : 'Active Only' }}</option>
+          <option value="inactive">{{ locale === 'ar' ? 'غير نشط' : 'Inactive Only' }}</option>
+        </select>
+
+        <!-- Apply Button -->
+        <button
+          type="submit"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
+          <Filter class="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'تصفية' : 'Filter' }}</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button
+          v-if="hasFilters"
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          @click="resetFilters"
+        >
+          <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'إلغاء الفلاتر' : 'Reset' }}</span>
+        </button>
+      </form>
     </div>
 
-    <div class="mt-4 flex flex-wrap gap-2">
-      <input v-model="search" placeholder="Search by name…" class="h-10 rounded border bg-transparent px-3 text-sm" :style="{ borderColor: 'var(--color-border)' }" @keyup.enter="applyFilters" />
-      <select v-model="categoryId" class="h-10 rounded border bg-transparent px-2 text-sm" :style="{ borderColor: 'var(--color-border)' }" @change="applyFilters">
-        <option value="">All categories</option>
-        <option v-for="c in catData?.categories || []" :key="c.id" :value="c.id">{{ c.nameEn }}</option>
-      </select>
-      <select v-model="status" class="h-10 rounded border bg-transparent px-2 text-sm" :style="{ borderColor: 'var(--color-border)' }" @change="applyFilters">
-        <option value="">All statuses</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-      <button type="button" class="h-10 rounded border px-4 text-sm" :style="{ borderColor: 'var(--color-border)' }" @click="applyFilters">Apply</button>
-    </div>
+    <!-- Products Table Card -->
+    <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[760px] text-start text-sm">
+          <thead>
+            <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الفئة' : 'Category' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'السعر' : 'Price' }}</th>
+              <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
+              <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tr
+              v-for="p in data?.products || []"
+              :key="p.id"
+              class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+            >
+              <!-- Product Image & Name -->
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-11 w-11 shrink-0 overflow-hidden rounded-md border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
+                    <img
+                      v-if="p.images[0]"
+                      :src="p.images[0].path"
+                      :alt="p.nameEn"
+                      class="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div v-else class="flex h-full w-full items-center justify-center text-slate-400">
+                      <Package class="h-5 w-5" aria-hidden="true" />
+                    </div>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="truncate font-semibold text-slate-900 dark:text-slate-100">{{ p.nameEn }}</p>
+                    <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ p.nameAr }}</p>
+                  </div>
+                </div>
+              </td>
 
-    <div class="mt-4 overflow-x-auto rounded-md border" :style="{ borderColor: 'var(--color-border)' }">
-      <table class="w-full min-w-[760px] text-left text-sm">
-        <thead>
-          <tr class="border-b text-xs uppercase tracking-wide text-slate-500" :style="{ borderColor: 'var(--color-border)' }">
-            <th class="px-4 py-3 font-semibold">Product</th>
-            <th class="px-4 py-3 font-semibold">Category</th>
-            <th class="px-4 py-3 font-semibold">Price</th>
-            <th class="px-4 py-3 font-semibold">Status</th>
-            <th class="px-4 py-3 text-right font-semibold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in data?.products || []" :key="p.id" class="border-b last:border-0" :style="{ borderColor: 'var(--color-border)' }">
-            <td class="px-4 py-2">
-              <span class="flex items-center gap-2">
-                <img v-if="p.images[0]" :src="p.images[0].path" :alt="p.nameEn" class="h-12 w-12 rounded object-cover" loading="lazy" width="48" height="48" />
-                <span v-else class="flex h-12 w-12 items-center justify-center rounded bg-slate-200 text-xs text-slate-500 dark:bg-slate-700">—</span>
-                <span class="font-medium">{{ p.nameEn }}</span>
-              </span>
-            </td>
-            <td class="px-4 py-3">{{ p.category.nameEn }}</td>
-            <td class="px-4 py-3 font-semibold">{{ p.price }} EGP</td>
-            <td class="px-4 py-3">{{ p.isActive ? 'Active' : 'Inactive' }}</td>
-            <td class="px-4 py-3 text-right">
-              <NuxtLink :to="`/admin/products/${p.id}/edit`" class="rounded px-2 py-1.5 font-medium text-[#2B71AE] hover:bg-slate-100 dark:hover:bg-slate-800">Edit</NuxtLink>
-              <a :href="`/p/${p.slug}`" target="_blank" rel="noopener" class="rounded px-2 py-1.5 font-medium text-[#2B71AE] hover:bg-slate-100 dark:hover:bg-slate-800">View</a>
-              <button type="button" class="rounded px-2 py-1.5 font-medium text-red-600 hover:bg-red-50" @click="removeProduct(p)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-if="!data?.products?.length" class="px-4 py-8 text-center text-sm text-slate-500">No products yet.</p>
-    </div>
+              <!-- Category -->
+              <td class="px-4 py-3">
+                <span class="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {{ locale === 'ar' ? (p.category.nameAr || p.category.nameEn) : p.category.nameEn }}
+                </span>
+              </td>
 
-    <div v-if="(data?.pages || 0) > 1" class="mt-4 flex items-center gap-2">
-      <button type="button" class="h-10 rounded border px-4 text-sm" :style="{ borderColor: 'var(--color-border)' }" :disabled="page <= 1" @click="page--">‹ Prev</button>
-      <span class="text-sm">Page {{ page }} of {{ data?.pages }}</span>
-      <button type="button" class="h-10 rounded border px-4 text-sm" :style="{ borderColor: 'var(--color-border)' }" :disabled="page >= (data?.pages || 1)" @click="page++">Next ›</button>
+              <!-- Price -->
+              <td class="px-4 py-3">
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-bold text-slate-900 dark:text-slate-100">{{ p.price }}</span>
+                  <span class="text-xs text-slate-500 font-medium">EGP</span>
+                  <span
+                    v-if="p.compareAtPrice"
+                    class="ms-1 text-xs text-slate-400 line-through"
+                  >
+                    {{ p.compareAtPrice }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Status Badge -->
+              <td class="px-4 py-3 text-center">
+                <AdminStatusBadge :status="p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive')" size="sm" />
+              </td>
+
+              <!-- Actions -->
+              <td class="px-4 py-3 text-end">
+                <div class="flex items-center justify-end gap-1.5">
+                  <NuxtLink
+                    :to="localePath(`/admin/products/${p.id}/edit`)"
+                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                  >
+                    <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
+                  </NuxtLink>
+                  <a
+                    :href="localePath(`/p/${p.slug}`)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                    :title="locale === 'ar' ? 'عرض في الموقع' : 'Preview on public site'"
+                  >
+                    <ExternalLink class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'معاينة' : 'View' }}</span>
+                  </a>
+                  <button
+                    type="button"
+                    :disabled="deletingId === p.id"
+                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                    @click="removeProduct(p)"
+                  >
+                    <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'حذف' : 'Delete' }}</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="!data?.products?.length" class="p-8">
+        <AdminEmptyState
+          :title="hasFilters ? (locale === 'ar' ? 'لا توجد منتجات مطابقة للبحث' : 'No products matching filters') : (locale === 'ar' ? 'لا توجد منتجات مسجلة حتى الآن' : 'No products in catalog yet')"
+          :description="hasFilters ? (locale === 'ar' ? 'جرب تعديل خيارات البحث أو التصفية.' : 'Try changing search terms or clearing active filters.') : (locale === 'ar' ? 'ابدأ بإضافة أول منتج للمتجر.' : 'Get started by creating your first product.')"
+          :icon="Package"
+        >
+          <template #action>
+            <button
+              v-if="hasFilters"
+              type="button"
+              class="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              @click="resetFilters"
+            >
+              <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ locale === 'ar' ? 'إعادة ضبط الفلاتر' : 'Reset filters' }}</span>
+            </button>
+            <NuxtLink
+              v-else
+              :to="localePath('/admin/products/new')"
+              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E]"
+            >
+              <Plus class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ locale === 'ar' ? 'إضافة منتج' : 'Add Product' }}</span>
+            </NuxtLink>
+          </template>
+        </AdminEmptyState>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div
+        v-if="(data?.pages || 0) > 1"
+        class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-xs sm:flex-row"
+        :style="{ borderColor: 'var(--color-border)' }"
+      >
+        <span class="text-slate-500">
+          {{ locale === 'ar' ? `الصفحة ${page} من إجمالي ${data?.pages} (إجمالي المنتجات: ${data?.total})` : `Showing page ${page} of ${data?.pages} (${data?.total} total products)` }}
+        </span>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            :disabled="page <= 1"
+            @click="page--"
+          >
+            <ChevronRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
+            <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{{ locale === 'ar' ? 'السابق' : 'Previous' }}</span>
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            :disabled="page >= (data?.pages || 1)"
+            @click="page++"
+          >
+            <span>{{ locale === 'ar' ? 'التالي' : 'Next' }}</span>
+            <ChevronLeft v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
+            <ChevronRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

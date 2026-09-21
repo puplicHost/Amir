@@ -1,42 +1,63 @@
 <script setup lang="ts">
+import {
+  CreditCard,
+  Globe,
+  Phone,
+  Sliders,
+  Store,
+} from 'lucide-vue-next'
+
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
-const activeTab = ref('general')
+const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
-const tabs = [
-  { id: 'general', label: 'General', ready: true },
-  { id: 'contact', label: 'Contact', ready: true },
-  { id: 'seo', label: 'SEO / GEO', ready: true },
-  { id: 'store', label: 'Store Config', ready: true },
-  { id: 'payment', label: 'Payment', ready: true },
-]
+const activeTab = ref((route.query.tab as string) || 'general')
+
+const tabs = computed(() => [
+  { id: 'general', label: locale.value === 'ar' ? 'عام والهوية' : 'General & Brand', icon: Sliders },
+  { id: 'contact', label: locale.value === 'ar' ? 'التواصل والموقع' : 'Contact & Social', icon: Phone },
+  { id: 'seo', label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI Discovery', icon: Globe },
+  { id: 'store', label: locale.value === 'ar' ? 'تهيئة المتجر' : 'Store Config', icon: Store },
+  { id: 'payment', label: locale.value === 'ar' ? 'بوابات الدفع' : 'Payment Gateways', icon: CreditCard },
+])
+
+function switchTab(id: string) {
+  activeTab.value = id
+  router.replace({ query: { tab: id } })
+}
 </script>
 
 <template>
   <div>
-    <h1 class="font-heading text-2xl font-bold">Settings</h1>
-    <div class="mt-6 border-b" :style="{ borderColor: 'var(--color-border)' }">
-      <nav class="-mb-px flex gap-6" aria-label="Tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          type="button"
-          class="whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors"
-          :class="[
-            activeTab === tab.id
-              ? 'border-[#2B71AE] text-[#2B71AE] dark:border-[#F5CC07] dark:text-[#F5CC07]'
-              : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:hover:text-slate-300',
-            { 'opacity-40 cursor-not-allowed': !tab.ready }
-          ]"
-          :disabled="!tab.ready"
-          @click="activeTab = tab.id"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
+    <!-- Header -->
+    <AdminPageHeader
+      :title="t('admin.settings')"
+      :description="locale === 'ar' ? 'تخصيص هوية المنصة، بيانات الاتصال، إعدادات محركات البحث، وطرق الدفع.' : 'Configure brand identity, contact channels, search indexing metadata, and payment gateways.'"
+    />
+
+    <!-- Tabs Navigation Bar -->
+    <div class="mb-6 flex flex-wrap gap-1 border-b" :style="{ borderColor: 'var(--color-border)' }">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        type="button"
+        class="inline-flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors"
+        :class="[
+          activeTab === tab.id
+            ? 'border-[#2B71AE] text-[#2B71AE] dark:border-[#F5CC07] dark:text-[#F5CC07]'
+            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:hover:text-slate-300'
+        ]"
+        @click="switchTab(tab.id)"
+      >
+        <component :is="tab.icon" class="h-4 w-4" aria-hidden="true" />
+        <span>{{ tab.label }}</span>
+      </button>
     </div>
 
-    <div class="mt-6 max-w-2xl">
+    <!-- Active Tab Content Area -->
+    <div class="max-w-3xl">
       <div v-if="activeTab === 'general'">
         <AdminSettingsGeneral />
       </div>
