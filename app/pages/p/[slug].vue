@@ -81,13 +81,22 @@ useHead(() => ({
   ]
 }))
 
-useSeoMeta(() => ({
-  title: `${name.value} | ${t('brand.name')}`,
-  description: desc.value || undefined,
-  ogTitle: `${name.value} | ${t('brand.name')}`,
-  ogDescription: desc.value || undefined,
-  ogImage: cover.value || undefined,
-}))
+// NOTE: Title/meta use useHead (not useSeoMeta) — useSeoMeta silently emitted
+// no <title>/meta during SSR on this page. Same useHead pattern as products/[slug].vue.
+useHead(() => {
+  const title = name.value ? `${name.value} | ${t('brand.name')}` : t('brand.name')
+  const description = desc.value || data.value?.product.seo?.metaDescriptionEn || undefined
+  const image = cover.value || undefined
+  return {
+    title,
+    meta: [
+      ...(description ? [{ name: 'description', content: description }] : []),
+      { property: 'og:title', content: title },
+      ...(description ? [{ property: 'og:description', content: description }] : []),
+      ...(image ? [{ property: 'og:image', content: image }] : []),
+    ],
+  }
+})
 
 const cart = useCartStore()
 

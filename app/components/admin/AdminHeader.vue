@@ -68,7 +68,8 @@ const userInitials = computed(() => {
         <span>{{ locale === 'ar' ? 'English' : 'عربي' }}</span>
       </button>
 
-      <!-- Theme toggle -->
+      <!-- Theme toggle (icon is client-dependent: colorMode resolves 'system' only
+        on the client, so SSR renders the Moon fallback to avoid hydration mismatch) -->
       <button
         type="button"
         :aria-label="t('common.toggleTheme')"
@@ -76,8 +77,13 @@ const userInitials = computed(() => {
         class="flex h-9 w-9 items-center justify-center rounded-md border text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
         @click="toggleTheme"
       >
-        <Moon v-if="!isDark" class="h-4 w-4" aria-hidden="true" />
-        <Sun v-else class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
+        <ClientOnly>
+          <Moon v-if="!isDark" class="h-4 w-4" aria-hidden="true" />
+          <Sun v-else class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
+          <template #fallback>
+            <Moon class="h-4 w-4" aria-hidden="true" />
+          </template>
+        </ClientOnly>
       </button>
 
       <div class="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />

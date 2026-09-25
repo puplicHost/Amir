@@ -197,7 +197,7 @@ const isProductsActive = computed(() => {
           <span>{{ locale === 'ar' ? 'English' : 'العربية' }}</span>
         </button>
 
-        <!-- Theme Toggle -->
+        <!-- Theme Toggle (ClientOnly icon: colorMode resolves 'system' client-side only) -->
         <button
           type="button"
           :aria-label="t('common.toggleTheme')"
@@ -205,8 +205,13 @@ const isProductsActive = computed(() => {
           class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50/80 text-slate-700 hover:bg-slate-100 active:scale-95 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:bg-slate-800 transition-all"
           @click="toggleTheme"
         >
-          <Moon v-if="!isDark" class="h-4 w-4 text-slate-600" aria-hidden="true" />
-          <Sun v-else class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
+          <ClientOnly>
+            <Moon v-if="!isDark" class="h-4 w-4 text-slate-600" aria-hidden="true" />
+            <Sun v-else class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
+            <template #fallback>
+              <Moon class="h-4 w-4 text-slate-600" aria-hidden="true" />
+            </template>
+          </ClientOnly>
         </button>
 
         <div class="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
@@ -324,9 +329,14 @@ const isProductsActive = computed(() => {
           :style="{ borderColor: 'var(--color-border)' }"
           @click="toggleTheme"
         >
-          <Moon v-if="!isDark" class="h-4 w-4 text-slate-500" aria-hidden="true" />
-          <Sun v-else class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
-          <span>{{ isDark ? t('common.light') : t('common.dark') }}</span>
+          <ClientOnly>
+            <Moon v-if="!isDark" class="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <Sun v-else class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
+            <template #fallback>
+              <Moon class="h-4 w-4 text-slate-500" aria-hidden="true" />
+            </template>
+          </ClientOnly>
+          <span><ClientOnly>{{ isDark ? t('common.light') : t('common.dark') }}<template #fallback>{{ t('common.dark') }}</template></ClientOnly></span>
         </button>
       </div>
     </div>

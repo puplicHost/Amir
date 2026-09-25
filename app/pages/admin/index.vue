@@ -334,9 +334,13 @@ const quickActions = computed(() => [
                     {{ formatCurrency(order.totalAmount) }}
                   </td>
 
-                  <!-- Time -->
+                  <!-- Time (relative time depends on wall-clock "now", which differs
+                    between SSR and hydration — ClientOnly with absolute-date fallback) -->
                   <td class="px-5 py-3.5 whitespace-nowrap text-end text-[11px] text-slate-500 dark:text-slate-400">
-                    {{ formatRelativeTime(order.createdAt) }}
+                    <ClientOnly>
+                      {{ formatRelativeTime(order.createdAt) }}
+                      <template #fallback>{{ formatDate(order.createdAt) }}</template>
+                    </ClientOnly>
                   </td>
                 </tr>
               </tbody>
@@ -422,11 +426,14 @@ const quickActions = computed(() => [
                 </div>
               </div>
 
-              <!-- Status Badge & Relative Time -->
+              <!-- Status Badge & Relative Time (ClientOnly: wall-clock dependent, see above) -->
               <div class="flex flex-col items-end gap-1.5 ps-2 shrink-0">
                 <AdminStatusBadge :status="req.status" size="sm" />
                 <span class="text-[10px] text-slate-400 dark:text-slate-500">
-                  {{ formatRelativeTime(req.submittedAt) }}
+                  <ClientOnly>
+                    {{ formatRelativeTime(req.submittedAt) }}
+                    <template #fallback>{{ formatDate(req.submittedAt) }}</template>
+                  </ClientOnly>
                 </span>
               </div>
             </NuxtLink>

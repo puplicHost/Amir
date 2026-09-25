@@ -75,8 +75,14 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
           class="flex h-8 w-8 items-center justify-center rounded-md border text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
           @click="toggleTheme"
         >
-          <Moon v-if="!isDark" class="h-3.5 w-3.5" aria-hidden="true" />
-          <Sun v-else class="h-3.5 w-3.5 text-[#F5CC07]" aria-hidden="true" />
+          <!-- ClientOnly: colorMode resolves 'system' on the client only (see AdminHeader) -->
+          <ClientOnly>
+            <Moon v-if="!isDark" class="h-3.5 w-3.5" aria-hidden="true" />
+            <Sun v-else class="h-3.5 w-3.5 text-[#F5CC07]" aria-hidden="true" />
+            <template #fallback>
+              <Moon class="h-3.5 w-3.5" aria-hidden="true" />
+            </template>
+          </ClientOnly>
         </button>
       </div>
     </div>
