@@ -21,6 +21,16 @@ const uploadingType = ref<string | null>(null)
 const statusMessage = ref('')
 const isError = ref(false)
 
+// Non-blocking hints: flag EN-filled / AR-empty pairs so missing translations are noticed before publishing.
+const missingAr = computed(() => ({
+  siteName: !!form.siteNameEn.trim() && !form.siteNameAr.trim(),
+  tagline: !!form.taglineEn.trim() && !form.taglineAr.trim(),
+  bannerText: !!form.bannerTextEn.trim() && !form.bannerTextAr.trim(),
+  bannerButtonText: !!form.bannerButtonTextEn.trim() && !form.bannerButtonTextAr.trim(),
+}))
+
+const missingArCount = computed(() => Object.values(missingAr.value).filter(Boolean).length)
+
 onMounted(() => {
   if (data.value) Object.assign(form, data.value)
 })
@@ -99,7 +109,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Site Name (AR)</span>
-            <input v-model="form.siteNameAr" type="text" placeholder="مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.siteNameAr" type="text" placeholder="مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: missingAr.siteName ? '#F59E0B' : 'var(--color-border)' }" />
+            <span v-if="missingAr.siteName" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              {{ locale === 'ar' ? 'تنبيه: الاسم بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
+            </span>
           </label>
         </div>
 
@@ -110,7 +123,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Tagline (AR)</span>
-            <input v-model="form.taglineAr" type="text" placeholder="اعملها صح، اعملها بذكاء" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.taglineAr" type="text" placeholder="اعملها صح، اعملها بذكاء" dir="rtl" :class="inputCls" :style="{ borderColor: missingAr.tagline ? '#F59E0B' : 'var(--color-border)' }" />
+            <span v-if="missingAr.tagline" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
+            </span>
           </label>
         </div>
       </div>
@@ -208,7 +224,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Banner Text (AR)</span>
-            <textarea v-model="form.bannerTextAr" rows="2" dir="rtl" placeholder="مثال: خصم 20% على جميع خدمات الصيانة" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+            <textarea v-model="form.bannerTextAr" rows="2" dir="rtl" placeholder="مثال: خصم 20% على جميع خدمات الصيانة" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: missingAr.bannerText ? '#F59E0B' : 'var(--color-border)' }" />
+            <span v-if="missingAr.bannerText" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
+            </span>
           </label>
         </div>
 
@@ -219,7 +238,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (AR)</span>
-            <input v-model="form.bannerButtonTextAr" type="text" placeholder="احجز الآن" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.bannerButtonTextAr" type="text" placeholder="احجز الآن" dir="rtl" :class="inputCls" :style="{ borderColor: missingAr.bannerButtonText ? '#F59E0B' : 'var(--color-border)' }" />
+            <span v-if="missingAr.bannerButtonText" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
+            </span>
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Target URL</span>
@@ -230,7 +252,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
     </div>
 
     <!-- Submit Action Button -->
-    <div class="flex items-center justify-end gap-3 pt-2">
+    <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+      <span v-if="missingArCount > 0" class="me-auto text-[11px] font-medium text-amber-600 dark:text-amber-400">
+        {{ locale === 'ar' ? `يوجد ${missingArCount} حقول عربية فارغة رغم وجود مقابلها الإنجليزي.` : `${missingArCount} Arabic field${missingArCount > 1 ? 's' : ''} empty while English is filled.` }}
+      </span>
       <button
         type="submit"
         :disabled="loading"

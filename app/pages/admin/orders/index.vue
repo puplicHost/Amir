@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import {
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   CreditCard,
   Eye,
   Filter,
@@ -25,6 +23,7 @@ const search = ref(String(route.query.search || ''))
 const status = ref(String(route.query.status || ''))
 const paymentMethod = ref(String(route.query.paymentMethod || ''))
 const page = ref(Number(route.query.page) || 1)
+const limit = 20
 
 interface Order {
   id: string
@@ -45,11 +44,24 @@ const { data, refresh, pending } = await useAsyncData('admin-orders', () =>
     status: status.value,
     paymentMethod: paymentMethod.value,
     page: String(page.value),
+    limit: String(limit),
   })}`),
   { watch: [page] },
 )
 
 const hasFilters = computed(() => !!(search.value || status.value || paymentMethod.value))
+
+async function gotoPage(p: number) {
+  page.value = p
+  await router.replace({
+    query: {
+      search: search.value || undefined,
+      status: status.value || undefined,
+      paymentMethod: paymentMethod.value || undefined,
+      page: p > 1 ? String(p) : undefined,
+    },
+  })
+}
 
 async function applyFilters() {
   page.value = 1
@@ -265,38 +277,13 @@ function formatDate(d: string) {
         </AdminEmptyState>
       </div>
 
-      <!-- Pagination Footer -->
-      <div
-        v-if="(data?.pages || 0) > 1"
-        class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-xs sm:flex-row"
-        :style="{ borderColor: 'var(--color-border)' }"
-      >
-        <span class="text-slate-500">
-          {{ locale === 'ar' ? `الصفحة ${page} من إجمالي ${data?.pages} (${data?.total} طلب)` : `Page ${page} of ${data?.pages} (${data?.total} total orders)` }}
-        </span>
-        <div class="flex items-center gap-1.5">
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            :disabled="page <= 1"
-            @click="page--"
-          >
-            <ChevronRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-            <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{{ locale === 'ar' ? 'السابق' : 'Previous' }}</span>
-          </button>
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            :disabled="page >= (data?.pages || 1)"
-            @click="page++"
-          >
-            <span>{{ locale === 'ar' ? 'التالي' : 'Next' }}</span>
-            <ChevronLeft v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-            <ChevronRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <AdminPagination
+        :page="page"
+        :pages="data?.pages || 1"
+        :total="data?.total || 0"
+        :item-name="locale === 'ar' ? 'طلب' : 'orders'"
+        @change="gotoPage"
+      />
     </div>
   </div>
 </template>

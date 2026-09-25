@@ -56,16 +56,17 @@ const userInitials = computed(() => {
       @click="$emit('close-mobile')"
     />
 
-    <!-- Sidebar Container -->
+    <!-- Sidebar Container: sticky on desktop so long tables scroll beside it;
+         `start-0` keeps it glued to the correct side in RTL. Mobile stays a fixed drawer. -->
     <aside
-      class="fixed inset-y-0 start-0 z-50 flex w-64 flex-col justify-between border-e border-[#1E3048] bg-[#162032] text-slate-200 transition-transform duration-300 ease-in-out lg:static lg:min-h-screen lg:translate-x-0"
+      class="fixed inset-y-0 start-0 z-50 flex w-64 flex-col justify-between border-e border-[#1E3048] bg-[#162032] text-slate-200 transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0"
       :class="[
         mobileOpen ? 'translate-x-0 shadow-2xl' : 'max-lg:-translate-x-full max-lg:rtl:translate-x-full'
       ]"
     >
-      <div>
+      <div class="flex min-h-0 flex-1 flex-col">
         <!-- Brand Header -->
-        <div class="flex h-16 items-center justify-between border-b border-[#1E3048] px-4">
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-[#1E3048] px-4">
           <NuxtLink :to="localePath('/admin')" class="flex items-center gap-2.5 focus-visible:outline-none" @click="$emit('close-mobile')">
             <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain shadow-xs" width="36" height="36" />
             <div class="leading-tight">
@@ -85,8 +86,8 @@ const userInitials = computed(() => {
           </button>
         </div>
 
-        <!-- Navigation items -->
-        <nav class="p-3" aria-label="Admin Navigation">
+        <!-- Navigation items: own scroll region when the list exceeds viewport height -->
+        <nav class="min-h-0 flex-1 overflow-y-auto p-3" aria-label="Admin Navigation">
           <p class="mb-2 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             {{ locale === 'ar' ? 'القائمة الرئيسية' : 'Main Menu' }}
           </p>
@@ -117,7 +118,7 @@ const userInitials = computed(() => {
       </div>
 
       <!-- User card & Logout footer -->
-      <div class="border-t border-[#1E3048] p-3">
+      <div class="shrink-0 border-t border-[#1E3048] p-3">
         <div class="mb-2 flex items-center gap-3 rounded-md bg-white/5 p-2.5">
           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2B71AE] text-xs font-bold text-white shadow-xs">
             {{ userInitials }}

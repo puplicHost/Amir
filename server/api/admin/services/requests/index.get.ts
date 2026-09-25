@@ -33,5 +33,5 @@ export default defineEventHandler(async (event) => {
   // We assume the frontend will pass 'customer_name' or similar, but the seed used 'Customer Name' (En) / 'اسم العميل' (Ar).
   // The frontend can just render them or we can try to guess. Let's just return values and let frontend handle it.
 
-  return { requests, total, page, limit }
+  return { requests, total, page, limit, pages: Math.ceil(total / limit) }
 })

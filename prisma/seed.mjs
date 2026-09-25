@@ -60,6 +60,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'فحص وإصلاح وصيانة المعدات',
       nameEn: 'Machinery Repair & Maintenance',
+      descriptionAr: 'تشخيص دقيق، إصلاح الأعطال، وصيانة دورية لضمان استمرارية خطوط الإنتاج والآلات الصناعية.',
+      descriptionEn: 'Comprehensive diagnostics, component troubleshooting, and overhaul maintenance for production machinery.',
       sortOrder: 1,
       formFields: [
         { labelAr: 'اسم العميل', labelEn: 'Customer Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -75,6 +77,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'تركيب وتصميم أنظمة التحكم الذكية',
       nameEn: 'IoT Systems Design & Installation',
+      descriptionAr: 'حلول إنترنت الأشياء والتحكم الذكي والمراقبة السحابية للمزارع والمنشآت والمشروعات الحديثة.',
+      descriptionEn: 'Custom telemetry, remote environmental monitoring, and smart automation for farms and facilities.',
       sortOrder: 2,
       formFields: [
         { labelAr: 'اسم العميل', labelEn: 'Customer Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -99,6 +103,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'تركيب وإنشاء وصيانة أنظمة PLC',
       nameEn: 'PLC Systems',
+      descriptionAr: 'برمجة وتصميم لوحات التحكم الصناعية، وشاشات HMI، ودمج الأنظمة الآلية لزيادة كفاءة الإنتاج.',
+      descriptionEn: 'Industrial programming, control panel assembly, SCADA architecture, and line modernization.',
       sortOrder: 3,
       formFields: [
         { labelAr: 'اسم العميل', labelEn: 'Customer Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -114,6 +120,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'تصميم وتركيب أنظمة الحريق والإنذار',
       nameEn: 'Fire Alarm & Fire Systems',
+      descriptionAr: 'تصميم وتنفيذ شبكات الإنذار المبكر ومكافحة الحريق بأعلى معايير السلامة والأمان للمنشآت.',
+      descriptionEn: 'Certified early fire detection, emergency alarm networks, and safety engineering compliance.',
       sortOrder: 4,
       formFields: [
         { labelAr: 'اسم العميل', labelEn: 'Customer Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -141,6 +149,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'تصميم وتركيب وصيانة الأنظمة الهوائية',
       nameEn: 'Pneumatic Systems',
+      descriptionAr: 'تصميم دوائر الهواء المضغوط وصيانة الصمامات والسلندرات الهوائية لرفع الكفاءة التشغيلية.',
+      descriptionEn: 'Compressed air circuit optimization, solenoid valve maintenance, and pneumatic cylinder retrofits.',
       sortOrder: 5,
       formFields: [
         { labelAr: 'اسم العميل', labelEn: 'Customer Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -164,6 +174,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'خدمة البحث وتوفير منتج خاص',
       nameEn: 'Product Search Service',
+      descriptionAr: 'توفير واستيراد القطع النادرة، والرقائق الإلكترونية المتخصصة، والبدائل المعتمدة لصيانة أجهزتك.',
+      descriptionEn: 'Direct procurement of rare chips, obsolete components, and specialized industrial hardware.',
       sortOrder: 6,
       formFields: [
         { labelAr: 'اسم العميل', labelEn: 'Customer Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -176,6 +188,8 @@ console.log(`Seeded super-admin: ${email}`)
     {
       nameAr: 'خدمة التوريدات العامة للشركات',
       nameEn: 'Bulk Supply for Companies',
+      descriptionAr: 'عقود توريد دورية وكميات متكاملة للشركات والمصانع ومشاريع التخرج بأسعار تنافسية.',
+      descriptionEn: 'Contract supply schedules, volume pricing, and reliable procurement for factories and businesses.',
       sortOrder: 7,
       formFields: [
         { labelAr: 'اسم الشركة', labelEn: 'Company Name', fieldType: 'text', isRequired: true, sortOrder: 1 },
@@ -200,6 +214,8 @@ console.log(`Seeded super-admin: ${email}`)
         data: {
           nameAr: service.nameAr,
           nameEn: service.nameEn,
+          descriptionAr: service.descriptionAr,
+          descriptionEn: service.descriptionEn,
           sortOrder: service.sortOrder,
         }
       });
@@ -218,6 +234,22 @@ console.log(`Seeded super-admin: ${email}`)
       }
     }
     console.log('Seeded 7 default services');
+  } else {
+    // Update existing services with rich descriptions if missing
+    for (const service of services) {
+      const existing = await prisma.service.findFirst({
+        where: { sortOrder: service.sortOrder }
+      });
+      if (existing && (!existing.descriptionAr || !existing.descriptionEn)) {
+        await prisma.service.update({
+          where: { id: existing.id },
+          data: {
+            descriptionAr: service.descriptionAr,
+            descriptionEn: service.descriptionEn,
+          }
+        });
+      }
+    }
   }
 
 }

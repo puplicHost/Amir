@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, ExternalLink, Filter, Package, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next'
+import { ExternalLink, Filter, Package, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
@@ -24,6 +24,7 @@ const search = ref(String(route.query.search || ''))
 const categoryId = ref(String(route.query.categoryId || ''))
 const status = ref(String(route.query.status || ''))
 const page = ref(Number(route.query.page) || 1)
+const limit = 20
 const deletingId = ref<string | null>(null)
 
 const { data: catData } = await useAsyncData('admin-product-categories', () =>
@@ -36,10 +37,23 @@ const { data, refresh, pending } = await useAsyncData('admin-products', () => $f
     categoryId: categoryId.value,
     status: status.value,
     page: String(page.value),
+    limit: String(limit),
   })}`,
 ), { watch: [page] })
 
 const hasFilters = computed(() => !!(search.value || categoryId.value || status.value))
+
+async function gotoPage(p: number) {
+  page.value = p
+  await router.replace({
+    query: {
+      search: search.value || undefined,
+      categoryId: categoryId.value || undefined,
+      status: status.value || undefined,
+      page: p > 1 ? String(p) : undefined,
+    },
+  })
+}
 
 async function applyFilters() {
   page.value = 1
@@ -164,7 +178,7 @@ async function removeProduct(p: Row) {
     <!-- Products Table Card -->
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[760px] text-start text-sm">
+        <table class="w-full min-w-[760px] text-start text-sm [&_td]:align-middle [&_th]:align-middle">
           <thead>
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
@@ -195,9 +209,9 @@ async function removeProduct(p: Row) {
                       <Package class="h-5 w-5" aria-hidden="true" />
                     </div>
                   </div>
-                  <div class="min-w-0">
-                    <p class="truncate font-semibold text-slate-900 dark:text-slate-100">{{ p.nameEn }}</p>
-                    <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ p.nameAr }}</p>
+                  <div class="min-w-0 max-w-[260px]">
+                    <p class="truncate font-semibold leading-snug text-slate-900 dark:text-slate-100">{{ p.nameEn }}</p>
+                    <p class="truncate text-xs leading-snug text-slate-500 dark:text-slate-400">{{ p.nameAr }}</p>
                   </div>
                 </div>
               </td>
@@ -218,7 +232,7 @@ async function removeProduct(p: Row) {
                     v-if="p.compareAtPrice"
                     class="ms-1 text-xs text-slate-400 line-through"
                   >
-                    {{ p.compareAtPrice }}
+                    {{ p.compareAtPrice }} EGP
                   </span>
                 </div>
               </td>
@@ -293,38 +307,13 @@ async function removeProduct(p: Row) {
         </AdminEmptyState>
       </div>
 
-      <!-- Pagination Footer -->
-      <div
-        v-if="(data?.pages || 0) > 1"
-        class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-xs sm:flex-row"
-        :style="{ borderColor: 'var(--color-border)' }"
-      >
-        <span class="text-slate-500">
-          {{ locale === 'ar' ? `الصفحة ${page} من إجمالي ${data?.pages} (إجمالي المنتجات: ${data?.total})` : `Showing page ${page} of ${data?.pages} (${data?.total} total products)` }}
-        </span>
-        <div class="flex items-center gap-1.5">
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            :disabled="page <= 1"
-            @click="page--"
-          >
-            <ChevronRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-            <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{{ locale === 'ar' ? 'السابق' : 'Previous' }}</span>
-          </button>
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            :disabled="page >= (data?.pages || 1)"
-            @click="page++"
-          >
-            <span>{{ locale === 'ar' ? 'التالي' : 'Next' }}</span>
-            <ChevronLeft v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-            <ChevronRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <AdminPagination
+        :page="page"
+        :pages="data?.pages || 1"
+        :total="data?.total || 0"
+        :item-name="locale === 'ar' ? 'منتج' : 'products'"
+        @change="gotoPage"
+      />
     </div>
   </div>
 </template>

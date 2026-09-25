@@ -18,11 +18,42 @@ interface Category {
   sortOrder: number
 }
 
-const { data, refresh, pending } = await useAsyncData('admin-categories', () =>
-  $fetch<{ categories: Category[] }>('/api/categories'),
-)
+const savingOrderId = ref<string | null>(null)
 
-const searchQuery = ref('')
+async function saveSortOrder(c: Category) {
+  const next = Number(c.sortOrder) || 0
+  savingOrderId.value = c.id
+  try {
+    await $fetch(`/api/admin/categories/${c.id}`, {
+      method: 'PUT',
+      body: { sortOrder: next },
+    })
+    await refresh()
+  }
+  catch (e) {
+    alert((e as { data?: { message?: string } })?.data?.message || 'Failed to save order')
+    await refresh()
+  }
+  finally {
+    savingOrderId.value = null
+  }
+}
+
+const route = useRoute()
+const router = useRouter()
+
+const page = ref(Number(route.query.page) || 1)
+const limit = 20
+const searchQuery = ref(String(route.query.search || ''))
+
+const { data, refresh, pending } = await useAsyncData('admin-categories', () =>
+  $fetch<{ categories: Category[], total: number, pages: number }>(`/api/categories?${new URLSearchParams({
+    search: searchQuery.value.trim(),
+    page: String(page.value),
+    limit: String(limit),
+  })}`),
+  { watch: [page] },
+)
 const showModal = ref(false)
 const editing = ref<Category | null>(null)
 const form = reactive({
@@ -41,16 +72,28 @@ const formError = ref('')
 const saving = ref(false)
 const deletingId = ref<string | null>(null)
 
-const filteredCategories = computed(() => {
-  const cats = data.value?.categories || []
-  if (!searchQuery.value.trim()) return cats
-  const q = searchQuery.value.toLowerCase().trim()
-  return cats.filter(c =>
-    c.nameEn.toLowerCase().includes(q) ||
-    c.nameAr.toLowerCase().includes(q) ||
-    c.slug.toLowerCase().includes(q),
-  )
-})
+const pagedCategories = computed(() => data.value?.categories || [])
+const totalCategories = computed(() => data.value?.total ?? pagedCategories.value.length)
+
+async function gotoPage(p: number) {
+  page.value = p
+  await router.replace({
+    query: {
+      search: searchQuery.value.trim() || undefined,
+      page: p > 1 ? String(p) : undefined,
+    },
+  })
+}
+
+async function applySearch() {
+  page.value = 1
+  await router.replace({
+    query: {
+      search: searchQuery.value.trim() || undefined,
+    },
+  })
+  await refresh()
+}
 
 function openCreate() {
   editing.value = null
@@ -62,7 +105,7 @@ function openCreate() {
     descriptionEn: '',
     coverVideoUrl: '',
     featuredOnHomepage: false,
-    sortOrder: (data.value?.categories?.length || 0) + 1,
+    sortOrder: (totalCategories.value || 0) + 1,
   })
   coverFile.value = null
   coverPreview.value = null
@@ -151,6 +194,7 @@ async function removeCategory(c: Category) {
   try {
     await $fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' })
     await refresh()
+    if (!pagedCategories.value.length && page.value > 1) await gotoPage(page.value - 1)
   }
   catch (e) {
     alert((e as { data?: { message?: string } })?.data?.message || 'Delete failed')
@@ -183,7 +227,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
     </AdminPageHeader>
 
     <!-- Toolbar: Search & Counters -->
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <form class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" @submit.prevent="applySearch">
       <div class="relative w-full sm:max-w-xs">
         <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
         <input
@@ -192,12 +236,13 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
           :placeholder="locale === 'ar' ? 'بحث في الفئات…' : 'Filter categories…'"
           class="h-9 w-full rounded-md border bg-white ps-9 pe-3 text-xs placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#162032]"
           :style="{ borderColor: 'var(--color-border)' }"
+          @change="applySearch"
         />
       </div>
       <div class="text-xs text-slate-500">
-        {{ locale === 'ar' ? `إجمالي الفئات: ${filteredCategories.length}` : `Total Categories: ${filteredCategories.length}` }}
+        {{ locale === 'ar' ? `إجمالي الفئات: ${totalCategories}` : `Total Categories: ${totalCategories}` }}
       </div>
-    </div>
+    </form>
 
     <!-- Categories Data Table -->
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
@@ -215,7 +260,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
             <tr
-              v-for="c in filteredCategories"
+              v-for="c in pagedCategories"
               :key="c.id"
               class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
             >
@@ -259,8 +304,18 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
                 </span>
                 <span v-else class="text-xs text-slate-400">—</span>
               </td>
-              <td class="px-4 py-3 text-center font-mono text-xs text-slate-500">
-                {{ c.sortOrder }}
+              <td class="px-4 py-3 text-center">
+                <input
+                  v-model.number="c.sortOrder"
+                  type="number"
+                  min="0"
+                  :disabled="savingOrderId === c.id"
+                  :aria-label="locale === 'ar' ? `ترتيب العرض لفئة ${c.nameAr}` : `Display order for ${c.nameEn}`"
+                  :title="locale === 'ar' ? 'عدّل الرقم ثم اضغط Enter للحفظ' : 'Edit the number, then press Enter to save'"
+                  class="h-8 w-20 rounded-md border bg-transparent px-2 text-center font-mono text-xs text-slate-700 transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 disabled:opacity-50 dark:text-slate-300"
+                  :style="{ borderColor: 'var(--color-border)' }"
+                  @change="saveSortOrder(c)"
+                />
               </td>
               <td class="px-4 py-3 text-end">
                 <div class="flex items-center justify-end gap-1.5">
@@ -288,8 +343,16 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
         </table>
       </div>
 
+      <AdminPagination
+        :page="page"
+        :pages="data?.pages || 1"
+        :total="totalCategories"
+        :item-name="locale === 'ar' ? 'فئة' : 'categories'"
+        @change="gotoPage"
+      />
+
       <!-- Empty State -->
-      <div v-if="!filteredCategories.length" class="p-8">
+      <div v-if="!pagedCategories.length" class="p-8">
         <AdminEmptyState
           :title="searchQuery ? (locale === 'ar' ? 'لا توجد فئات مطابقة للبحث' : 'No matching categories found') : (locale === 'ar' ? 'لا توجد فئات حتى الآن' : 'No categories yet')"
           :description="searchQuery ? (locale === 'ar' ? 'جرب البحث بكلمات أخرى.' : 'Try a different search term.') : (locale === 'ar' ? 'ابدأ بإضافة أول فئة لترتيب منتجاتك.' : 'Create your first category to start organizing products.')"

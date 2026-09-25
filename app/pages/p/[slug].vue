@@ -132,7 +132,7 @@ const waHref = computed(() => `https://wa.me/?text=${encodeURIComponent(`${name.
         <h1 class="mt-2 font-heading text-3xl font-bold">{{ name }}</h1>
         <p class="mt-2">
           <span class="text-2xl font-bold text-[#2B71AE]">{{ p.price }} EGP</span>
-          <span v-if="p.compareAtPrice" class="ml-2 text-lg text-slate-400 line-through">{{ p.compareAtPrice }}</span>
+          <span v-if="p.compareAtPrice" class="ml-2 text-lg text-slate-400 line-through">{{ p.compareAtPrice }} EGP</span>
         </p>
         <p v-if="desc" class="mt-4 leading-relaxed text-slate-600 dark:text-slate-300">{{ desc }}</p>
 

@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
   FileText,
   Filter,
   FolderTree,
   Inbox,
   Layers,
+  Plus,
   RotateCcw,
   Search,
   Settings2,
   Trash2,
   Wrench,
+  X,
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
@@ -69,6 +69,18 @@ async function resetReqFilters() {
   await refreshRequests()
 }
 
+async function gotoRequestsPage(p: number) {
+  requestsPage.value = p
+  await router.replace({
+    query: {
+      tab: 'requests',
+      status: reqStatus.value || undefined,
+      serviceId: reqServiceId.value || undefined,
+      page: p > 1 ? String(p) : undefined,
+    },
+  })
+}
+
 function switchTab(tab: 'services' | 'requests') {
   activeTab.value = tab
   router.replace({ query: { tab } })
@@ -76,6 +88,58 @@ function switchTab(tab: 'services' | 'requests') {
 
 // Service Actions
 const deleting = ref('')
+
+// Create-service modal state
+const showServiceModal = ref(false)
+const savingService = ref(false)
+const serviceFormError = ref('')
+const serviceForm = reactive({
+  nameAr: '',
+  nameEn: '',
+  descriptionAr: '',
+  descriptionEn: '',
+  iconPath: '',
+  sortOrder: 0,
+  isActive: true,
+})
+
+function openCreateService() {
+  Object.assign(serviceForm, {
+    nameAr: '',
+    nameEn: '',
+    descriptionAr: '',
+    descriptionEn: '',
+    iconPath: '',
+    sortOrder: (services.value?.length || 0) + 1,
+    isActive: true,
+  })
+  serviceFormError.value = ''
+  showServiceModal.value = true
+}
+
+async function saveService() {
+  if (!serviceForm.nameAr.trim() || !serviceForm.nameEn.trim()) {
+    serviceFormError.value = locale.value === 'ar' ? 'الاسم باللغتين العربية والإنجليزية مطلوب' : 'Name in both Arabic and English is required.'
+    return
+  }
+  savingService.value = true
+  serviceFormError.value = ''
+  try {
+    await $fetch('/api/admin/services', {
+      method: 'POST',
+      body: { ...serviceForm, iconPath: serviceForm.iconPath || undefined },
+    })
+    showServiceModal.value = false
+    await refreshServices()
+  }
+  catch (e: any) {
+    serviceFormError.value = e?.data?.message || 'Save failed'
+  }
+  finally {
+    savingService.value = false
+  }
+}
+
 async function deleteService(s: any) {
   if (!confirm(locale.value === 'ar' ? `هل أنت متأكد من حذف خدمة "${s.nameEn}"؟` : `Are you sure you want to delete service "${s.nameEn}"?`)) return
   deleting.value = s.id
@@ -119,7 +183,19 @@ function formatDate(d: string) {
     <AdminPageHeader
       :title="locale === 'ar' ? 'إدارة الخدمات والطلبات' : 'Engineering Services'"
       :description="locale === 'ar' ? 'تكوين خدمات الصيانة والأنظمة الهندسية ومتابعة طلبات العملاء الواردة.' : 'Configure engineering services, custom dynamic form fields, and client requests.'"
-    />
+    >
+      <template #actions>
+        <button
+          v-if="activeTab === 'services'"
+          type="button"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
+          @click="openCreateService"
+        >
+          <Plus class="h-4 w-4" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'إضافة خدمة' : 'Add Service' }}</span>
+        </button>
+      </template>
+    </AdminPageHeader>
 
     <!-- Navigation Tabs -->
     <div class="mb-6 flex border-b" :style="{ borderColor: 'var(--color-border)' }">
@@ -233,10 +309,10 @@ function formatDate(d: string) {
                     </NuxtLink>
 
                     <button
-                      v-if="s._count?.requests === 0"
                       type="button"
-                      :disabled="deleting === s.id"
-                      class="inline-flex h-8 items-center gap-1 rounded px-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                      :disabled="deleting === s.id || (s._count?.requests || 0) > 0"
+                      class="inline-flex h-8 items-center gap-1 rounded px-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                      :title="(s._count?.requests || 0) > 0 ? (locale === 'ar' ? 'لا يمكن الحذف — توجد طلبات مرتبطة بهذه الخدمة' : 'Cannot delete — this service has submitted requests') : (locale === 'ar' ? 'حذف الخدمة' : 'Delete service')"
                       @click="deleteService(s)"
                     >
                       <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
@@ -394,37 +470,116 @@ function formatDate(d: string) {
           </AdminEmptyState>
         </div>
 
-        <!-- Pagination -->
-        <div
-          v-if="(requestsData?.total || 0) > requestsLimit"
-          class="flex items-center justify-between border-t px-4 py-3 text-xs"
-          :style="{ borderColor: 'var(--color-border)' }"
-        >
-          <span class="text-slate-500">
-            {{ locale === 'ar' ? `الصفحة ${requestsPage} (إجمالي الطلبات: ${requestsData?.total})` : `Page ${requestsPage} (${requestsData?.total} total requests)` }}
-          </span>
-          <div class="flex items-center gap-1.5">
-            <button
-              type="button"
-              class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300"
-              :disabled="requestsPage <= 1"
-              @click="requestsPage--"
-            >
-              <ChevronRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-              <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{{ locale === 'ar' ? 'السابق' : 'Previous' }}</span>
-            </button>
-            <button
-              type="button"
-              class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300"
-              :disabled="requestsPage * requestsLimit >= requestsData?.total"
-              @click="requestsPage++"
-            >
-              <span>{{ locale === 'ar' ? 'التالي' : 'Next' }}</span>
-              <ChevronLeft v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-              <ChevronRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
+        <AdminPagination
+          :page="requestsPage"
+          :pages="requestsData?.pages || 1"
+          :total="requestsData?.total || 0"
+          :item-name="locale === 'ar' ? 'طلب' : 'requests'"
+          @change="gotoRequestsPage"
+        />
+      </div>
+    </div>
+
+    <!-- Create Service Modal Dialog -->
+    <div
+      v-if="showServiceModal"
+      class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs"
+      role="dialog"
+      aria-modal="true"
+      @click.self="showServiceModal = false"
+    >
+      <div
+        class="my-8 max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-lg border bg-white p-6 shadow-xl transition-all dark:bg-[#162032]"
+        :style="{ borderColor: 'var(--color-border)' }"
+      >
+        <!-- Modal Header -->
+        <div class="mb-5 flex items-center justify-between border-b pb-4" :style="{ borderColor: 'var(--color-border)' }">
+          <div>
+            <h2 class="font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
+              {{ locale === 'ar' ? 'إضافة خدمة جديدة' : 'Add Service' }}
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              {{ locale === 'ar' ? 'تحديد الاسم والوصف وحالة التفعيل' : 'Configure names, description, and visibility' }}
+            </p>
           </div>
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            :aria-label="locale === 'ar' ? 'إغلاق النافذة' : 'Close modal'"
+            @click="showServiceModal = false"
+          >
+            <X class="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <!-- Form Error Banner -->
+        <div
+          v-if="serviceFormError"
+          role="alert"
+          class="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+        >
+          {{ serviceFormError }}
+        </div>
+
+        <!-- Form Body -->
+        <div class="space-y-4">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Name (EN) *</span>
+              <input v-model="serviceForm.nameEn" type="text" required placeholder="e.g. PLC Systems" class="h-10 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Name (AR) *</span>
+              <input v-model="serviceForm.nameAr" type="text" required placeholder="مثال: أنظمة PLC" dir="rtl" class="h-10 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Description (EN)</span>
+              <textarea v-model="serviceForm.descriptionEn" rows="3" class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Description (AR)</span>
+              <textarea v-model="serviceForm.descriptionAr" rows="3" dir="rtl" class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'مسار الأيقونة (اختياري)' : 'Icon Path (Optional)' }}</span>
+            <input v-model="serviceForm.iconPath" type="text" placeholder="/icons/plc.svg" class="h-10 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+
+          <div class="flex flex-wrap items-center justify-between gap-4 border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
+            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+              <input v-model="serviceForm.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
+              <span>{{ locale === 'ar' ? 'خدمة نشطة وظاهرة للعملاء' : 'Active and visible to clients' }}</span>
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+              <span>{{ locale === 'ar' ? 'الترتيب:' : 'Sort order:' }}</span>
+              <input v-model.number="serviceForm.sortOrder" type="number" class="h-8 w-20 rounded border bg-transparent px-2 text-center text-xs" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="mt-6 flex items-center justify-end gap-2.5 border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
+          <button
+            type="button"
+            class="h-9 rounded-md border px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="showServiceModal = false"
+          >
+            {{ locale === 'ar' ? 'إلغاء' : 'Cancel' }}
+          </button>
+          <button
+            type="button"
+            :disabled="savingService"
+            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-5 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E] disabled:opacity-50"
+            @click="saveService"
+          >
+            <span>{{ savingService ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الخدمة' : 'Save Service') }}</span>
+          </button>
         </div>
       </div>
     </div>

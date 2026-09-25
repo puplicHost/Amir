@@ -27,9 +27,17 @@ const { data: catData } = await useAsyncData('catalog-categories', () =>
   $fetch<{ categories: { slug: string, nameAr: string, nameEn: string }[] }>('/api/categories'),
 )
 
+const { data: storeSettings } = await useAsyncData('catalog-store-settings', () =>
+  $fetch<{ productsPerPage: number }>('/api/settings/store'),
+  { server: true, lazy: true },
+)
+
+const limit = computed(() => storeSettings.value?.productsPerPage || 16)
+
 const query = computed(() => {
   const q: Record<string, string> = {
     page: String(page.value),
+    limit: String(limit.value),
     sort: sort.value,
     search: search.value.trim(),
     minPrice: minPrice.value,
@@ -53,13 +61,23 @@ const { data, pending } = await useAsyncData(
 async function apply() {
   page.value = 1
   mobileFilters.value = false
-  await router.replace({ query: { ...query.value, page: undefined } })
+  await router.replace({ query: { ...route.query, ...query.value, page: undefined } })
 }
 
-function gotoPage(p: number) {
+async function gotoPage(p: number) {
   page.value = p
+  await router.replace({ query: { ...route.query, page: p > 1 ? String(p) : undefined } })
   if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
 }
+
+// Reset to page 1 when switching categories; sync page when navigating history.
+watch(() => props.categorySlug, () => {
+  page.value = 1
+})
+watch(() => route.query.page, (qp) => {
+  const next = Number(qp) || 1
+  if (next !== page.value) page.value = next
+})
 
 </script>
 

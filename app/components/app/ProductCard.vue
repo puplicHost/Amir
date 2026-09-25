@@ -39,7 +39,7 @@ const name = (p: Card) => (locale.value === 'ar' ? p.nameAr : p.nameEn)
       <h3 class="text-base font-semibold leading-snug">{{ name(product) }}</h3>
       <p class="mt-auto pt-1">
         <span class="font-bold text-[#2B71AE]">{{ product.price }} EGP</span>
-        <span v-if="product.compareAtPrice" class="ml-2 text-sm text-slate-400 line-through">{{ product.compareAtPrice }}</span>
+        <span v-if="product.compareAtPrice" class="ml-2 text-sm text-slate-400 line-through">{{ product.compareAtPrice }} EGP</span>
       </p>
     </div>
   </NuxtLink>

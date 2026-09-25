@@ -14,7 +14,80 @@
   },
   "home": {
     "title": "Mango Electronics",
-    "subtitle": "Foundation shell — real content arrives in later phases."
+    "subtitle": "Do It Right, Do It Smart",
+    "heroEyebrow": "Do It Right, Do It Smart",
+    "heroTitle": "Precision Electronic Tools & Advanced Engineering Services",
+    "heroSubtitle": "Your trusted partner for high-grade electronic components, IoT automation, PLC programming, and machinery maintenance for factories, engineers, companies, and innovators.",
+    "shopCta": "Explore Products",
+    "servicesCta": "Engineering Services",
+    "servicesTitle": "Engineering Services",
+    "servicesSubtitle": "Specialized industrial engineering, custom automation, and preventative maintenance delivered by certified engineers.",
+    "serviceAction": "Request Service",
+    "categoriesTitle": "Shop by Category",
+    "categoriesSubtitle": "Browse our catalog of professional tools, microcontrollers, and electronic components.",
+    "categoryAction": "Explore Category",
+    "allCategories": "View All Products",
+    "bannerEyebrow": "Special Facility Offer",
+    "bannerTitle": "Save 20% on Your First Engineering Service Inspection",
+    "bannerSubtitle": "Boost operational uptime with rapid diagnostics, precision calibration, and certified technical support for your machinery.",
+    "bannerCta": "Book Maintenance Now",
+    "trust1Title": "100% Genuine Components",
+    "trust1Desc": "Certified chips, modules, and sensors direct from verified manufacturers with full datasheets.",
+    "trust2Title": "Certified Engineers",
+    "trust2Desc": "Specialized teams for PLC architecture, electrical panel assembly, and industrial troubleshooting.",
+    "trust3Title": "Rapid Field Response",
+    "trust3Desc": "Fast on-site inspection and emergency diagnostics to minimize manufacturing downtime.",
+    "trust4Title": "Guaranteed SLA Quality",
+    "trust4Desc": "Comprehensive inspection documentation, tested replacement parts, and dependable aftersales care.",
+    "productsTitle": "Featured Hardware & Precision Tools",
+    "productsSubtitle": "Explore essential electronic components, microcontrollers, and measurement tools ready for fast delivery.",
+    "addToCart": "Add to Cart",
+    "addedToCart": "Added",
+    "viewProduct": "View Details",
+    "workflowTitle": "Engineered for Reliability",
+    "workflowSubtitle": "Our structured methodology ensures absolute precision from initial diagnostics to final commissioning.",
+    "step1Title": "Audit & Diagnostics",
+    "step1Desc": "Precise on-site inspection, fault tracing, and component feasibility analysis.",
+    "step2Title": "Genuine Procurement",
+    "step2Desc": "Direct sourcing of high-grade components with verified manufacturer datasheets.",
+    "step3Title": "Certified Execution",
+    "step3Desc": "Professional panel assembly, sensor integration, and calibrated programming.",
+    "step4Title": "Testing & Handover",
+    "step4Desc": "Rigorous operational testing, formal documentation, and warranty coverage.",
+    "flagshipBadge": "Flagship Solution",
+    "viewAllServices": "View All Engineering Services",
+    "directCall": "Call Direct",
+    "whatsappChat": "WhatsApp Consultation"
+  },
+  "engineeringServices": {
+    "machineryRepair": {
+      "name": "Machinery Repair & Maintenance",
+      "description": "Comprehensive diagnostics, component troubleshooting, and overhaul maintenance for production machinery."
+    },
+    "iotSystems": {
+      "name": "IoT Systems & Smart Control",
+      "description": "Custom telemetry, remote environmental monitoring, and smart automation for farms and facilities."
+    },
+    "plcSystems": {
+      "name": "PLC Systems & Automation",
+      "description": "Industrial programming, control panel assembly, SCADA architecture, and line modernization."
+    },
+    "fireAlarm": {
+      "name": "Fire Alarm & Safety Systems",
+      "description": "Certified early fire detection, emergency alarm networks, and preventative safety engineering."
+    },
+    "pneumaticSystems": {
+      "name": "Pneumatic Systems",
+      "description": "Compressed air circuit optimization, solenoid valve maintenance, and pneumatic cylinder retrofits."
+    },
+    "productSearch": {
+      "name": "Specialized Product Sourcing",
+      "description": "Direct procurement of rare chips, obsolete components, and specialized industrial hardware."
+    },
+    "bulkSupply": {
+      "name": "Bulk Supply for Companies",
+      "description": "Contract supply schedules, volume pricing, and reliable procurement for factories and businesses."
+    }
   },
   "admin": {
     "dashboard": "Dashboard",
@@ -25,7 +98,7 @@
     "users": "Users",
     "settings": "Settings",
     "logout": "Logout",
-    "shellNotice": "Admin shell — functional modules arrive in later phases."
+    "shellNotice": "Admin shell - functional modules arrive in later phases."
   },
   "common": {
     "toggleTheme": "Toggle color mode",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Facebook, Instagram, Mail, MapPin, Phone } from 'lucide-vue-next'
+import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -15,6 +15,25 @@ const { data: contact } = await useAsyncData('footer-contact', () =>
 )
 
 const year = new Date().getFullYear()
+
+const siteDisplayName = computed(() => {
+  if (locale.value === 'ar') {
+    return general.value?.siteNameAr || t('brand.name')
+  }
+  const name = general.value?.siteNameEn || t('brand.name')
+  return name === 'Mango' ? 'Mango Electronics' : name
+})
+
+const tagline = computed(() => {
+  return (locale.value === 'ar' ? general.value?.taglineAr : general.value?.taglineEn) || t('brand.tagline')
+})
+
+const facebookUrl = computed(() => contact.value?.socialFacebook || 'https://facebook.com')
+const instagramUrl = computed(() => contact.value?.socialInstagram || 'https://instagram.com')
+const whatsappUrl = computed(() => {
+  const num = contact.value?.contactWhatsapp || contact.value?.contactPhone1
+  return num ? `https://wa.me/${num.replace(/[^0-9]/g, '')}` : 'https://wa.me'
+})
 </script>
 
 <template>
@@ -23,19 +42,25 @@ const year = new Date().getFullYear()
       
       <!-- Brand & About -->
       <div>
-        <NuxtLink :to="localePath('/')" class="flex items-center gap-2 mb-4 text-white">
-          <img v-if="general?.logoPath" :src="general.logoPath" :alt="general?.siteNameEn || t('brand.name')" class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" />
-          <span v-else class="font-heading text-xl font-bold">{{ general ? (locale === 'ar' ? general.siteNameAr : general.siteNameEn) : t('brand.name') }}</span>
+        <NuxtLink :to="localePath('/')" class="flex items-center gap-2 mb-3 text-white">
+          <img v-if="general?.logoPath" :src="general.logoPath" :alt="siteDisplayName" class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" />
+          <div v-else class="flex items-center gap-2">
+            <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain" />
+            <span class="font-heading text-xl font-bold text-white">{{ siteDisplayName }}</span>
+          </div>
         </NuxtLink>
-        <p v-if="general" class="text-sm text-slate-400 mb-6">
-          {{ locale === 'ar' ? general.taglineAr : general.taglineEn }}
+        <p class="text-sm font-medium text-slate-400 mb-6 tracking-wide">
+          {{ tagline }}
         </p>
-        <div class="flex gap-4">
-          <a v-if="contact?.socialFacebook" :href="contact.socialFacebook" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors">
-            <Facebook class="w-5 h-5" />
+        <div class="flex items-center gap-3">
+          <a :href="facebookUrl" target="_blank" rel="noopener noreferrer" class="h-9 w-9 rounded-lg bg-slate-800/80 hover:bg-[#2B71AE] text-slate-300 hover:text-white flex items-center justify-center transition-colors" aria-label="Facebook">
+            <Facebook class="w-4 h-4" />
           </a>
-          <a v-if="contact?.socialInstagram" :href="contact.socialInstagram" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors">
-            <Instagram class="w-5 h-5" />
+          <a :href="instagramUrl" target="_blank" rel="noopener noreferrer" class="h-9 w-9 rounded-lg bg-slate-800/80 hover:bg-[#2B71AE] text-slate-300 hover:text-white flex items-center justify-center transition-colors" aria-label="Instagram">
+            <Instagram class="w-4 h-4" />
+          </a>
+          <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="h-9 w-9 rounded-lg bg-slate-800/80 hover:bg-[#2B71AE] text-slate-300 hover:text-white flex items-center justify-center transition-colors" aria-label="WhatsApp">
+            <MessageCircle class="w-4 h-4" />
           </a>
         </div>
       </div>
@@ -73,7 +98,7 @@ const year = new Date().getFullYear()
     </div>
     
     <div class="mx-auto max-w-7xl px-4 mt-12 pt-8 border-t border-slate-800 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
-      <p>&copy; {{ year }} {{ general ? (locale === 'ar' ? general.siteNameAr : general.siteNameEn) : t('brand.name') }}. {{ locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.' }}</p>
+      <p>&copy; {{ year }} {{ siteDisplayName }}. {{ locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.' }}</p>
       <div class="flex items-center gap-2">
         <Globe class="w-4 h-4" />
         <span>{{ locale === 'ar' ? 'العربية' : 'English' }}</span>
