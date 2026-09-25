@@ -2,8 +2,9 @@
 import { CreditCard, Lock } from 'lucide-vue-next'
 
 const { locale } = useI18n()
+const fetch = useRequestFetch()
 const { data, refresh } = await useAsyncData('admin-payment-settings', () =>
-  $fetch<{ payment: { codEnabled: boolean, onlineEnabled: boolean, gatewayName: string, gatewayMode: string, hasCredentials: boolean } }>('/api/admin/settings/payment'),
+  fetch<{ payment: { codEnabled: boolean, onlineEnabled: boolean, gatewayName: string, gatewayMode: string, hasCredentials: boolean } }>('/api/admin/settings/payment'),
 )
 
 const saving = ref(false)

@@ -4,9 +4,10 @@ definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 const { t, locale } = useI18n()
 const route = useRoute()
 const id = String(route.params.id)
+const fetch = useRequestFetch()
 
 const { data, error } = await useAsyncData(`admin-product-${id}`, () =>
-  $fetch<{ product: Record<string, unknown> }>(`/api/admin/products/${id}`),
+  fetch<{ product: Record<string, unknown> }>(`/api/admin/products/${id}`),
 )
 </script>
 

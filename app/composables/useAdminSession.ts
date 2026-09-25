@@ -7,8 +7,9 @@ export interface AdminSessionUser {
 }
 
 export function useAdminSession() {
+  const fetch = useRequestFetch()
   return useAsyncData<{ user: AdminSessionUser }>('admin-session', () =>
-    $fetch('/api/admin/auth/session'),
+    fetch('/api/admin/auth/session'),
   )
 }
 
@@ -18,7 +19,8 @@ export function useAdminCan(permission: string): ComputedRef<boolean> {
 }
 
 export async function adminLogout(): Promise<void> {
+  const localePath = useLocalePath()
   await $fetch('/api/admin/auth/logout', { method: 'POST' })
   await clearNuxtData('admin-session')
-  await navigateTo('/admin/login')
+  await navigateTo(localePath('/admin/login'))
 }

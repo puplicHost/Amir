@@ -30,8 +30,9 @@ interface AdminUserRow {
   permissions: string[]
 }
 
+const fetch = useRequestFetch()
 const { data, refresh, pending } = await useAsyncData('admin-users', () =>
-  $fetch<{ users: AdminUserRow[] }>('/api/admin/users'),
+  fetch<{ users: AdminUserRow[] }>('/api/admin/users'),
 )
 
 const showModal = ref(false)

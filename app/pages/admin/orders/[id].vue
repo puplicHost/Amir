@@ -19,9 +19,10 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const id = String(route.params.id)
+const fetch = useRequestFetch()
 
 const { data, refresh, error } = await useAsyncData(`admin-order-${id}`, () =>
-  $fetch<{ order: any }>(`/api/admin/orders/${id}`),
+  fetch<{ order: any }>(`/api/admin/orders/${id}`),
 )
 
 const newStatus = ref('')

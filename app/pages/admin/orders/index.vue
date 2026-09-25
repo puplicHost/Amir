@@ -38,8 +38,10 @@ interface Order {
   _count: { items: number }
 }
 
+const fetch = useRequestFetch()
+
 const { data, refresh, pending } = await useAsyncData('admin-orders', () =>
-  $fetch<{ orders: Order[], pages: number, total: number }>(`/api/admin/orders?${new URLSearchParams({
+  fetch<{ orders: Order[], pages: number, total: number }>(`/api/admin/orders?${new URLSearchParams({
     search: search.value,
     status: status.value,
     paymentMethod: paymentMethod.value,

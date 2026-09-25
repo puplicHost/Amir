@@ -17,11 +17,12 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const serviceId = route.params.id as string
+const fetch = useRequestFetch()
 
 useHead(() => ({ title: `Form Builder | Admin | ${t('brand.name')}` }))
 
 const { data: fields, refresh } = await useAsyncData(`service-form-${serviceId}`, () =>
-  $fetch<any[]>(`/api/admin/services/${serviceId}/form`),
+  fetch<any[]>(`/api/admin/services/${serviceId}/form`),
 )
 
 const isCreating = ref(false)

@@ -2,7 +2,8 @@
 import { Store } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const { data } = await useAsyncData('settings-store', () => $fetch<any>('/api/admin/settings'))
+const fetch = useRequestFetch()
+const { data } = await useAsyncData('settings-store', () => fetch<any>('/api/admin/settings'))
 
 const form = reactive({
   defaultCurrency: 'EGP',

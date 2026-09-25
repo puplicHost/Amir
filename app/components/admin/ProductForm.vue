@@ -52,9 +52,10 @@ const props = defineProps<{ existing?: Existing | null }>()
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
+const fetch = useRequestFetch()
 
 const { data: catData } = await useAsyncData('product-form-categories', () =>
-  $fetch<{ categories: Category[] }>('/api/categories'),
+  fetch<{ categories: Category[] }>('/api/categories'),
 )
 
 const step = ref(1)

@@ -29,6 +29,8 @@ async function login() {
       method: 'POST',
       body: { email: email.value, password: password.value },
     })
+    await clearNuxtData('admin-session')
+    await refreshNuxtData('admin-session')
     await navigateTo(localePath('/admin'))
   }
   catch (e) {

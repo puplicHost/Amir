@@ -45,9 +45,10 @@ const router = useRouter()
 const page = ref(Number(route.query.page) || 1)
 const limit = 20
 const searchQuery = ref(String(route.query.search || ''))
+const fetch = useRequestFetch()
 
 const { data, refresh, pending } = await useAsyncData('admin-categories', () =>
-  $fetch<{ categories: Category[], total: number, pages: number }>(`/api/categories?${new URLSearchParams({
+  fetch<{ categories: Category[], total: number, pages: number }>(`/api/categories?${new URLSearchParams({
     search: searchQuery.value.trim(),
     page: String(page.value),
     limit: String(limit),

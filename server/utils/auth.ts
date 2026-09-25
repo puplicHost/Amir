@@ -9,19 +9,36 @@ export interface SessionUser {
   permissions: string[]
 }
 
+function isHttpsRequest(event: H3Event): boolean {
+  const proto = getRequestHeader(event, 'x-forwarded-proto')
+  if (proto) {
+    return proto.split(',')[0].trim().toLowerCase() === 'https'
+  }
+  const req = event.node?.req
+  return Boolean(
+    (req?.socket as any)?.encrypted ||
+    (req?.connection as any)?.encrypted ||
+    req?.headers?.['x-forwarded-ssl'] === 'on'
+  )
+}
+
 function sessionConfig(event: H3Event) {
   const config = useRuntimeConfig(event)
   const password = config.sessionPassword as string | undefined
   if (!password || password.length < 32) {
     throw createError({ statusCode: 500, statusMessage: 'Session misconfigured' })
   }
+  const isHttps = isHttpsRequest(event)
   return {
+    name: 'mango_admin_session',
     password,
+    maxAge: 60 * 60 * 24 * 7, // 7 days (sets iron-seal TTL and cookie expires)
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' && isHttps,
       sameSite: 'lax' as const,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7, // 7 days (sets cookie Max-Age)
+      path: '/',
     },
   }
 }

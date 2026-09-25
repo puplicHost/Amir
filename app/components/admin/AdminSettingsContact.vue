@@ -2,7 +2,8 @@
 import { Facebook, Instagram, Mail, MapPin, Phone, Share2 } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const { data } = await useAsyncData('settings-contact', () => $fetch<any>('/api/admin/settings'))
+const fetch = useRequestFetch()
+const { data } = await useAsyncData('settings-contact', () => fetch<any>('/api/admin/settings'))
 
 const form = reactive({
   contactPhone1: '',

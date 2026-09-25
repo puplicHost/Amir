@@ -17,11 +17,12 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const reqId = route.params.id as string
+const fetch = useRequestFetch()
 
 useHead(() => ({ title: `Request Detail | Admin | ${t('brand.name')}` }))
 
 const { data: request, refresh } = await useAsyncData(`service-request-${reqId}`, () =>
-  $fetch<any>(`/api/admin/services/requests/${reqId}`),
+  fetch<any>(`/api/admin/services/requests/${reqId}`),
 )
 
 const updating = ref(false)

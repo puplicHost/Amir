@@ -29,14 +29,15 @@ const reqStatus = ref(String(route.query.status || ''))
 const reqServiceId = ref(String(route.query.serviceId || ''))
 const requestsPage = ref(Number(route.query.page) || 1)
 const requestsLimit = 20
+const fetch = useRequestFetch()
 
 // Data fetching
 const { data: services, refresh: refreshServices } = await useAsyncData('admin-services', () =>
-  $fetch<any[]>('/api/admin/services'),
+  fetch<any[]>('/api/admin/services'),
 )
 
 const { data: requestsData, refresh: refreshRequests } = await useAsyncData('admin-requests', () =>
-  $fetch<any>('/api/admin/services/requests', {
+  fetch<any>('/api/admin/services/requests', {
     params: {
       page: requestsPage.value,
       limit: requestsLimit,

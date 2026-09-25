@@ -26,12 +26,13 @@ const status = ref(String(route.query.status || ''))
 const page = ref(Number(route.query.page) || 1)
 const limit = 20
 const deletingId = ref<string | null>(null)
+const fetch = useRequestFetch()
 
 const { data: catData } = await useAsyncData('admin-product-categories', () =>
-  $fetch<{ categories: { id: string, nameEn: string, nameAr: string }[] }>('/api/categories'),
+  fetch<{ categories: { id: string, nameEn: string, nameAr: string }[] }>('/api/categories'),
 )
 
-const { data, refresh, pending } = await useAsyncData('admin-products', () => $fetch<{ products: Row[], total: number, pages: number }>(
+const { data, refresh, pending } = await useAsyncData('admin-products', () => fetch<{ products: Row[], total: number, pages: number }>(
   `/api/admin/products?${new URLSearchParams({
     search: search.value,
     categoryId: categoryId.value,

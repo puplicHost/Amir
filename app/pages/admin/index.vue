@@ -49,9 +49,10 @@ interface DashboardResponse {
   }>
 }
 
+const fetch = useRequestFetch()
 const { data, pending, refresh } = await useAsyncData<DashboardResponse>(
   'admin-dashboard-stats',
-  () => $fetch<DashboardResponse>('/api/admin/dashboard/stats'),
+  () => fetch<DashboardResponse>('/api/admin/dashboard/stats'),
 )
 
 const canOrdersView = useAdminCan('orders.view')

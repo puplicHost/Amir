@@ -2,7 +2,8 @@
 import { Check, Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const { data, refresh } = await useAsyncData('settings-general', () => $fetch<any>('/api/admin/settings'))
+const fetch = useRequestFetch()
+const { data, refresh } = await useAsyncData('settings-general', () => fetch<any>('/api/admin/settings'))
 
 const form = reactive({
   siteNameAr: '',
