@@ -24,6 +24,20 @@ const status = ref(String(route.query.status || ''))
 const paymentMethod = ref(String(route.query.paymentMethod || ''))
 const page = ref(Number(route.query.page) || 1)
 const limit = 20
+const canOrdersManage = useAdminCan('orders.manage')
+const flashOrderId = ref<string | null>(null)
+let flashTimer: ReturnType<typeof setTimeout> | null = null
+
+onUnmounted(() => {
+  if (flashTimer) clearTimeout(flashTimer)
+})
+
+function onStatusUpdated(order: Order, status: string) {
+  order.status = status
+  flashOrderId.value = order.id
+  if (flashTimer) clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => { flashOrderId.value = null }, 1800)
+}
 
 interface Order {
   id: string
@@ -192,6 +206,7 @@ function formatDate(d: string) {
               v-for="o in data?.orders || []"
               :key="o.id"
               class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+              :class="flashOrderId === o.id ? 'bg-emerald-50/70 dark:bg-emerald-950/20' : ''"
             >
               <!-- Order Number -->
               <td class="px-4 py-3 font-medium">
@@ -238,9 +253,15 @@ function formatDate(d: string) {
                 </span>
               </td>
 
-              <!-- Status Badge -->
+              <!-- Status: inline editable for orders.manage, read-only otherwise -->
               <td class="px-4 py-3 text-center">
-                <AdminStatusBadge :status="o.status" size="sm" />
+                <AdminOrderStatusSelect
+                  :order-id="o.id"
+                  :order-label="o.orderNumber"
+                  :status="o.status"
+                  :can-edit="canOrdersManage"
+                  @updated="(s) => onStatusUpdated(o, s)"
+                />
               </td>
 
               <!-- Actions -->

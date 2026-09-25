@@ -2,66 +2,35 @@
 import { Facebook, Instagram, Mail, MapPin, Phone, Share2 } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const fetch = useRequestFetch()
-const { data } = await useAsyncData('settings-contact', () => fetch<any>('/api/admin/settings'))
 
-const form = reactive({
-  contactPhone1: '',
-  contactPhone2: '',
-  contactWhatsapp: '',
-  contactEmail: '',
-  contactAddressAr: '',
-  contactAddressEn: '',
-  socialFacebook: '',
-  socialInstagram: '',
-  googleMapsEmbedUrl: '',
+const {
+  form, loading, statusMessage, isError, dirty, save, reset,
+} = await useSettingsForm({
+  key: 'settings-contact',
+  endpoint: '/api/admin/settings',
+  defaults: {
+    contactPhone1: '',
+    contactPhone2: '',
+    contactWhatsapp: '',
+    contactEmail: '',
+    contactAddressAr: '',
+    contactAddressEn: '',
+    socialFacebook: '',
+    socialInstagram: '',
+    googleMapsEmbedUrl: '',
+  },
+  saveEndpoint: '/api/admin/settings/contact',
+  successAr: 'تم حفظ بيانات الاتصال والموقع بنجاح.',
+  successEn: 'Contact and location settings saved successfully.',
+  failAr: 'حدث خطأ أثناء الحفظ.',
+  failEn: 'Failed to save contact settings.',
 })
 
-const loading = ref(false)
-const statusMessage = ref('')
-const isError = ref(false)
-
-onMounted(() => {
-  if (data.value) {
-    Object.keys(form).forEach((k) => {
-      form[k as keyof typeof form] = data.value[k] || ''
-    })
-  }
-})
-
-async function save() {
-  loading.value = true
-  statusMessage.value = ''
-  isError.value = false
-  try {
-    await $fetch('/api/admin/settings/contact', { method: 'PUT', body: form })
-    statusMessage.value = locale.value === 'ar' ? 'تم حفظ بيانات الاتصال والموقع بنجاح.' : 'Contact and location settings saved successfully.'
-  }
-  catch (e: any) {
-    isError.value = true
-    statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'حدث خطأ أثناء الحفظ.' : 'Failed to save contact settings.')
-  }
-  finally {
-    loading.value = false
-    setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
-  }
-}
-
-const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
+const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.contactAddressAr.trim())
 </script>
 
 <template>
   <form class="space-y-6" @submit.prevent="save">
-    <!-- Inline Feedback Banner -->
-    <div
-      v-if="statusMessage"
-      role="alert"
-      class="rounded-md border p-3 text-xs font-medium transition-all"
-      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
-    >
-      {{ statusMessage }}
-    </div>
-
     <!-- Section 1: Official Communication Channels -->
     <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="mb-4 flex items-center gap-2">
@@ -74,19 +43,19 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Primary Phone Number</span>
-          <input v-model="form.contactPhone1" type="text" placeholder="01000000000" dir="ltr" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.contactPhone1" type="text" placeholder="01000000000" dir="ltr" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Secondary Phone Number</span>
-          <input v-model="form.contactPhone2" type="text" placeholder="01100000000" dir="ltr" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.contactPhone2" type="text" placeholder="01100000000" dir="ltr" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">WhatsApp Number</span>
-          <input v-model="form.contactWhatsapp" type="text" placeholder="01000000000" dir="ltr" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.contactWhatsapp" type="text" placeholder="01000000000" dir="ltr" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Official Email</span>
-          <input v-model="form.contactEmail" type="email" placeholder="info@mango-electronics.com" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.contactEmail" type="email" placeholder="info@mango-electronics.com" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
       </div>
     </div>
@@ -107,7 +76,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         </label>
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Address (AR)</span>
-          <textarea v-model="form.contactAddressAr" rows="2.5" dir="rtl" placeholder="المنطقة الصناعية، القاهرة، مصر" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          <textarea v-model="form.contactAddressAr" rows="2.5" dir="rtl" placeholder="المنطقة الصناعية، القاهرة، مصر" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: missingAddressAr ? '#F59E0B' : 'var(--color-border)' }" />
+          <span v-if="missingAddressAr" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
+            {{ locale === 'ar' ? 'تنبيه: العنوان بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
+          </span>
         </label>
       </div>
     </div>
@@ -127,7 +99,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <Facebook class="h-3.5 w-3.5 text-[#1877F2]" />
             <span>Facebook Page URL</span>
           </span>
-          <input v-model="form.socialFacebook" type="url" placeholder="https://facebook.com/..." :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.socialFacebook" type="url" placeholder="https://facebook.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
 
         <label class="block">
@@ -135,7 +107,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <Instagram class="h-3.5 w-3.5 text-[#E4405F]" />
             <span>Instagram Profile URL</span>
           </span>
-          <input v-model="form.socialInstagram" type="url" placeholder="https://instagram.com/..." :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.socialInstagram" type="url" placeholder="https://instagram.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
       </div>
     </div>
@@ -158,15 +130,25 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       />
     </div>
 
-    <!-- Submit Button -->
-    <div class="flex items-center justify-end gap-3 pt-2">
-      <button
-        type="submit"
-        :disabled="loading"
-        class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:opacity-50"
-      >
-        <span>{{ loading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ معلومات التواصل' : 'Save Contact Settings') }}</span>
-      </button>
+    <!-- Inline Feedback Banner -->
+    <div
+      v-if="statusMessage"
+      role="alert"
+      aria-live="polite"
+      class="rounded-md border p-3 text-xs font-medium transition-all"
+      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
+    >
+      {{ statusMessage }}
     </div>
+
+    <!-- Sticky Save Bar -->
+    <AdminSettingsSaveBar
+      :loading="loading"
+      :dirty="dirty"
+      :save-label="locale === 'ar' ? 'حفظ معلومات التواصل' : 'Save Contact Settings'"
+      :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
+      :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"
+      @reset="reset"
+    />
   </form>
 </template>

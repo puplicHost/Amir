@@ -2,69 +2,52 @@
 import { CreditCard, Lock } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const fetch = useRequestFetch()
-const { data, refresh } = await useAsyncData('admin-payment-settings', () =>
-  fetch<{ payment: { codEnabled: boolean, onlineEnabled: boolean, gatewayName: string, gatewayMode: string, hasCredentials: boolean } }>('/api/admin/settings/payment'),
-)
 
-const saving = ref(false)
-const message = ref('')
-const isError = ref(false)
-
-const form = reactive({
-  codEnabled: data.value?.payment.codEnabled ?? true,
-  onlineEnabled: data.value?.payment.onlineEnabled ?? false,
-  gatewayName: data.value?.payment.gatewayName ?? '',
-  gatewayMode: data.value?.payment.gatewayMode ?? 'sandbox',
-  apiKey: '',
-  secretKey: '',
+const {
+  form, data, loading, statusMessage, isError, dirty, save, reset, markSaved,
+} = await useSettingsForm({
+  key: 'admin-payment-settings',
+  endpoint: '/api/admin/settings/payment',
+  defaults: {
+    codEnabled: true,
+    onlineEnabled: false,
+    gatewayName: '',
+    gatewayMode: 'sandbox',
+    apiKey: '',
+    secretKey: '',
+  },
+  mapData: response => ({
+    codEnabled: response.payment?.codEnabled ?? true,
+    onlineEnabled: response.payment?.onlineEnabled ?? false,
+    gatewayName: response.payment?.gatewayName ?? '',
+    gatewayMode: response.payment?.gatewayMode ?? 'sandbox',
+  }),
+  buildBody: f => ({
+    codEnabled: f.codEnabled,
+    onlineEnabled: f.onlineEnabled,
+    gatewayName: f.gatewayName,
+    gatewayMode: f.gatewayMode,
+    ...(f.apiKey || f.secretKey ? { credentials: { apiKey: f.apiKey, secretKey: f.secretKey } } : {}),
+  }),
+  saveEndpoint: '/api/admin/settings/payment',
+  successAr: 'تم حفظ إعدادات الدفع بنجاح.',
+  successEn: 'Payment settings saved successfully.',
+  failAr: 'فشل حفظ الإعدادات.',
+  failEn: 'Failed to save settings.',
 })
 
-async function save() {
-  saving.value = true
-  message.value = ''
-  isError.value = false
-  try {
-    await $fetch('/api/admin/settings/payment', {
-      method: 'PUT',
-      body: {
-        codEnabled: form.codEnabled,
-        onlineEnabled: form.onlineEnabled,
-        gatewayName: form.gatewayName,
-        gatewayMode: form.gatewayMode,
-        ...(form.apiKey || form.secretKey ? { credentials: { apiKey: form.apiKey, secretKey: form.secretKey } } : {}),
-      },
-    })
-    message.value = locale.value === 'ar' ? 'تم حفظ إعدادات الدفع بنجاح.' : 'Payment settings saved successfully.'
-    form.apiKey = ''
-    form.secretKey = ''
-    await refresh()
-  }
-  catch (e) {
-    isError.value = true
-    message.value = (e as any)?.data?.message || (locale.value === 'ar' ? 'فشل حفظ الإعدادات.' : 'Failed to save settings.')
-  }
-  finally {
-    saving.value = false
-    setTimeout(() => { if (!isError.value) message.value = '' }, 4000)
-  }
+async function saveAndClearSecrets() {
+  const ok = await save()
+  if (!ok) return
+  // Never keep secrets in memory longer than needed; the server confirms storage.
+  form.apiKey = ''
+  form.secretKey = ''
+  markSaved()
 }
-
-const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="save">
-    <!-- Inline Feedback Banner -->
-    <div
-      v-if="message"
-      role="alert"
-      class="rounded-md border p-3 text-xs font-medium transition-all"
-      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
-    >
-      {{ message }}
-    </div>
-
+  <form class="space-y-6" @submit.prevent="saveAndClearSecrets">
     <!-- Active Checkout Methods Card -->
     <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="mb-3 flex items-center gap-2">
@@ -112,11 +95,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Gateway Provider Name</span>
-            <input v-model="form.gatewayName" type="text" placeholder="e.g. Paymob, Fawry" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.gatewayName" type="text" placeholder="e.g. Paymob, Fawry" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Environment Mode</span>
-            <select v-model="form.gatewayMode" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }">
+            <select v-model="form.gatewayMode" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }">
               <option value="sandbox">Sandbox (بيئة الاختبار)</option>
               <option value="production">Production (بيئة العمل المباشرة)</option>
             </select>
@@ -130,25 +113,35 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">API Key</span>
-            <input v-model="form.apiKey" type="password" placeholder="••••••••••••••••" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.apiKey" type="password" placeholder="••••••••••••••••" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" autocomplete="off" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Secret Key</span>
-            <input v-model="form.secretKey" type="password" placeholder="••••••••••••••••" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.secretKey" type="password" placeholder="••••••••••••••••" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" autocomplete="off" />
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Submit Button -->
-    <div class="flex items-center justify-end gap-3 pt-2">
-      <button
-        type="submit"
-        :disabled="saving"
-        class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:opacity-50"
-      >
-        <span>{{ saving ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ إعدادات الدفع' : 'Save Payment Settings') }}</span>
-      </button>
+    <!-- Inline Feedback Banner -->
+    <div
+      v-if="statusMessage"
+      role="alert"
+      aria-live="polite"
+      class="rounded-md border p-3 text-xs font-medium transition-all"
+      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
+    >
+      {{ statusMessage }}
     </div>
+
+    <!-- Sticky Save Bar -->
+    <AdminSettingsSaveBar
+      :loading="loading"
+      :dirty="dirty"
+      :save-label="locale === 'ar' ? 'حفظ إعدادات الدفع' : 'Save Payment Settings'"
+      :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
+      :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"
+      @reset="reset"
+    />
   </form>
 </template>

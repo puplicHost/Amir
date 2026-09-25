@@ -1,26 +1,32 @@
 <script setup lang="ts">
-import { Check, Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-vue-next'
+import { Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const fetch = useRequestFetch()
-const { data, refresh } = await useAsyncData('settings-general', () => fetch<any>('/api/admin/settings'))
 
-const form = reactive({
-  siteNameAr: '',
-  siteNameEn: '',
-  taglineAr: '',
-  taglineEn: '',
-  bannerTextAr: '',
-  bannerTextEn: '',
-  bannerButtonTextAr: '',
-  bannerButtonTextEn: '',
-  bannerButtonUrl: '',
+const {
+  form, data, refresh, loading, statusMessage, isError, dirty, save, reset,
+} = await useSettingsForm({
+  key: 'settings-general',
+  endpoint: '/api/admin/settings',
+  defaults: {
+    siteNameAr: '',
+    siteNameEn: '',
+    taglineAr: '',
+    taglineEn: '',
+    bannerTextAr: '',
+    bannerTextEn: '',
+    bannerButtonTextAr: '',
+    bannerButtonTextEn: '',
+    bannerButtonUrl: '',
+  },
+  saveEndpoint: '/api/admin/settings/general',
+  successAr: 'تم حفظ الإعدادات العامة بنجاح.',
+  successEn: 'General brand settings saved successfully.',
+  failAr: 'حدث خطأ أثناء الحفظ.',
+  failEn: 'Failed to save settings.',
 })
 
-const loading = ref(false)
 const uploadingType = ref<string | null>(null)
-const statusMessage = ref('')
-const isError = ref(false)
 
 // Non-blocking hints: flag EN-filled / AR-empty pairs so missing translations are noticed before publishing.
 const missingAr = computed(() => ({
@@ -32,67 +38,29 @@ const missingAr = computed(() => ({
 
 const missingArCount = computed(() => Object.values(missingAr.value).filter(Boolean).length)
 
-onMounted(() => {
-  if (data.value) Object.assign(form, data.value)
-})
-
-async function save() {
-  loading.value = true
-  statusMessage.value = ''
-  isError.value = false
-  try {
-    await $fetch('/api/admin/settings/general', { method: 'PUT', body: form })
-    statusMessage.value = locale.value === 'ar' ? 'تم حفظ الإعدادات العامة بنجاح.' : 'General brand settings saved successfully.'
-  }
-  catch (e: any) {
-    isError.value = true
-    statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'حدث خطأ أثناء الحفظ.' : 'Failed to save settings.')
-  }
-  finally {
-    loading.value = false
-    setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
-  }
-}
-
 async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   uploadingType.value = type
-  statusMessage.value = ''
-  isError.value = false
   const fd = new FormData()
   fd.append('file', file)
   try {
     await $fetch(`/api/admin/settings/${type}`, { method: 'POST', body: fd })
     await refresh()
-    statusMessage.value = locale.value === 'ar' ? `تم رفع ملف ${type} بنجاح.` : `${type} uploaded successfully.`
   }
   catch (e: any) {
-    isError.value = true
     statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'فشل رفع الملف.' : 'Upload failed.')
+    isError.value = true
   }
   finally {
     uploadingType.value = null
-    setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
     ;(event.target as HTMLInputElement).value = ''
   }
 }
-
-const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
 </script>
 
 <template>
   <form class="space-y-6" @submit.prevent="save">
-    <!-- Inline Feedback Banner -->
-    <div
-      v-if="statusMessage"
-      role="alert"
-      class="rounded-md border p-3 text-xs font-medium transition-all"
-      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
-    >
-      {{ statusMessage }}
-    </div>
-
     <!-- Section 1: Brand & Identity -->
     <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
@@ -106,11 +74,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Site Name (EN)</span>
-            <input v-model="form.siteNameEn" type="text" placeholder="Mango Electronics" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.siteNameEn" type="text" placeholder="Mango Electronics" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Site Name (AR)</span>
-            <input v-model="form.siteNameAr" type="text" placeholder="مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: missingAr.siteName ? '#F59E0B' : 'var(--color-border)' }" />
+            <input v-model="form.siteNameAr" type="text" placeholder="مانجو إلكترونيكس" dir="rtl" :class="settingsInputCls" :style="{ borderColor: missingAr.siteName ? '#F59E0B' : 'var(--color-border)' }" />
             <span v-if="missingAr.siteName" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
               {{ locale === 'ar' ? 'تنبيه: الاسم بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
             </span>
@@ -120,11 +88,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Tagline (EN)</span>
-            <input v-model="form.taglineEn" type="text" placeholder="Do It Right, Do It Smart" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.taglineEn" type="text" placeholder="Do It Right, Do It Smart" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Tagline (AR)</span>
-            <input v-model="form.taglineAr" type="text" placeholder="اعملها صح، اعملها بذكاء" dir="rtl" :class="inputCls" :style="{ borderColor: missingAr.tagline ? '#F59E0B' : 'var(--color-border)' }" />
+            <input v-model="form.taglineAr" type="text" placeholder="اعملها صح، اعملها بذكاء" dir="rtl" :class="settingsInputCls" :style="{ borderColor: missingAr.tagline ? '#F59E0B' : 'var(--color-border)' }" />
             <span v-if="missingAr.tagline" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
               {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
             </span>
@@ -235,35 +203,48 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-3">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (EN)</span>
-            <input v-model="form.bannerButtonTextEn" type="text" placeholder="Book Now" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.bannerButtonTextEn" type="text" placeholder="Book Now" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (AR)</span>
-            <input v-model="form.bannerButtonTextAr" type="text" placeholder="احجز الآن" dir="rtl" :class="inputCls" :style="{ borderColor: missingAr.bannerButtonText ? '#F59E0B' : 'var(--color-border)' }" />
+            <input v-model="form.bannerButtonTextAr" type="text" placeholder="احجز الآن" dir="rtl" :class="settingsInputCls" :style="{ borderColor: missingAr.bannerButtonText ? '#F59E0B' : 'var(--color-border)' }" />
             <span v-if="missingAr.bannerButtonText" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
               {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
             </span>
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Target URL</span>
-            <input v-model="form.bannerButtonUrl" type="text" placeholder="/services" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.bannerButtonUrl" type="text" placeholder="/services" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Submit Action Button -->
-    <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
-      <span v-if="missingArCount > 0" class="me-auto text-[11px] font-medium text-amber-600 dark:text-amber-400">
-        {{ locale === 'ar' ? `يوجد ${missingArCount} حقول عربية فارغة رغم وجود مقابلها الإنجليزي.` : `${missingArCount} Arabic field${missingArCount > 1 ? 's' : ''} empty while English is filled.` }}
-      </span>
-      <button
-        type="submit"
-        :disabled="loading"
-        class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:opacity-50"
-      >
-        <span>{{ loading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الإعدادات العامة' : 'Save General Settings') }}</span>
-      </button>
+    <!-- Inline Feedback Banner -->
+    <div
+      v-if="statusMessage"
+      role="alert"
+      aria-live="polite"
+      class="rounded-md border p-3 text-xs font-medium transition-all"
+      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
+    >
+      {{ statusMessage }}
     </div>
+
+    <!-- Sticky Save Bar -->
+    <AdminSettingsSaveBar
+      :loading="loading"
+      :dirty="dirty"
+      :save-label="locale === 'ar' ? 'حفظ الإعدادات العامة' : 'Save General Settings'"
+      :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
+      :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"
+      @reset="reset"
+    >
+      <template #hint>
+        <span v-if="missingArCount > 0" class="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+          {{ locale === 'ar' ? `يوجد ${missingArCount} حقول عربية فارغة رغم وجود مقابلها الإنجليزي.` : `${missingArCount} Arabic field${missingArCount > 1 ? 's' : ''} empty while English is filled.` }}
+        </span>
+      </template>
+    </AdminSettingsSaveBar>
   </form>
 </template>

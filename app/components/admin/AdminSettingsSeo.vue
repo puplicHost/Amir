@@ -2,63 +2,30 @@
 import { Globe, Search, Sparkles } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const fetch = useRequestFetch()
-const { data } = await useAsyncData('settings-seo', () => fetch<any>('/api/admin/settings'))
 
-const form = reactive({
-  seoMetaTitleTemplateAr: '',
-  seoMetaTitleTemplateEn: '',
-  seoMetaDescriptionAr: '',
-  seoMetaDescriptionEn: '',
-  seoKeywords: '',
-  geoDescription: '',
+const {
+  form, loading, statusMessage, isError, dirty, save, reset,
+} = await useSettingsForm({
+  key: 'settings-seo',
+  endpoint: '/api/admin/settings',
+  defaults: {
+    seoMetaTitleTemplateAr: '',
+    seoMetaTitleTemplateEn: '',
+    seoMetaDescriptionAr: '',
+    seoMetaDescriptionEn: '',
+    seoKeywords: '',
+    geoDescription: '',
+  },
+  saveEndpoint: '/api/admin/settings/seo',
+  successAr: 'تم حفظ إعدادات محركات البحث والذكاء الاصطناعي بنجاح.',
+  successEn: 'SEO & AI Search Discovery settings saved successfully.',
+  failAr: 'حدث خطأ أثناء الحفظ.',
+  failEn: 'Failed to save SEO settings.',
 })
-
-const loading = ref(false)
-const statusMessage = ref('')
-const isError = ref(false)
-
-onMounted(() => {
-  if (data.value) {
-    Object.keys(form).forEach((k) => {
-      form[k as keyof typeof form] = data.value[k] || ''
-    })
-  }
-})
-
-async function save() {
-  loading.value = true
-  statusMessage.value = ''
-  isError.value = false
-  try {
-    await $fetch('/api/admin/settings/seo', { method: 'PUT', body: form })
-    statusMessage.value = locale.value === 'ar' ? 'تم حفظ إعدادات محركات البحث والذكاء الاصطناعي بنجاح.' : 'SEO & AI Search Discovery settings saved successfully.'
-  }
-  catch (e: any) {
-    isError.value = true
-    statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'حدث خطأ أثناء الحفظ.' : 'Failed to save SEO settings.')
-  }
-  finally {
-    loading.value = false
-    setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
-  }
-}
-
-const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
 </script>
 
 <template>
   <form class="space-y-6" @submit.prevent="save">
-    <!-- Inline Feedback Banner -->
-    <div
-      v-if="statusMessage"
-      role="alert"
-      class="rounded-md border p-3 text-xs font-medium transition-all"
-      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
-    >
-      {{ statusMessage }}
-    </div>
-
     <!-- Title & Description Templates -->
     <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="mb-4 flex items-center gap-2">
@@ -72,11 +39,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title Template (EN)</span>
-            <input v-model="form.seoMetaTitleTemplateEn" type="text" placeholder="{page} | Mango Electronics" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.seoMetaTitleTemplateEn" type="text" placeholder="{page} | Mango Electronics" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title Template (AR)</span>
-            <input v-model="form.seoMetaTitleTemplateAr" type="text" placeholder="{page} | مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.seoMetaTitleTemplateAr" type="text" placeholder="{page} | مانجو إلكترونيكس" dir="rtl" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
 
@@ -93,7 +60,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Default Keywords</span>
-          <input v-model="form.seoKeywords" type="text" placeholder="electronics, iot, plc, engineering, egypt, mango" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.seoKeywords" type="text" placeholder="electronics, iot, plc, engineering, egypt, mango" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           <span class="mt-1 block text-[11px] text-slate-400">Comma-separated keywords for meta tags.</span>
         </label>
       </div>
@@ -120,15 +87,25 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       />
     </div>
 
-    <!-- Submit Button -->
-    <div class="flex items-center justify-end gap-3 pt-2">
-      <button
-        type="submit"
-        :disabled="loading"
-        class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:opacity-50"
-      >
-        <span>{{ loading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ إعدادات السيو' : 'Save SEO Settings') }}</span>
-      </button>
+    <!-- Inline Feedback Banner -->
+    <div
+      v-if="statusMessage"
+      role="alert"
+      aria-live="polite"
+      class="rounded-md border p-3 text-xs font-medium transition-all"
+      :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
+    >
+      {{ statusMessage }}
     </div>
+
+    <!-- Sticky Save Bar -->
+    <AdminSettingsSaveBar
+      :loading="loading"
+      :dirty="dirty"
+      :save-label="locale === 'ar' ? 'حفظ إعدادات السيو' : 'Save SEO Settings'"
+      :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
+      :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"
+      @reset="reset"
+    />
   </form>
 </template>
