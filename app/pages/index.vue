@@ -384,7 +384,7 @@ useHead(() => {
 
               <div class="pt-4 border-t border-white/10 flex items-center justify-between">
                 <NuxtLink 
-                  :to="`${localePath('/services')}#service-${flagshipService.id}`"
+                  :to="localePath(`/services/${flagshipService.id}`)"
                   class="inline-flex items-center gap-2 text-sm font-bold text-[#F5CC07] hover:underline"
                 >
                   <span>{{ t('home.serviceAction') }}</span>
@@ -405,7 +405,7 @@ useHead(() => {
           <NuxtLink 
             v-for="srv in standardServices" 
             :key="srv.id" 
-            :to="`${localePath('/services')}#service-${srv.id}`"
+            :to="localePath(`/services/${srv.id}`)"
             class="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#162032] p-5 sm:p-6 shadow-sm hover:border-[#2B71AE] hover:shadow-lg dark:hover:border-[#2B71AE] transition-all duration-300"
           >
             <div>
