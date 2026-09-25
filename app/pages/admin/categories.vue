@@ -302,7 +302,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
                   <Star class="h-3 w-3 fill-amber-500 text-amber-500" aria-hidden="true" />
                   <span>{{ locale === 'ar' ? 'مميز' : 'Featured' }}</span>
                 </span>
-                <span v-else class="text-xs text-slate-400">—</span>
+                <span v-else class="text-xs text-slate-400">-</span>
               </td>
               <td class="px-4 py-3 text-center">
                 <input

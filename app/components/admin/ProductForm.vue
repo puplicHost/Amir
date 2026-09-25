@@ -529,11 +529,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title (EN)</span>
-            <input v-model="form.metaTitleEn" type="text" placeholder="e.g. Arduino Uno R3 — Mango Electronics" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.metaTitleEn" type="text" placeholder="e.g. Arduino Uno R3 | Mango Electronics" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title (AR)</span>
-            <input v-model="form.metaTitleAr" type="text" placeholder="مثال: لوحة أردوينو أونو — مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.metaTitleAr" type="text" placeholder="مثال: لوحة أردوينو أونو | مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
 
@@ -560,7 +560,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             rows="3"
             class="w-full rounded-md border bg-white p-3 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]"
             :style="{ borderColor: 'var(--color-border)' }"
-            placeholder="Describe this product in 2–3 clear sentences for AI search engines: what it is, who uses it, and what problem it solves in Egypt."
+            placeholder="Describe this product in 2-3 clear sentences for AI search engines: what it is, who uses it, and what problem it solves in Egypt."
           />
           <span class="mt-1 block text-[11px] text-slate-400">Used in JSON-LD schema and AI search indexation.</span>
         </label>

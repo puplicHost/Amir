@@ -18,7 +18,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const reqId = route.params.id as string
 
-useHead(() => ({ title: `Request Detail — Admin — ${t('brand.name')}` }))
+useHead(() => ({ title: `Request Detail | Admin | ${t('brand.name')}` }))
 
 const { data: request, refresh } = await useAsyncData(`service-request-${reqId}`, () =>
   $fetch<any>(`/api/admin/services/requests/${reqId}`),
@@ -110,7 +110,7 @@ function formatDate(d: string) {
                 <span class="text-[10px] text-slate-400">({{ getFieldInfo(val.fieldId).subLabel }})</span>
               </div>
               <p class="mt-1 text-sm font-semibold text-slate-900 whitespace-pre-wrap dark:text-slate-100" :dir="getFieldInfo(val.fieldId).type === 'phone' ? 'ltr' : undefined">
-                {{ val.value || '—' }}
+                {{ val.value || '-' }}
               </p>
             </div>
           </div>

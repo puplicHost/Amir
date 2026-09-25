@@ -133,7 +133,7 @@ async function removeUser(user: AdminUserRow) {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '—'
+  if (!d) return '-'
   return new Date(d).toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
     year: 'numeric',
     month: 'short',
@@ -267,7 +267,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
                     <span class="hidden sm:inline">{{ locale === 'ar' ? 'حذف' : 'Delete' }}</span>
                   </button>
                 </div>
-                <span v-else class="text-xs text-slate-400">—</span>
+                <span v-else class="text-xs text-slate-400">-</span>
               </td>
             </tr>
           </tbody>

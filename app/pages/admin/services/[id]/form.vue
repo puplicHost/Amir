@@ -18,7 +18,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const serviceId = route.params.id as string
 
-useHead(() => ({ title: `Form Builder — Admin — ${t('brand.name')}` }))
+useHead(() => ({ title: `Form Builder | Admin | ${t('brand.name')}` }))
 
 const { data: fields, refresh } = await useAsyncData(`service-form-${serviceId}`, () =>
   $fetch<any[]>(`/api/admin/services/${serviceId}/form`),

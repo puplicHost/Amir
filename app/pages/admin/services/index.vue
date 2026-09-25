@@ -312,7 +312,7 @@ function formatDate(d: string) {
                       type="button"
                       :disabled="deleting === s.id || (s._count?.requests || 0) > 0"
                       class="inline-flex h-8 items-center gap-1 rounded px-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950/40"
-                      :title="(s._count?.requests || 0) > 0 ? (locale === 'ar' ? 'لا يمكن الحذف — توجد طلبات مرتبطة بهذه الخدمة' : 'Cannot delete — this service has submitted requests') : (locale === 'ar' ? 'حذف الخدمة' : 'Delete service')"
+                      :title="(s._count?.requests || 0) > 0 ? (locale === 'ar' ? 'لا يمكن الحذف: توجد طلبات مرتبطة بهذه الخدمة' : 'Cannot delete: this service has submitted requests') : (locale === 'ar' ? 'حذف الخدمة' : 'Delete service')"
                       @click="deleteService(s)"
                     >
                       <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />

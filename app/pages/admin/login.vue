@@ -42,7 +42,7 @@ async function login() {
   }
 }
 
-useHead(() => ({ title: `Admin Login — ${t('brand.name')}` }))
+useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
 </script>
 
 <template>
