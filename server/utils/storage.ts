@@ -6,6 +6,12 @@ import sharp from 'sharp'
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
+const ALLOWED_VIDEO_MIME = new Set(['video/mp4', 'video/webm', 'video/ogg'])
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024 // 50MB
+
+const ALLOWED_DOC_MIME = new Set(['application/pdf'])
+const MAX_DOC_BYTES = 10 * 1024 * 1024 // 10MB
+
 export function storageRoot(): string {
   return resolve(process.cwd(), 'storage')
 }
@@ -42,6 +48,38 @@ export async function saveProductImage(productId: string, data: Buffer, mime: st
   const buffer = await sharp(data).resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
   await writeFile(join(dir, filename), buffer)
   return `/uploads/products/${productId}/${filename}`
+}
+
+export async function saveProductVideo(productId: string, data: Buffer, mime: string): Promise<string> {
+  assertSafeId(productId)
+  if (!ALLOWED_VIDEO_MIME.has(mime)) {
+    throw createError({ statusCode: 400, statusMessage: 'Only MP4, WebM, Ogg video formats allowed' })
+  }
+  if (data.length > MAX_VIDEO_BYTES) {
+    throw createError({ statusCode: 400, statusMessage: 'Video exceeds 50MB limit' })
+  }
+  const dir = join(productDir(productId), 'video')
+  await mkdir(dir, { recursive: true })
+  const ext = mime === 'video/webm' ? 'webm' : mime === 'video/ogg' ? 'ogg' : 'mp4'
+  const filename = `${randomUUID()}.${ext}`
+  await writeFile(join(dir, filename), data)
+  return `/uploads/products/${productId}/video/${filename}`
+}
+
+export async function saveProductDocument(productId: string, data: Buffer, originalFilename: string, mime: string): Promise<string> {
+  assertSafeId(productId)
+  if (!ALLOWED_DOC_MIME.has(mime)) {
+    throw createError({ statusCode: 400, statusMessage: 'Only PDF documents allowed' })
+  }
+  if (data.length > MAX_DOC_BYTES) {
+    throw createError({ statusCode: 400, statusMessage: 'Document exceeds 10MB limit' })
+  }
+  const dir = join(productDir(productId), 'documents')
+  await mkdir(dir, { recursive: true })
+  const safeBase = originalFilename.replace(/[^a-zA-Z0-9.\-_]/g, '_').replace(/\.pdf$/i, '')
+  const filename = `${safeBase}-${randomUUID().slice(0, 8)}.pdf`
+  await writeFile(join(dir, filename), data)
+  return `/uploads/products/${productId}/documents/${filename}`
 }
 
 export async function saveCategoryCover(categoryId: string, data: Buffer, mime: string): Promise<string> {

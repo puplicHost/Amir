@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ShoppingCart } from 'lucide-vue-next'
+import { Check, FileText, ShoppingCart } from 'lucide-vue-next'
 
 interface Card {
   id?: string
@@ -17,9 +17,28 @@ const props = defineProps<{ product: Card }>()
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const cartStore = useCartStore()
+const quoteStore = useQuoteStore()
 
 const name = (p: Card) => (locale.value === 'ar' ? p.nameAr : p.nameEn)
 const added = ref(false)
+
+const isQuoteSelected = computed(() => {
+  const pid = props.product.id || props.product.slug
+  return quoteStore.isSelected(pid)
+})
+
+function onToggleQuote(e: Event) {
+  e.preventDefault()
+  e.stopPropagation()
+  quoteStore.toggleItem({
+    productId: props.product.id || props.product.slug,
+    slug: props.product.slug,
+    nameAr: props.product.nameAr,
+    nameEn: props.product.nameEn,
+    price: Number(props.product.price),
+    coverImage: props.product.coverImage || null,
+  })
+}
 
 function onAddToCart(e: Event) {
   e.preventDefault()
@@ -42,7 +61,12 @@ function onAddToCart(e: Event) {
 
 <template>
   <div
-    class="group flex h-full flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs hover:-translate-y-1 hover:shadow-lg hover:border-[#2B71AE] dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE] transition-all duration-300"
+    class="group flex h-full flex-col justify-between overflow-hidden rounded-xl border bg-white shadow-xs hover:-translate-y-1 hover:shadow-lg transition-all duration-300"
+    :class="[
+      isQuoteSelected
+        ? 'border-[#F5CC07] ring-1 ring-[#F5CC07]/40 dark:border-[#F5CC07] dark:bg-[#162032]'
+        : 'border-slate-200/90 hover:border-[#2B71AE] dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE]'
+    ]"
   >
     <NuxtLink :to="localePath(`/p/${product.slug}`)" class="block flex-1 flex flex-col">
       <!-- Cover Image with Fixed 1:1 Aspect Ratio and Smooth Zoom -->
@@ -58,13 +82,28 @@ function onAddToCart(e: Event) {
           {{ t('common.noImage') }}
         </div>
 
-        <!-- Category Chip Overlay -->
+        <!-- Category Chip (Top Start) -->
         <span 
           v-if="product.category" 
-          class="absolute start-2 top-2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold text-white backdrop-blur-md dark:bg-slate-950/80"
+          class="absolute start-2 top-2 rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[9px] sm:text-[10px] font-semibold text-white backdrop-blur-md dark:bg-slate-950/80"
         >
           {{ locale === 'ar' ? product.category.nameAr : product.category.nameEn }}
         </span>
+
+        <!-- Select for Price Quote Toggle (Top End) -->
+        <button
+          type="button"
+          class="absolute end-2 top-2 z-10 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold backdrop-blur-md transition-all active:scale-95 shadow-xs"
+          :class="isQuoteSelected
+            ? 'bg-[#F5CC07] text-slate-950 font-black shadow-md ring-1 ring-yellow-500'
+            : 'bg-white/85 text-slate-700 hover:bg-white hover:text-[#2B71AE] border border-slate-200/80 dark:bg-[#0B1520]/80 dark:text-slate-300 dark:hover:bg-[#0B1520] dark:border-slate-700'"
+          :title="locale === 'ar' ? 'تحديد لإضافته إلى عرض السعر الرسمي' : 'Select for official price quotation'"
+          @click="onToggleQuote"
+        >
+          <Check v-if="isQuoteSelected" class="h-3 w-3 stroke-[3]" />
+          <FileText v-else class="h-3 w-3" />
+          <span>{{ isQuoteSelected ? (locale === 'ar' ? 'تم التحديد' : 'Selected') : (locale === 'ar' ? 'عرض سعر' : 'Quote') }}</span>
+        </button>
       </div>
 
       <!-- Information & Pricing with Uniform Line Height & Baseline -->
@@ -87,7 +126,7 @@ function onAddToCart(e: Event) {
       </div>
     </NuxtLink>
 
-    <!-- Card Action Button -->
+    <!-- Card Action Button: Add to Cart -->
     <div class="p-3 sm:p-3.5 pt-0">
       <button
         type="button"
@@ -97,7 +136,7 @@ function onAddToCart(e: Event) {
       >
         <Check v-if="added" class="h-3.5 w-3.5" />
         <ShoppingCart v-else class="h-3.5 w-3.5" />
-        <span>{{ added ? (locale === 'ar' ? 'تمت الإضافة' : 'Added to Cart') : (locale === 'ar' ? 'إضافة للسلة' : 'Add to Cart') }}</span>
+        <span>{{ added ? (locale === 'ar' ? 'تمت الإضافة للسلة' : 'Added to Cart') : (locale === 'ar' ? 'إضافة للسلة' : 'Add to Cart') }}</span>
       </button>
     </div>
   </div>

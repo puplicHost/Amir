@@ -5,13 +5,19 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
+  ExternalLink,
+  File,
+  FileText,
   Globe,
   Image as ImageIcon,
   Layers,
+  Play,
   Plus,
   Tag,
   Trash2,
   UploadCloud,
+  Video,
 } from 'lucide-vue-next'
 
 interface Category {
@@ -32,6 +38,19 @@ interface ProductImage {
   sortOrder: number
   isCover: boolean
 }
+interface ProductVideo {
+  id?: string
+  type: string
+  url: string
+}
+interface ProductDocument {
+  id: string
+  labelAr: string
+  labelEn: string
+  filePath: string
+  fileType: string
+  sortOrder: number
+}
 interface Existing {
   id: string
   nameAr: string
@@ -46,6 +65,8 @@ interface Existing {
   attributes: Attr[]
   seo: Record<string, string | null> | null
   images: ProductImage[]
+  video?: ProductVideo | null
+  documents?: ProductDocument[]
 }
 
 const props = defineProps<{ existing?: Existing | null }>()
@@ -227,6 +248,153 @@ async function moveImage(index: number, dir: -1 | 1) {
   })
   // First image is cover.
   images.value = images.value.map((img, i) => ({ ...img, isCover: i === 0 }))
+}
+
+const video = ref<ProductVideo | null>(props.existing?.video || null)
+const documents = ref<ProductDocument[]>([...(props.existing?.documents || [])])
+const videoMode = ref<'url' | 'upload'>('url')
+const videoUrlInput = ref('')
+const videoUploading = ref(false)
+const docUploading = ref(false)
+const docFile = ref<File | null>(null)
+const docLabelEn = ref('')
+const docLabelAr = ref('')
+
+function getEmbedUrl(url: string, type: string): string {
+  if (type === 'youtube') {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`
+    }
+    return url
+  }
+  if (type === 'vimeo') {
+    const regExp = /vimeo\.com\/(\d+)/
+    const match = url.match(regExp)
+    if (match && match[1]) {
+      return `https://player.vimeo.com/video/${match[1]}`
+    }
+    return url
+  }
+  return url
+}
+
+async function saveVideoUrl() {
+  const url = videoUrlInput.value.trim()
+  if (!url) return
+  error.value = ''
+  const id = savedId.value || await saveCore()
+  if (!id) return
+  videoUploading.value = true
+  try {
+    const res = await $fetch<{ video: ProductVideo }>(`/api/admin/products/${id}/video`, {
+      method: 'POST',
+      body: { url },
+    })
+    video.value = res.video
+    videoUrlInput.value = ''
+  }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Failed to save video'
+  }
+  finally {
+    videoUploading.value = false
+  }
+}
+
+async function onVideoFileUpload(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (file.size > 50 * 1024 * 1024) {
+    error.value = locale.value === 'ar' ? 'حجم ملف الفيديو يجب ألا يتجاوز 50 ميجابايت.' : 'Video file must be 50MB or less.'
+    return
+  }
+  error.value = ''
+  const id = savedId.value || await saveCore()
+  if (!id) return
+  videoUploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('video', file)
+    const res = await $fetch<{ video: ProductVideo }>(`/api/admin/products/${id}/video`, {
+      method: 'POST',
+      body: fd,
+    })
+    video.value = res.video
+  }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Video upload failed'
+  }
+  finally {
+    videoUploading.value = false
+    ;(e.target as HTMLInputElement).value = ''
+  }
+}
+
+async function removeVideo() {
+  if (!savedId.value) return
+  try {
+    await $fetch(`/api/admin/products/${savedId.value}/video`, { method: 'DELETE' })
+    video.value = null
+  }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Failed to remove video'
+  }
+}
+
+function onDocFileSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) {
+    docFile.value = file
+    if (!docLabelEn.value) {
+      docLabelEn.value = file.name.replace(/\.pdf$/i, '')
+    }
+  }
+}
+
+async function uploadDocument() {
+  const file = docFile.value
+  if (!file) return
+  if (file.size > 10 * 1024 * 1024) {
+    error.value = locale.value === 'ar' ? 'حجم ملف الـ PDF يجب ألا يتجاوز 10 ميجابايت.' : 'PDF file must be 10MB or less.'
+    return
+  }
+  error.value = ''
+  const id = savedId.value || await saveCore()
+  if (!id) return
+  docUploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('document', file)
+    fd.append('labelEn', docLabelEn.value.trim() || file.name)
+    fd.append('labelAr', docLabelAr.value.trim() || docLabelEn.value.trim() || file.name)
+    const res = await $fetch<{ document: ProductDocument }>(`/api/admin/products/${id}/documents`, {
+      method: 'POST',
+      body: fd,
+    })
+    documents.value.push(res.document)
+    docFile.value = null
+    docLabelEn.value = ''
+    docLabelAr.value = ''
+  }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Document upload failed'
+  }
+  finally {
+    docUploading.value = false
+  }
+}
+
+async function removeDocument(doc: ProductDocument) {
+  if (!savedId.value) return
+  try {
+    await $fetch(`/api/admin/products/${savedId.value}/documents/${doc.id}`, { method: 'DELETE' })
+    documents.value = documents.value.filter(d => d.id !== doc.id)
+  }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Failed to remove document'
+  }
 }
 
 const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:focus:border-[#2B71AE]'
@@ -507,6 +675,187 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             >
               <ChevronRight v-if="locale === 'en'" class="h-3.5 w-3.5" aria-hidden="true" />
               <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Product Video (Optional) -->
+      <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-800">
+        <div class="flex items-center gap-2 mb-1">
+          <Video class="h-4 w-4 text-[#2B71AE]" />
+          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+            {{ locale === 'ar' ? 'فيديو توضيحي للمنتج (اختياري)' : 'Product Video (Optional)' }}
+          </h3>
+        </div>
+        <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+          {{ locale === 'ar' ? 'يمكنك إرفاق رابط يوتيوب أو فيميو، أو رفع ملف فيديو مباشر (MP4).' : 'Attach a YouTube/Vimeo URL, or upload a direct video file (MP4, WebM up to 50MB).' }}
+        </p>
+
+        <!-- Existing Video Preview -->
+        <div v-if="video" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#0B1520] max-w-lg space-y-3">
+          <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+            <iframe
+              v-if="video.type === 'youtube' || video.type === 'vimeo'"
+              :src="getEmbedUrl(video.url, video.type)"
+              class="h-full w-full"
+              allowfullscreen
+            ></iframe>
+            <video
+              v-else
+              controls
+              :src="video.url"
+              class="h-full w-full object-cover"
+            ></video>
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-1">
+            <span class="font-mono text-slate-500 truncate max-w-xs">{{ video.url }}</span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-rose-600 hover:underline dark:text-rose-400 font-semibold"
+              @click="removeVideo"
+            >
+              <Trash2 class="h-3.5 w-3.5" />
+              <span>{{ locale === 'ar' ? 'إزالة الفيديو' : 'Remove Video' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Add Video Form -->
+        <div v-else class="space-y-3 max-w-xl">
+          <div class="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              class="rounded-lg px-3 py-1.5 font-semibold transition-colors"
+              :class="videoMode === 'url' ? 'bg-[#2B71AE] text-white' : 'border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+              @click="videoMode = 'url'"
+            >
+              {{ locale === 'ar' ? 'رابط فيديو (YouTube / Vimeo)' : 'Video URL (YouTube / Vimeo)' }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-3 py-1.5 font-semibold transition-colors"
+              :class="videoMode === 'upload' ? 'bg-[#2B71AE] text-white' : 'border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+              @click="videoMode = 'upload'"
+            >
+              {{ locale === 'ar' ? 'رفع ملف فيديو مباشر' : 'Upload Video File' }}
+            </button>
+          </div>
+
+          <!-- URL Mode -->
+          <div v-if="videoMode === 'url'" class="flex items-center gap-2">
+            <input
+              v-model="videoUrlInput"
+              type="url"
+              :placeholder="locale === 'ar' ? 'مثال: https://www.youtube.com/watch?v=...' : 'e.g. https://www.youtube.com/watch?v=...'"
+              :class="inputCls"
+              :style="{ borderColor: 'var(--color-border)' }"
+            />
+            <button
+              type="button"
+              :disabled="videoUploading || !videoUrlInput.trim()"
+              class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-colors"
+              @click="saveVideoUrl"
+            >
+              <span>{{ videoUploading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الرابط' : 'Attach Video') }}</span>
+            </button>
+          </div>
+
+          <!-- Upload Mode -->
+          <div v-else>
+            <label class="flex cursor-pointer items-center justify-between rounded-md border border-dashed p-4 hover:border-[#2B71AE] hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50 transition-colors">
+              <div class="flex items-center gap-3">
+                <Video class="h-6 w-6 text-slate-400" />
+                <div class="text-xs">
+                  <span class="font-bold text-slate-800 dark:text-slate-200">{{ locale === 'ar' ? 'اختر ملف فيديو (MP4, WebM)' : 'Select video file (MP4, WebM)' }}</span>
+                  <span class="block text-[11px] text-slate-400">Max size 50MB.</span>
+                </div>
+              </div>
+              <input type="file" accept="video/mp4,video/webm,video/ogg" class="hidden" @change="onVideoFileUpload" />
+              <span class="rounded bg-[#2B71AE] px-3 py-1.5 text-xs font-semibold text-white">{{ locale === 'ar' ? 'تصفح' : 'Browse' }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Product Documents & Datasheets (PDF) -->
+      <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-800">
+        <div class="flex items-center gap-2 mb-1">
+          <FileText class="h-4 w-4 text-[#2B71AE]" />
+          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+            {{ locale === 'ar' ? 'كتيبات المواصفات والملفات الفنية (PDF)' : 'Product Datasheets & Documentation (PDF)' }}
+          </h3>
+        </div>
+        <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+          {{ locale === 'ar' ? 'يمكنك إرفاق عدة ملفات PDF (كتيب مواصفات، دليل مستخدم، شهادات فحص). الحد الأقصى 10 ميجابايت للملف.' : 'Attach multiple PDF files (datasheets, user manuals, certificates). Max 10MB per PDF.' }}
+        </p>
+
+        <!-- List of Uploaded Documents -->
+        <div v-if="documents.length" class="space-y-2 mb-4 max-w-xl">
+          <div
+            v-for="doc in documents"
+            :key="doc.id"
+            class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-[#0B1520]"
+          >
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="rounded bg-rose-100 dark:bg-rose-950/60 px-1.5 py-0.5 font-bold text-[10px] text-rose-700 dark:text-rose-400">PDF</span>
+              <div class="min-w-0">
+                <p class="font-bold text-slate-800 dark:text-slate-200 truncate">{{ locale === 'ar' ? doc.labelAr : doc.labelEn }}</p>
+                <span class="text-[10px] text-slate-400">{{ doc.labelEn }} / {{ doc.labelAr }}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a :href="doc.filePath" target="_blank" download class="text-slate-500 hover:text-[#2B71AE] p-1">
+                <Download class="h-3.5 w-3.5" />
+              </a>
+              <button type="button" class="text-slate-400 hover:text-rose-600 p-1" @click="removeDocument(doc)">
+                <Trash2 class="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Document Form -->
+        <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#0B1520] max-w-xl space-y-3">
+          <span class="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">
+            {{ locale === 'ar' ? 'إرفاق ملف PDF جديد' : 'Attach New PDF Document' }}
+          </span>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <input
+              v-model="docLabelEn"
+              type="text"
+              :placeholder="locale === 'ar' ? 'العنوان بالإنجليزية (مثال: Technical Datasheet)' : 'Label (EN) e.g. Technical Datasheet'"
+              :class="inputCls"
+              :style="{ borderColor: 'var(--color-border)' }"
+            />
+            <input
+              v-model="docLabelAr"
+              type="text"
+              dir="rtl"
+              :placeholder="locale === 'ar' ? 'العنوان بالعربية (مثال: كتيب المواصفات الفنية)' : 'Label (AR) e.g. كتيب المواصفات الفنية'"
+              :class="inputCls"
+              :style="{ borderColor: 'var(--color-border)' }"
+            />
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+            <input
+              type="file"
+              accept="application/pdf"
+              class="block w-full text-xs text-slate-500 file:me-3 file:rounded-md file:border-0 file:bg-[#2B71AE]/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#2B71AE] hover:file:bg-[#2B71AE]/20 cursor-pointer"
+              @change="onDocFileSelected"
+            />
+            <button
+              type="button"
+              :disabled="docUploading || !docFile"
+              class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-colors w-full sm:w-auto"
+              @click="uploadDocument"
+            >
+              <UploadCloud class="h-3.5 w-3.5" />
+              <span>{{ docUploading ? (locale === 'ar' ? 'جاري الرفع…' : 'Uploading…') : (locale === 'ar' ? 'رفع المستند' : 'Upload PDF') }}</span>
             </button>
           </div>
         </div>

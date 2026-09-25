@@ -77,6 +77,9 @@ model Product {
   attributes ProductAttribute[]
   seo        ProductSeo?
   orderItems OrderItem[]
+  quoteItems QuoteRequestItem[]
+  video      ProductVideo?
+  documents  ProductDocument[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -121,6 +124,31 @@ model ProductSeo {
   geoContent        String? @db.Text
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductVideo {
+  id        String   @id @default(cuid())
+  productId String   @unique
+  type      String   // 'youtube' | 'vimeo' | 'upload'
+  url       String
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductDocument {
+  id        String   @id @default(cuid())
+  productId String
+  labelAr   String
+  labelEn   String
+  filePath  String
+  fileType  String   @default("pdf")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 // ─── Orders ────────────────────────────────────────────────────
@@ -172,6 +200,43 @@ model OrderStatusHistory {
   changedBy   AdminUser? @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
+}
+
+// ─── Price Quotes ──────────────────────────────────────────────
+
+model QuoteRequest {
+  id          String   @id @default(cuid())
+  quoteNumber String   @unique
+  companyName String
+  contactName String
+  phone       String
+  email       String?
+  notes       String?  @db.Text
+  totalAmount Decimal  @default(0) @db.Decimal(10, 2)
+  status      String   @default("New")
+  pdfPath     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items QuoteRequestItem[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QuoteRequestItem {
+  id                  String  @id @default(cuid())
+  quoteRequestId      String
+  productId           String?
+  productNameSnapshot String
+  priceSnapshot       Decimal @db.Decimal(10, 2)
+  quantity            Int     @default(1)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([quoteRequestId])
+  @@index([productId])
 }
 
 // ─── Services ──────────────────────────────────────────────────

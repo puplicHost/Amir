@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FolderTree, LayoutDashboard, LogOut, Settings, ShoppingCart, Users, Wrench, X } from 'lucide-vue-next'
+import { FileText, FolderTree, LayoutDashboard, LogOut, Settings, ShoppingCart, Users, Wrench, X } from 'lucide-vue-next'
 
 const props = defineProps<{
   mobileOpen?: boolean
@@ -17,15 +17,19 @@ const { data } = useAdminSession()
 const canProductsView = useAdminCan('products.view')
 const canCategoriesManage = useAdminCan('categories.manage')
 const canOrdersView = useAdminCan('orders.view')
+const canQuotesManage = useAdminCan('quotes.view')
 const canServicesView = useAdminCan('services.view')
 const canUsersManage = useAdminCan('users.manage')
 const canSettingsView = useAdminCan('settings.view')
+
+const canQuotesView = computed(() => canQuotesManage.value || canServicesView.value || canOrdersView.value || data.value?.user.isSuper)
 
 const items = computed(() => [
   { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, show: true },
   { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value },
   { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value },
   { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
+  { label: locale.value === 'ar' ? 'عروض الأسعار' : 'Quote Requests', to: '/admin/quotes', icon: FileText, show: canQuotesView.value },
   { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
   { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },
   { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value },

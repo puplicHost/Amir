@@ -4,14 +4,17 @@ import {
   CheckCircle2, 
   Copy, 
   Cpu, 
+  Download, 
   FileText, 
   MessageCircle, 
   Minus, 
+  Play, 
   Plus, 
   Share2, 
   ShieldCheck, 
   ShoppingCart, 
-  Truck 
+  Truck, 
+  Video 
 } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
@@ -32,6 +35,8 @@ interface LandingProduct {
   images: { path: string, altAr: string | null, altEn: string | null }[]
   attributes: { keyAr: string, keyEn: string, valueAr: string, valueEn: string }[]
   seo: { metaTitleEn: string | null, metaDescriptionEn: string | null } | null
+  video?: { id: string, type: string, url: string } | null
+  documents?: { id: string, labelAr: string, labelEn: string, filePath: string, fileType: string, sortOrder: number }[]
 }
 
 const { data, error } = await useAsyncData(`product-${slug}`, () =>
@@ -119,6 +124,27 @@ const waHref = computed(() => {
   const msg = `${name.value} - ${pageUrl.value}`
   return `https://wa.me/?text=${encodeURIComponent(msg)}`
 })
+
+function getEmbedUrl(url: string, type?: string): string {
+  if (!url) return ''
+  if (type === 'youtube' || url.includes('youtube.com') || url.includes('youtu.be')) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`
+    }
+    return url
+  }
+  if (type === 'vimeo' || url.includes('vimeo.com')) {
+    const regExp = /vimeo\.com\/(\d+)/
+    const match = url.match(regExp)
+    if (match && match[1]) {
+      return `https://player.vimeo.com/video/${match[1]}`
+    }
+    return url
+  }
+  return url
+}
 </script>
 
 <template>
@@ -172,6 +198,29 @@ const waHref = computed(() => {
           >
             <img :src="img.path" :alt="`${name} ${i + 1}`" class="h-full w-full object-cover rounded-lg" loading="lazy" />
           </button>
+        </div>
+
+        <!-- Product Video Section (if attached) -->
+        <div v-if="p.video" class="mt-5 rounded-2xl border border-slate-200/90 overflow-hidden bg-white shadow-xs dark:border-slate-800 dark:bg-[#162032]">
+          <div class="px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+            <Play class="h-3.5 w-3.5 text-[#F5CC07] fill-current" />
+            <span>{{ locale === 'ar' ? 'فيديو توضيحي للمنتج' : 'Product Demonstration Video' }}</span>
+          </div>
+          <div class="relative aspect-video w-full bg-black">
+            <iframe
+              v-if="p.video.type === 'youtube' || p.video.type === 'vimeo'"
+              :src="getEmbedUrl(p.video.url, p.video.type)"
+              class="h-full w-full"
+              allowfullscreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            ></iframe>
+            <video
+              v-else
+              controls
+              :src="p.video.url"
+              class="h-full w-full object-cover"
+            ></video>
+          </div>
         </div>
       </div>
 
@@ -307,6 +356,43 @@ const waHref = computed(() => {
                 {{ locale === 'ar' ? a.valueAr : a.valueEn }}
               </span>
             </div>
+          </div>
+        </div>
+
+        <!-- Product Documents & Datasheets (PDF) Section -->
+        <div v-if="p.documents?.length" class="border-t border-slate-200/80 dark:border-slate-800 pt-8 mt-8">
+          <div class="flex items-center gap-2 mb-4">
+            <FileText class="h-5 w-5 text-[#2B71AE] dark:text-[#F5CC07]" />
+            <h2 class="font-heading text-lg font-bold text-slate-900 dark:text-white">
+              {{ locale === 'ar' ? 'كتيبات المواصفات والملفات الفنية (PDF)' : 'Technical Datasheets & Documentation (PDF)' }}
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a
+              v-for="doc in p.documents"
+              :key="doc.id"
+              :href="doc.filePath"
+              target="_blank"
+              download
+              class="group flex items-center justify-between rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs hover:border-[#2B71AE] hover:shadow-md dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#F5CC07] transition-all"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 font-bold text-xs uppercase">
+                  PDF
+                </div>
+                <div class="min-w-0">
+                  <p class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate group-hover:text-[#2B71AE] dark:group-hover:text-[#F5CC07] transition-colors">
+                    {{ locale === 'ar' ? doc.labelAr : doc.labelEn }}
+                  </p>
+                  <span class="text-[10px] text-slate-400 font-mono block">
+                    {{ locale === 'ar' ? 'تحميل المستند' : 'Download Document' }}
+                  </span>
+                </div>
+              </div>
+
+              <Download class="h-4 w-4 text-slate-400 group-hover:text-[#2B71AE] dark:group-hover:text-[#F5CC07] transition-colors shrink-0" />
+            </a>
           </div>
         </div>
       </div>

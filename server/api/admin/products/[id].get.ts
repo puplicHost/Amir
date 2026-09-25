@@ -8,6 +8,8 @@ export default defineEventHandler(async (event) => {
       images: { orderBy: { sortOrder: 'asc' } },
       attributes: true,
       seo: true,
+      video: true,
+      documents: { orderBy: { sortOrder: 'asc' } },
     },
   })
   if (!product) throw createError({ statusCode: 404, statusMessage: 'Product not found' })

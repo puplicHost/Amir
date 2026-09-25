@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, Filter, RotateCcw, Search, SlidersHorizontal, Tag, X } from 'lucide-vue-next'
+import { ArrowRight, ChevronDown, ChevronUp, Filter, RotateCcw, Search, SlidersHorizontal, Tag, X } from 'lucide-vue-next'
 
 const props = defineProps<{ categorySlug?: string }>()
 
@@ -7,6 +7,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
+const quoteStore = useQuoteStore()
 
 const search = ref(String(route.query.search || ''))
 const minPrice = ref(String(route.query.minPrice || ''))
@@ -608,6 +609,53 @@ watch(() => route.query, (newQ) => {
         </div>
       </div>
     </Teleport>
+
+    <!-- Persistent Floating Quote Selection Bar -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out transform"
+      enter-from-class="translate-y-12 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in transform"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-12 opacity-0"
+    >
+      <div 
+        v-if="quoteStore.itemCount > 0"
+        class="fixed bottom-5 inset-x-4 sm:inset-x-auto sm:end-8 z-40 flex items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-[#0B1520]/95 px-5 py-3.5 text-white shadow-2xl backdrop-blur-md sm:min-w-[380px]"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5CC07] text-slate-950 font-black shadow-xs">
+            {{ quoteStore.itemCount }}
+          </div>
+          <div>
+            <p class="text-xs font-bold leading-tight text-white">
+              {{ locale === 'ar' ? `تم تحديد ${quoteStore.itemCount} منتج لعرض السعر` : `${quoteStore.itemCount} product${quoteStore.itemCount > 1 ? 's' : ''} selected` }}
+            </p>
+            <p class="font-mono text-[11px] text-[#F5CC07] font-semibold mt-0.5">
+              {{ quoteStore.totalAmount.toLocaleString() }} EGP
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="text-xs font-medium text-slate-400 hover:text-white px-2 py-1 transition-colors"
+            :title="locale === 'ar' ? 'إلغاء التحديد' : 'Clear selection'"
+            @click="quoteStore.clearQuote()"
+          >
+            {{ locale === 'ar' ? 'إلغاء' : 'Clear' }}
+          </button>
+          <NuxtLink
+            :to="localePath('/quote')"
+            class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#2B71AE] px-4 text-xs font-bold text-white shadow-xs hover:bg-[#285E8E] active:scale-95 transition-all"
+          >
+            <span>{{ locale === 'ar' ? 'إنشاء العرض' : 'Generate Quote' }}</span>
+            <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180" />
+          </NuxtLink>
+        </div>
+      </div>
+    </Transition>
 
   </div>
 </template>
