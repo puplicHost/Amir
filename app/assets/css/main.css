@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 :root {
-  /* Mango Electronics design tokens — light mode */
+  /* Mango Electronics design tokens: light mode */
   --color-primary-dark: #285e8e;
   --color-primary: #2b71ae;
   --color-accent: #f5cc07;
@@ -24,7 +24,7 @@
 }
 
 .dark {
-  /* Mango Electronics design tokens — dark mode */
+  /* Mango Electronics design tokens: dark mode */
   --color-bg: #0b1520;
   --color-surface: #162032;
   --color-border: #1e3048;

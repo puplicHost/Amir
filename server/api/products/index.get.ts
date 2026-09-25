@@ -29,17 +29,43 @@ export default defineEventHandler(async (event) => {
   if (typeof q.attributes === 'string' && q.attributes) {
     try {
       const filters = JSON.parse(q.attributes) as AttrFilter[]
-      const and = (Array.isArray(filters) ? filters : [])
-        .filter(f => f.key || f.value)
-        .map(f => ({
-          attributes: {
-            some: {
-              ...(f.key ? { keyEn: { contains: String(f.key), mode: 'insensitive' as const } } : {}),
-              ...(f.value ? { valueEn: { contains: String(f.value), mode: 'insensitive' as const } } : {}),
-            },
+      const valid = (Array.isArray(filters) ? filters : []).filter(f => f.key && f.value)
+
+      // Group values by attribute key
+      const keyMap = new Map<string, string[]>()
+      for (const item of valid) {
+        const k = String(item.key).trim()
+        const v = String(item.value).trim()
+        if (!k || !v) continue
+        if (!keyMap.has(k)) keyMap.set(k, [])
+        keyMap.get(k)!.push(v)
+      }
+
+      // Each distinct key adds an AND condition; multiple values for the same key are OR'd
+      const andConditions = Array.from(keyMap.entries()).map(([k, values]) => ({
+        attributes: {
+          some: {
+            AND: [
+              {
+                OR: [
+                  { keyEn: { equals: k, mode: 'insensitive' as const } },
+                  { keyAr: { equals: k, mode: 'insensitive' as const } },
+                  { keyEn: { contains: k, mode: 'insensitive' as const } },
+                ],
+              },
+              {
+                OR: values.flatMap(v => [
+                  { valueEn: { equals: v, mode: 'insensitive' as const } },
+                  { valueAr: { equals: v, mode: 'insensitive' as const } },
+                  { valueEn: { contains: v, mode: 'insensitive' as const } },
+                ]),
+              },
+            ],
           },
-        }))
-      if (and.length) where.AND = and
+        },
+      }))
+
+      if (andConditions.length) where.AND = andConditions
     }
     catch { /* ignore malformed filter */ }
   }

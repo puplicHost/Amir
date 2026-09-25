@@ -1,23 +1,51 @@
 <script setup lang="ts">
-const { t } = useI18n()
+import { ArrowRight, CheckCircle2, Home, Wrench } from 'lucide-vue-next'
+
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
-useHead(() => ({ title: `Request Received — ${t('brand.name')}` }))
+
+useHead(() => ({ 
+  title: `${locale.value === 'ar' ? 'تم استلام طلب الخدمة' : 'Request Received'} | ${t('brand.name')}` 
+}))
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl px-4 py-20 text-center">
-    <div class="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600">
-      <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-    </div>
-    <h1 class="mb-4 font-heading text-3xl font-bold">Request Received Successfully</h1>
-    <p class="mb-8 text-lg text-slate-500">Our engineering team will review your details and contact you shortly.</p>
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-      <NuxtLink :to="localePath('/')" class="h-12 flex items-center justify-center rounded bg-[#2B71AE] px-8 font-bold text-white hover:bg-[#285E8E] min-w-48">
-        Back to Home
-      </NuxtLink>
-      <NuxtLink :to="localePath('/services')" class="h-12 flex items-center justify-center rounded border border-slate-300 px-8 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 min-w-48">
-        More Services
-      </NuxtLink>
+  <div class="mx-auto flex min-h-[65vh] max-w-2xl items-center justify-center px-4 sm:px-6 py-16 sm:py-20 text-center">
+    <div class="w-full">
+      
+      <!-- Celebratory Success Badge -->
+      <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 ring-8 ring-emerald-50 dark:ring-emerald-950/20">
+        <CheckCircle2 class="h-10 w-10" aria-hidden="true" />
+      </div>
+
+      <h1 class="font-heading text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
+        {{ locale === 'ar' ? 'تم استلام طلب الخدمة بنجاح!' : 'Service Request Received!' }}
+      </h1>
+      
+      <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed mb-8">
+        {{ locale === 'ar' 
+          ? 'شكراً لتواصلكم مع مانجو إلكترونيكس. يقوم فريقنا الهندسي بدراسة المتطلبات الفنية وسيتواصل معكم هاتفياً في أقرب وقت لتنسيق موعد الفحص أو بدء التنفيذ.' 
+          : 'Thank you for reaching out to Mango Electronics. Our engineering department is reviewing your requirements and will contact you directly to arrange technical inspection or deployment.' }}
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+        <NuxtLink 
+          :to="localePath('/')" 
+          class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#2B71AE] px-7 text-sm font-bold text-white shadow-xs hover:bg-[#285E8E] active:scale-95 transition-all"
+        >
+          <Home class="h-4 w-4" />
+          <span>{{ locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home' }}</span>
+        </NuxtLink>
+
+        <NuxtLink 
+          :to="localePath('/services')" 
+          class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-7 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-[#162032] dark:text-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all"
+        >
+          <Wrench class="h-4 w-4 text-[#F5CC07]" />
+          <span>{{ locale === 'ar' ? 'استعراض باقي الخدمات' : 'Explore More Services' }}</span>
+        </NuxtLink>
+      </div>
+
     </div>
   </div>
 </template>

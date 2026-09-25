@@ -1,11 +1,26 @@
 <script setup lang="ts">
-import { Check, Share2 } from 'lucide-vue-next'
+import { 
+  Check, 
+  CheckCircle2, 
+  Copy, 
+  Cpu, 
+  FileText, 
+  MessageCircle, 
+  Minus, 
+  Plus, 
+  Share2, 
+  ShieldCheck, 
+  ShoppingCart, 
+  Truck 
+} from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const slug = String(route.params.slug)
 
 interface LandingProduct {
+  id?: string
   nameAr: string
   nameEn: string
   slug: string
@@ -33,9 +48,10 @@ const desc = computed(() => (locale.value === 'ar' ? p.value.descriptionAr : p.v
 const cover = computed(() => p.value.images[0]?.path || null)
 const activeImage = ref(0)
 const copied = ref(false)
+const added = ref(false)
+const quantity = ref(1)
 
 const pageUrl = computed(() => `https://mango-electronics.com/p/${p.value.slug}`)
-
 
 useHead(() => ({
   script: [
@@ -70,15 +86,24 @@ useSeoMeta(() => ({
 
 const cart = useCartStore()
 
-function addToCart() {
+function handleAddToCart() {
   cart.addItem({
-    productId: p.value.id,
+    productId: p.value.id || p.value.slug,
     slug: p.value.slug,
     nameAr: p.value.nameAr,
     nameEn: p.value.nameEn,
     price: Number(p.value.price),
     coverImage: cover.value,
+    quantity: quantity.value,
   })
+  added.value = true
+  setTimeout(() => {
+    added.value = false
+  }, 2200)
+}
+
+function updateQty(delta: number) {
+  quantity.value = Math.max(1, quantity.value + delta)
 }
 
 async function copyLink() {
@@ -90,78 +115,202 @@ async function copyLink() {
   catch { /* clipboard unavailable */ }
 }
 
-const waHref = computed(() => `https://wa.me/?text=${encodeURIComponent(`${name.value} ${pageUrl.value}`)}`)
+const waHref = computed(() => {
+  const msg = `${name.value} - ${pageUrl.value}`
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`
+})
 </script>
 
 <template>
-  <div class="mx-auto max-w-7xl px-4 py-8">
-    <nav class="text-sm text-slate-500" aria-label="Breadcrumb">
-      <NuxtLink to="/" class="hover:underline">{{ t('nav.home') }}</NuxtLink>
-      <span class="mx-1">/</span>
-      <NuxtLink to="/products" class="hover:underline">{{ t('products.title') }}</NuxtLink>
-      <span class="mx-1">/</span>
-      <NuxtLink :to="`/products/${p.category.slug}`" class="hover:underline">{{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}</NuxtLink>
-      <span class="mx-1">/</span>
-      <span>{{ name }}</span>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- Breadcrumb Trail -->
+    <nav class="mb-6 flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400" aria-label="Breadcrumb">
+      <NuxtLink :to="localePath('/')" class="hover:text-[#2B71AE] transition-colors">{{ t('nav.home') }}</NuxtLink>
+      <span class="text-slate-400">/</span>
+      <NuxtLink :to="localePath('/products')" class="hover:text-[#2B71AE] transition-colors">{{ t('products.title') }}</NuxtLink>
+      <span class="text-slate-400">/</span>
+      <NuxtLink :to="localePath(`/products/${p.category.slug}`)" class="hover:text-[#2B71AE] transition-colors">
+        {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
+      </NuxtLink>
+      <span class="text-slate-400">/</span>
+      <span class="text-slate-900 dark:text-white font-semibold truncate max-w-xs">{{ name }}</span>
     </nav>
 
-    <div class="mt-4 grid gap-8 md:grid-cols-2">
-      <div>
-        <div class="aspect-square w-full overflow-hidden rounded-md border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
-          <img v-if="p.images[activeImage]" :src="p.images[activeImage]!.path" :alt="name" class="h-full w-full object-cover" />
-          <div v-else class="flex h-full items-center justify-center text-sm text-slate-400">{{ t('common.noImage') }}</div>
+    <!-- Main Product Showcase Grid -->
+    <div class="grid gap-10 lg:grid-cols-12 lg:gap-14">
+      
+      <!-- Gallery Column (5 cols) -->
+      <div class="lg:col-span-5 space-y-4">
+        <!-- Main Image Box -->
+        <div 
+          class="aspect-square w-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xs dark:border-slate-800 dark:bg-[#162032]"
+          :style="{ borderColor: 'var(--color-border)' }"
+        >
+          <div class="relative h-full w-full overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-center">
+            <img 
+              v-if="p.images[activeImage]" 
+              :src="p.images[activeImage]!.path" 
+              :alt="name" 
+              class="h-full w-full object-contain p-2" 
+            />
+            <div v-else class="text-xs text-slate-400">
+              {{ t('common.noImage') }}
+            </div>
+          </div>
         </div>
-        <div v-if="p.images.length > 1" class="mt-2 grid grid-cols-5 gap-2">
+
+        <!-- Thumbnails Strip -->
+        <div v-if="p.images.length > 1" class="grid grid-cols-5 gap-2.5">
           <button
             v-for="(img, i) in p.images"
             :key="img.path"
             type="button"
-            class="aspect-square overflow-hidden rounded border"
-            :style="{ borderColor: i === activeImage ? 'var(--color-primary)' : 'var(--color-border)' }"
+            class="aspect-square overflow-hidden rounded-xl border p-1 transition-all active:scale-95"
+            :class="i === activeImage ? 'border-[#2B71AE] ring-2 ring-[#2B71AE]/20 dark:border-[#F5CC07] dark:ring-[#F5CC07]/20 bg-white dark:bg-[#162032]' : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/40'"
             @click="activeImage = i"
           >
-            <img :src="img.path" :alt="`${name} ${i + 1}`" class="h-full w-full object-cover" loading="lazy" />
+            <img :src="img.path" :alt="`${name} ${i + 1}`" class="h-full w-full object-cover rounded-lg" loading="lazy" />
           </button>
         </div>
       </div>
 
-      <div>
-        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-          {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
-        </span>
-        <h1 class="mt-2 font-heading text-3xl font-bold">{{ name }}</h1>
-        <p class="mt-2">
-          <span class="text-2xl font-bold text-[#2B71AE]">{{ p.price }} EGP</span>
-          <span v-if="p.compareAtPrice" class="ml-2 text-lg text-slate-400 line-through">{{ p.compareAtPrice }} EGP</span>
-        </p>
-        <p v-if="desc" class="mt-4 leading-relaxed text-slate-600 dark:text-slate-300">{{ desc }}</p>
+      <!-- Details Column (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col justify-between">
+        <div>
+          <!-- Category Chip -->
+          <NuxtLink 
+            :to="localePath(`/products/${p.category.slug}`)"
+            class="inline-block rounded-full bg-[#2B71AE]/10 px-3 py-1 text-xs font-bold text-[#2B71AE] hover:bg-[#2B71AE]/20 dark:bg-[#F5CC07]/15 dark:text-[#F5CC07] transition-colors mb-3"
+          >
+            {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
+          </NuxtLink>
 
-        <div class="mt-6 flex flex-wrap gap-2">
-          <button type="button" class="flex h-12 items-center rounded bg-[#2B71AE] px-8 font-semibold text-white hover:bg-[#285E8E]" @click="addToCart">
-            {{ t('products.addToCart') }}
-          </button>
-          <button type="button" class="flex h-12 items-center gap-2 rounded border px-4 text-sm font-medium" :style="{ borderColor: 'var(--color-border)' }" @click="copyLink">
-            <Check v-if="copied" class="h-4 w-4" />
-            <Share2 v-else class="h-4 w-4" />
-            {{ copied ? t('products.copied') : t('products.copyLink') }}
-          </button>
-          <a :href="waHref" target="_blank" rel="noopener" class="flex h-12 items-center rounded border px-4 text-sm font-medium" :style="{ borderColor: 'var(--color-border)' }">
-            {{ t('products.shareWhatsApp') }}
-          </a>
+          <!-- Product Title -->
+          <h1 class="font-heading text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight mb-4">
+            {{ name }}
+          </h1>
+
+          <!-- Price Display -->
+          <div class="flex items-baseline gap-3 mb-6 pb-6 border-b border-slate-200/80 dark:border-slate-800">
+            <span class="text-3xl sm:text-4xl font-black text-[#2B71AE] dark:text-[#F5CC07]">
+              {{ p.price }} <span class="text-base font-bold">EGP</span>
+            </span>
+            <span 
+              v-if="p.compareAtPrice" 
+              class="text-base sm:text-lg text-slate-400 line-through"
+            >
+              {{ p.compareAtPrice }} EGP
+            </span>
+          </div>
+
+          <!-- Description -->
+          <p v-if="desc" class="text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300 mb-8 max-w-2xl">
+            {{ desc }}
+          </p>
+
+          <!-- Purchasing Actions -->
+          <div class="space-y-4 mb-8">
+            <div class="flex flex-wrap items-center gap-3">
+              <!-- Quantity Stepper -->
+              <div class="flex h-12 items-center rounded-xl border border-slate-200 bg-slate-50 px-2 dark:border-slate-800 dark:bg-slate-800/80">
+                <button
+                  type="button"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                  :aria-label="locale === 'ar' ? 'تقليل الكمية' : 'Decrease quantity'"
+                  @click="updateQty(-1)"
+                >
+                  <Minus class="h-3.5 w-3.5" />
+                </button>
+                <span class="w-10 text-center font-mono text-sm font-bold text-slate-900 dark:text-white">
+                  {{ quantity }}
+                </span>
+                <button
+                  type="button"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                  :aria-label="locale === 'ar' ? 'زيادة الكمية' : 'Increase quantity'"
+                  @click="updateQty(1)"
+                >
+                  <Plus class="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <!-- Add to Cart Primary CTA -->
+              <button 
+                type="button" 
+                class="flex-1 min-w-[200px] h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/10 active:scale-[0.98] transition-all"
+                :class="added ? 'bg-emerald-600 text-white' : 'bg-[#2B71AE] hover:bg-[#285E8E] text-white'"
+                @click="handleAddToCart"
+              >
+                <Check v-if="added" class="h-4 w-4" />
+                <ShoppingCart v-else class="h-4 w-4" />
+                <span>{{ added ? (locale === 'ar' ? 'تمت الإضافة للسلة' : 'Added to Cart') : (locale === 'ar' ? 'إضافة إلى السلة' : 'Add to Cart') }}</span>
+              </button>
+            </div>
+
+            <!-- Secondary Sharing Actions -->
+            <div class="flex flex-wrap items-center gap-2.5 pt-2">
+              <a 
+                :href="waHref" 
+                target="_blank" 
+                rel="noopener" 
+                class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:border-emerald-500 hover:text-emerald-600 dark:border-slate-800 dark:bg-[#162032] dark:text-slate-300 dark:hover:border-emerald-500 dark:hover:text-emerald-400 transition-colors"
+              >
+                <MessageCircle class="h-3.5 w-3.5 text-emerald-500" />
+                <span>{{ t('products.shareWhatsApp') }}</span>
+              </a>
+
+              <button 
+                type="button" 
+                class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800 transition-colors" 
+                @click="copyLink"
+              >
+                <Check v-if="copied" class="h-3.5 w-3.5 text-emerald-500" />
+                <Copy v-else class="h-3.5 w-3.5 text-slate-400" />
+                <span>{{ copied ? (locale === 'ar' ? 'تم نسخ الرابط' : 'Link Copied') : (locale === 'ar' ? 'نسخ الرابط' : 'Copy Link') }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Product Confidence Strip -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/40 text-xs text-slate-600 dark:text-slate-300 mb-8">
+            <div class="flex items-center gap-2">
+              <ShieldCheck class="h-4 w-4 text-[#F5CC07] shrink-0" />
+              <span>{{ locale === 'ar' ? 'أصلي ومضمون 100%' : '100% Genuine Part' }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <Truck class="h-4 w-4 text-[#F5CC07] shrink-0" />
+              <span>{{ locale === 'ar' ? 'شحن سريع بالمحافظات' : 'Fast Regional Dispatch' }}</span>
+            </div>
+            <div class="flex items-center gap-2 col-span-2 sm:col-span-1">
+              <FileText class="h-4 w-4 text-[#F5CC07] shrink-0" />
+              <span>{{ locale === 'ar' ? 'كتيب بيانات معتمد' : 'Verified Datasheet' }}</span>
+            </div>
+          </div>
         </div>
 
-        <div v-if="p.attributes.length" class="mt-8">
-          <h2 class="font-heading text-xl font-bold">{{ t('products.specs') }}</h2>
-          <table class="mt-2 w-full text-sm">
-            <tbody>
-              <tr v-for="a in p.attributes" :key="a.keyEn" class="border-b" :style="{ borderColor: 'var(--color-border)' }">
-                <td class="py-2 pr-4 font-medium text-slate-500">{{ locale === 'ar' ? a.keyAr : a.keyEn }}</td>
-                <td class="py-2">{{ locale === 'ar' ? a.valueAr : a.valueEn }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Technical Specifications Cards -->
+        <div v-if="p.attributes?.length" class="border-t border-slate-200/80 dark:border-slate-800 pt-8">
+          <h2 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-4">
+            {{ t('products.specs') }}
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div 
+              v-for="a in p.attributes" 
+              :key="a.keyEn"
+              class="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs dark:border-slate-800 dark:bg-[#162032]"
+            >
+              <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                {{ locale === 'ar' ? a.keyAr : a.keyEn }}
+              </span>
+              <span class="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                {{ locale === 'ar' ? a.valueAr : a.valueEn }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>

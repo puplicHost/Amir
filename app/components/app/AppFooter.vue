@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone } from 'lucide-vue-next'
+import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Zap } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -37,72 +37,153 @@ const whatsappUrl = computed(() => {
 </script>
 
 <template>
-  <footer class="bg-[#0B1520] text-slate-300 py-12 border-t border-slate-800">
-    <div class="mx-auto max-w-7xl px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+  <footer class="border-t border-slate-800 bg-[#0B1520] text-slate-300 pt-16 pb-12 transition-colors">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       
-      <!-- Brand & About -->
-      <div>
-        <NuxtLink :to="localePath('/')" class="flex items-center gap-2 mb-3 text-white">
-          <img v-if="general?.logoPath" :src="general.logoPath" :alt="siteDisplayName" class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" />
-          <div v-else class="flex items-center gap-2">
-            <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain" />
-            <span class="font-heading text-xl font-bold text-white">{{ siteDisplayName }}</span>
+      <!-- Upper Footer Grid -->
+      <div class="grid grid-cols-1 gap-10 md:grid-cols-12 lg:gap-12 pb-12 border-b border-slate-800/80">
+        
+        <!-- Col 1: Brand & Identity (5 cols) -->
+        <div class="md:col-span-5 space-y-4">
+          <NuxtLink :to="localePath('/')" class="inline-flex items-center gap-2.5 text-white group">
+            <img 
+              v-if="general?.logoPath" 
+              :src="general.logoPath" 
+              :alt="siteDisplayName" 
+              class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" 
+            />
+            <div v-else class="flex items-center gap-2.5">
+              <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain shadow-xs" />
+              <span class="font-heading text-xl font-bold tracking-tight text-white group-hover:text-[#F5CC07] transition-colors">
+                {{ siteDisplayName }}
+              </span>
+            </div>
+          </NuxtLink>
+
+          <p class="text-sm leading-relaxed text-slate-400 max-w-sm">
+            {{ tagline }}. {{ locale === 'ar' ? 'حلول هندسية متطورة، توريد قطع أصلية معتمدة، وبرمجة وصيانة خطوط الإنتاج والأنظمة الذكية في مصر.' : 'Specialized engineering automation, genuine industrial components, and rapid diagnostic support across Egypt.' }}
+          </p>
+
+          <!-- Social Links -->
+          <div class="flex items-center gap-2.5 pt-2">
+            <a 
+              :href="facebookUrl" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300 hover:border-[#2B71AE] hover:bg-[#2B71AE] hover:text-white transition-all active:scale-95" 
+              aria-label="Facebook"
+            >
+              <Facebook class="w-4 h-4" />
+            </a>
+            <a 
+              :href="instagramUrl" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300 hover:border-[#2B71AE] hover:bg-[#2B71AE] hover:text-white transition-all active:scale-95" 
+              aria-label="Instagram"
+            >
+              <Instagram class="w-4 h-4" />
+            </a>
+            <a 
+              :href="whatsappUrl" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300 hover:border-emerald-500 hover:bg-emerald-600 hover:text-white transition-all active:scale-95" 
+              aria-label="WhatsApp"
+            >
+              <MessageCircle class="w-4 h-4" />
+            </a>
           </div>
-        </NuxtLink>
-        <p class="text-sm font-medium text-slate-400 mb-6 tracking-wide">
-          {{ tagline }}
-        </p>
-        <div class="flex items-center gap-3">
-          <a :href="facebookUrl" target="_blank" rel="noopener noreferrer" class="h-9 w-9 rounded-lg bg-slate-800/80 hover:bg-[#2B71AE] text-slate-300 hover:text-white flex items-center justify-center transition-colors" aria-label="Facebook">
-            <Facebook class="w-4 h-4" />
-          </a>
-          <a :href="instagramUrl" target="_blank" rel="noopener noreferrer" class="h-9 w-9 rounded-lg bg-slate-800/80 hover:bg-[#2B71AE] text-slate-300 hover:text-white flex items-center justify-center transition-colors" aria-label="Instagram">
-            <Instagram class="w-4 h-4" />
-          </a>
-          <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="h-9 w-9 rounded-lg bg-slate-800/80 hover:bg-[#2B71AE] text-slate-300 hover:text-white flex items-center justify-center transition-colors" aria-label="WhatsApp">
-            <MessageCircle class="w-4 h-4" />
-          </a>
+        </div>
+
+        <!-- Col 2: Navigation Links (3 cols) -->
+        <div class="md:col-span-3 space-y-4">
+          <h3 class="font-heading text-sm font-bold uppercase tracking-wider text-white">
+            {{ locale === 'ar' ? 'روابط المنصة' : 'Platform Navigation' }}
+          </h3>
+          <ul class="space-y-2.5 text-sm">
+            <li>
+              <NuxtLink :to="localePath('/')" class="text-slate-400 hover:text-[#F5CC07] transition-colors inline-flex items-center gap-1.5">
+                <span>{{ t('nav.home') }}</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/products')" class="text-slate-400 hover:text-[#F5CC07] transition-colors inline-flex items-center gap-1.5">
+                <span>{{ t('nav.products') }}</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/services')" class="text-slate-400 hover:text-[#F5CC07] transition-colors inline-flex items-center gap-1.5">
+                <span>{{ t('nav.services') }}</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/cart')" class="text-slate-400 hover:text-[#F5CC07] transition-colors inline-flex items-center gap-1.5">
+                <span>{{ t('nav.cart') }}</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/contact')" class="text-slate-400 hover:text-[#F5CC07] transition-colors inline-flex items-center gap-1.5">
+                <span>{{ t('nav.contact') }}</span>
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Direct Technical Contact (4 cols) -->
+        <div class="md:col-span-4 space-y-4">
+          <h3 class="font-heading text-sm font-bold uppercase tracking-wider text-white">
+            {{ locale === 'ar' ? 'الدعم الهندسي والاستفسارات' : 'Technical Support & Inquiries' }}
+          </h3>
+          <ul class="space-y-3 text-sm">
+            <li v-if="contact?.contactPhone1" class="flex items-start gap-3">
+              <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/20 text-[#F5CC07]">
+                <Phone class="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <span class="block text-[11px] text-slate-500 font-medium">{{ locale === 'ar' ? 'الهاتف المباشر' : 'Direct Line' }}</span>
+                <a :href="`tel:${contact.contactPhone1}`" dir="ltr" class="font-mono text-sm text-slate-200 hover:text-white transition-colors">{{ contact.contactPhone1 }}</a>
+              </div>
+            </li>
+
+            <li v-if="contact?.contactEmail" class="flex items-start gap-3">
+              <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/20 text-[#F5CC07]">
+                <Mail class="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <span class="block text-[11px] text-slate-500 font-medium">{{ locale === 'ar' ? 'البريد الإلكتروني' : 'Official Email' }}</span>
+                <a :href="`mailto:${contact.contactEmail}`" class="text-sm text-slate-200 hover:text-white transition-colors">{{ contact.contactEmail }}</a>
+              </div>
+            </li>
+
+            <li v-if="contact?.contactAddressEn || contact?.contactAddressAr" class="flex items-start gap-3">
+              <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/20 text-[#F5CC07]">
+                <MapPin class="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <span class="block text-[11px] text-slate-500 font-medium">{{ locale === 'ar' ? 'الموقع الفعلي' : 'Location' }}</span>
+                <span class="text-xs text-slate-300 leading-relaxed">{{ locale === 'ar' ? contact.contactAddressAr : contact.contactAddressEn }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Lower Footer: Copyright & Locale -->
+      <div class="mt-8 flex flex-col items-center justify-between gap-4 text-xs text-slate-500 sm:flex-row">
+        <p>&copy; {{ year }} {{ siteDisplayName }}. {{ locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.' }}</p>
+        <div class="flex items-center gap-4">
+          <NuxtLink :to="localePath('/contact')" class="hover:text-slate-300 transition-colors">
+            {{ locale === 'ar' ? 'خدمة العملاء' : 'Customer Service' }}
+          </NuxtLink>
+          <span class="text-slate-700">|</span>
+          <NuxtLink :to="localePath('/admin')" class="hover:text-slate-300 transition-colors">
+            {{ t('nav.admin') }}
+          </NuxtLink>
         </div>
       </div>
 
-      <!-- Quick Links -->
-      <div>
-        <h3 class="text-white font-bold mb-4 font-heading text-lg">{{ locale === 'ar' ? 'روابط سريعة' : 'Quick Links' }}</h3>
-        <ul class="space-y-2 text-sm">
-          <li><NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink></li>
-          <li><NuxtLink :to="localePath('/products')" class="hover:text-white transition-colors">{{ t('nav.products') }}</NuxtLink></li>
-          <li><NuxtLink :to="localePath('/services')" class="hover:text-white transition-colors">{{ t('nav.services') }}</NuxtLink></li>
-          <li><NuxtLink :to="localePath('/contact')" class="hover:text-white transition-colors">{{ t('nav.contact') }}</NuxtLink></li>
-        </ul>
-      </div>
-
-      <!-- Contact Info -->
-      <div>
-        <h3 class="text-white font-bold mb-4 font-heading text-lg">{{ locale === 'ar' ? 'تواصل معنا' : 'Contact Us' }}</h3>
-        <ul class="space-y-3 text-sm">
-          <li v-if="contact?.contactPhone1" class="flex items-start gap-3">
-            <Phone class="w-5 h-5 text-[#2B71AE] shrink-0" />
-            <a :href="`tel:${contact.contactPhone1}`" dir="ltr" class="hover:text-white transition-colors">{{ contact.contactPhone1 }}</a>
-          </li>
-          <li v-if="contact?.contactEmail" class="flex items-start gap-3">
-            <Mail class="w-5 h-5 text-[#2B71AE] shrink-0" />
-            <a :href="`mailto:${contact.contactEmail}`" class="hover:text-white transition-colors">{{ contact.contactEmail }}</a>
-          </li>
-          <li v-if="contact?.contactAddressEn || contact?.contactAddressAr" class="flex items-start gap-3">
-            <MapPin class="w-5 h-5 text-[#2B71AE] shrink-0" />
-            <span class="whitespace-pre-wrap">{{ locale === 'ar' ? contact.contactAddressAr : contact.contactAddressEn }}</span>
-          </li>
-        </ul>
-      </div>
-
-    </div>
-    
-    <div class="mx-auto max-w-7xl px-4 mt-12 pt-8 border-t border-slate-800 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
-      <p>&copy; {{ year }} {{ siteDisplayName }}. {{ locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.' }}</p>
-      <div class="flex items-center gap-2">
-        <Globe class="w-4 h-4" />
-        <span>{{ locale === 'ar' ? 'العربية' : 'English' }}</span>
-      </div>
     </div>
   </footer>
 </template>

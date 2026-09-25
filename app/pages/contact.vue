@@ -1,84 +1,224 @@
 <script setup lang="ts">
-import { Facebook, Instagram, Mail, MapPin, Phone } from 'lucide-vue-next'
+import { 
+  ArrowRight, 
+  Facebook, 
+  Headphones, 
+  Instagram, 
+  Mail, 
+  MapPin, 
+  MessageCircle, 
+  Phone, 
+  ShieldCheck, 
+  Sparkles 
+} from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
-useHead(() => ({ title: `Contact Us — ${t('brand.name')}` }))
+const localePath = useLocalePath()
+
+useHead(() => ({ 
+  title: `${locale === 'ar' ? 'اتصل بنا' : 'Contact Us'} | ${t('brand.name')}` 
+}))
 
 const { data: contact } = await useAsyncData('contact-page', () => $fetch<any>('/api/settings/contact'))
+
+const whatsappUrl = computed(() => {
+  const num = contact.value?.contactWhatsapp || contact.value?.contactPhone1 || '01000000000'
+  return `https://wa.me/${num.replace(/[^0-9]/g, '')}`
+})
 </script>
 
 <template>
-  <div class="mx-auto max-w-4xl px-4 py-12 md:py-20">
-    <div class="mb-12 text-center">
-      <h1 class="font-heading text-4xl font-bold mb-4">{{ locale === 'ar' ? 'تواصل معنا' : 'Contact Us' }}</h1>
-      <p class="text-lg text-slate-500">
-        {{ locale === 'ar' ? 'نحن هنا للإجابة على استفساراتكم وتقديم الدعم اللازم.' : 'We are here to answer your questions and provide support.' }}
-      </p>
+  <div class="space-y-0">
+    
+    <!-- Hero Header Banner with Technical Styling -->
+    <div class="relative overflow-hidden bg-[#0B1520] text-white border-b border-slate-800">
+      <!-- Ambient Lighting -->
+      <div class="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#2B71AE]/20 blur-3xl"></div>
+      <div 
+        class="pointer-events-none absolute inset-0 opacity-[0.06]" 
+        style="background-image: radial-gradient(#2B71AE 1px, transparent 1px); background-size: 24px 24px;"
+      ></div>
+
+      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <!-- Breadcrumb Navigation -->
+        <nav class="mb-4 flex items-center gap-1.5 text-xs font-medium text-slate-400" aria-label="Breadcrumb">
+          <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
+          <span class="text-slate-600">/</span>
+          <span class="text-[#F5CC07] font-semibold">{{ locale === 'ar' ? 'اتصل بنا' : 'Contact Us' }}</span>
+        </nav>
+
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-1.5 rounded-full bg-[#2B71AE]/20 border border-[#2B71AE]/40 px-3 py-1 text-[11px] font-bold text-blue-300 uppercase tracking-wider mb-3">
+            <Headphones class="h-3.5 w-3.5 text-[#F5CC07]" />
+            <span>{{ locale === 'ar' ? 'الدعم الهندسي المباشر' : 'Direct Engineering Support' }}</span>
+          </div>
+
+          <h1 class="font-heading text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-3">
+            {{ locale === 'ar' ? 'تواصل مع فريقنا الهندسي' : 'Contact Our Technical Team' }}
+          </h1>
+
+          <p class="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+            {{ locale === 'ar' 
+              ? 'نحن هنا للإجابة على استفساراتكم الفنية، وتقديم عروض أسعار التوريدات، وتنسيق زيارات الصيانة الميدانية للمصانع والورش.' 
+              : 'Our engineering specialists are ready to assist with component inquiries, enterprise volume quotes, and on-site factory diagnostic visits.' }}
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-      
-      <!-- Contact Cards -->
-      <div class="space-y-6">
-        <a v-if="contact?.contactPhone1" :href="`tel:${contact.contactPhone1}`" class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-[#2B71AE]/50 dark:bg-slate-900 dark:border-slate-800 transition-colors">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2B71AE]/10 text-[#2B71AE]">
-            <Phone class="w-6 h-6" />
-          </div>
-          <div>
-            <h3 class="font-bold text-lg mb-1">{{ locale === 'ar' ? 'رقم الهاتف الموحد' : 'Primary Phone' }}</h3>
-            <p class="text-slate-500 font-mono" dir="ltr">{{ contact.contactPhone1 }}</p>
-          </div>
-        </a>
-
-        <a v-if="contact?.contactWhatsapp" :href="`https://wa.me/${contact.contactWhatsapp.replace(/[^0-9]/g, '')}`" target="_blank" rel="noopener noreferrer" class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-green-500/50 dark:bg-slate-900 dark:border-slate-800 transition-colors">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-          </div>
-          <div>
-            <h3 class="font-bold text-lg mb-1">WhatsApp</h3>
-            <p class="text-slate-500 font-mono" dir="ltr">{{ contact.contactWhatsapp }}</p>
-          </div>
-        </a>
-
-        <a v-if="contact?.contactEmail" :href="`mailto:${contact.contactEmail}`" class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-[#2B71AE]/50 dark:bg-slate-900 dark:border-slate-800 transition-colors">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2B71AE]/10 text-[#2B71AE]">
-            <Mail class="w-6 h-6" />
-          </div>
-          <div>
-            <h3 class="font-bold text-lg mb-1">{{ locale === 'ar' ? 'البريد الإلكتروني' : 'Email Address' }}</h3>
-            <p class="text-slate-500 font-mono" dir="ltr">{{ contact.contactEmail }}</p>
-          </div>
-        </a>
+    <!-- Main Content Grid -->
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
         
-        <div v-if="contact?.contactAddressAr || contact?.contactAddressEn" class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2B71AE]/10 text-[#2B71AE]">
-            <MapPin class="w-6 h-6" />
+        <!-- Channels & Details Column (7 cols) -->
+        <div class="lg:col-span-7 space-y-5">
+          
+          <!-- Unified Phone Card -->
+          <a 
+            v-if="contact?.contactPhone1" 
+            :href="`tel:${contact.contactPhone1}`" 
+            class="group flex items-start gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs hover:border-[#2B71AE] hover:shadow-lg dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE] transition-all"
+          >
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/25 dark:text-blue-300 group-hover:bg-[#2B71AE] group-hover:text-white transition-colors">
+              <Phone class="w-6 h-6" />
+            </div>
+            <div class="flex-1">
+              <h2 class="font-heading text-base font-bold text-slate-900 dark:text-white mb-1">
+                {{ locale === 'ar' ? 'الخط الهاتفي المباشر' : 'Primary Phone' }}
+              </h2>
+              <p class="font-mono text-base font-bold text-[#2B71AE] dark:text-[#F5CC07]" dir="ltr">
+                {{ contact.contactPhone1 }}
+              </p>
+              <span class="text-xs text-slate-400 mt-1 block">
+                {{ locale === 'ar' ? 'متاح طوال ساعات العمل للمكالمات والاستشارات السريعة' : 'Available during operating hours for technical calls' }}
+              </span>
+            </div>
+          </a>
+
+          <!-- WhatsApp Business Card -->
+          <a 
+            v-if="contact?.contactWhatsapp" 
+            :href="whatsappUrl" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="group flex items-start gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs hover:border-emerald-500 hover:shadow-lg dark:border-slate-800 dark:bg-[#162032] dark:hover:border-emerald-500 transition-all"
+          >
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <MessageCircle class="w-6 h-6" />
+            </div>
+            <div class="flex-1">
+              <h2 class="font-heading text-base font-bold text-slate-900 dark:text-white mb-1">
+                {{ locale === 'ar' ? 'محادثة فورية عبر واتساب' : 'WhatsApp Consultation' }}
+              </h2>
+              <p class="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">
+                {{ contact.contactWhatsapp }}
+              </p>
+              <span class="text-xs text-slate-400 mt-1 block">
+                {{ locale === 'ar' ? 'أرسل صور الأعطال، مواصفات القطع، أو ملفات المقايسات مباشرة' : 'Send fault photos, datasheets, or BOQ files directly' }}
+              </span>
+            </div>
+          </a>
+
+          <!-- Email Support Card -->
+          <a 
+            v-if="contact?.contactEmail" 
+            :href="`mailto:${contact.contactEmail}`" 
+            class="group flex items-start gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs hover:border-[#2B71AE] hover:shadow-lg dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE] transition-all"
+          >
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/25 dark:text-blue-300 group-hover:bg-[#2B71AE] group-hover:text-white transition-colors">
+              <Mail class="w-6 h-6" />
+            </div>
+            <div class="flex-1">
+              <h2 class="font-heading text-base font-bold text-slate-900 dark:text-white mb-1">
+                {{ locale === 'ar' ? 'البريد الإلكتروني للشركات والتوريدات' : 'Corporate & Inquiries Email' }}
+              </h2>
+              <p class="font-mono text-base font-bold text-slate-800 dark:text-slate-200" dir="ltr">
+                {{ contact.contactEmail }}
+              </p>
+              <span class="text-xs text-slate-400 mt-1 block">
+                {{ locale === 'ar' ? 'استقبال أوامر الشراء، طلبات عروض الأسعار، والمراسلات الرسمية' : 'For purchase orders, formal quotation requests, and tenders' }}
+              </span>
+            </div>
+          </a>
+          
+          <!-- Physical Location Card -->
+          <div 
+            v-if="contact?.contactAddressAr || contact?.contactAddressEn" 
+            class="flex items-start gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-[#162032]"
+          >
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/25 dark:text-blue-300">
+              <MapPin class="w-6 h-6" />
+            </div>
+            <div class="flex-1">
+              <h2 class="font-heading text-base font-bold text-slate-900 dark:text-white mb-1">
+                {{ locale === 'ar' ? 'المقر الإداري ونقطة الاستلام' : 'Facility & Pick-up Point' }}
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                {{ locale === 'ar' ? contact.contactAddressAr : contact.contactAddressEn }}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-bold text-lg mb-1">{{ locale === 'ar' ? 'العنوان' : 'Address' }}</h3>
-            <p class="text-slate-500 whitespace-pre-wrap">{{ locale === 'ar' ? contact.contactAddressAr : contact.contactAddressEn }}</p>
+
+          <!-- Social Channels -->
+          <div 
+            v-if="contact?.socialFacebook || contact?.socialInstagram" 
+            class="flex items-center justify-between rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-[#162032]"
+          >
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              {{ locale === 'ar' ? 'تابعنا على المنصات الاجتماعية:' : 'Official Social Channels:' }}
+            </span>
+            <div class="flex items-center gap-2.5">
+              <a 
+                v-if="contact.socialFacebook" 
+                :href="contact.socialFacebook" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#1877F2] hover:bg-[#1877F2] hover:text-white dark:bg-slate-800 transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook class="w-5 h-5" />
+              </a>
+              <a 
+                v-if="contact.socialInstagram" 
+                :href="contact.socialInstagram" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#E4405F] hover:bg-[#E4405F] hover:text-white dark:bg-slate-800 transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram class="w-5 h-5" />
+              </a>
+            </div>
           </div>
         </div>
 
-        <div v-if="contact?.socialFacebook || contact?.socialInstagram" class="flex items-center gap-4 pt-4">
-          <span class="font-medium">{{ locale === 'ar' ? 'تابعنا:' : 'Follow Us:' }}</span>
-          <a v-if="contact.socialFacebook" :href="contact.socialFacebook" target="_blank" rel="noopener noreferrer" class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[#1877F2] hover:bg-slate-200 transition-colors">
-            <Facebook class="w-5 h-5" />
-          </a>
-          <a v-if="contact.socialInstagram" :href="contact.socialInstagram" target="_blank" rel="noopener noreferrer" class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[#E4405F] hover:bg-slate-200 transition-colors">
-            <Instagram class="w-5 h-5" />
-          </a>
+        <!-- Map Column (5 cols) -->
+        <div class="lg:col-span-5">
+          <div class="sticky top-24 rounded-2xl overflow-hidden shadow-xs border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#162032] p-2">
+            <!-- Google Maps Embed or Fallback -->
+            <div 
+              v-if="contact?.googleMapsEmbedUrl" 
+              class="h-[380px] sm:h-[460px] w-full rounded-xl overflow-hidden bg-slate-100" 
+              v-html="contact.googleMapsEmbedUrl"
+            ></div>
+            <div 
+              v-else 
+              class="h-[380px] sm:h-[460px] w-full rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center justify-center text-slate-400 p-6 text-center"
+            >
+              <MapPin class="w-12 h-12 text-[#2B71AE] mb-3 opacity-60" />
+              <p class="font-heading text-sm font-bold text-slate-700 dark:text-slate-300">
+                {{ locale === 'ar' ? 'خريطة الموقع' : 'Location Map' }}
+              </p>
+              <p class="text-xs text-slate-500 mt-1 max-w-xs">
+                {{ locale === 'ar' ? contact.contactAddressAr || 'القاهرة، جمهورية مصر العربية' : contact.contactAddressEn || 'Cairo, Egypt' }}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Google Maps Embed -->
-      <div v-if="contact?.googleMapsEmbedUrl" class="h-[400px] md:h-auto rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800 bg-slate-100" v-html="contact.googleMapsEmbedUrl">
       </div>
-      <div v-else class="h-[400px] md:h-auto rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400">
-         <MapPin class="w-16 h-16 opacity-20" />
-      </div>
-
     </div>
+
   </div>
 </template>
 

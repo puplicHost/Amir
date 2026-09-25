@@ -41,24 +41,6 @@ const featuredProducts = computed(() => {
   return productData.value?.products || []
 })
 
-const addedProductIds = ref<Record<string, boolean>>({})
-
-function handleAddToCart(p: any) {
-  cartStore.addItem({
-    productId: p.id,
-    slug: p.slug,
-    nameAr: p.nameAr,
-    nameEn: p.nameEn,
-    price: Number(p.price),
-    coverImage: p.coverImage || null,
-    quantity: 1
-  })
-  addedProductIds.value[p.id] = true
-  setTimeout(() => {
-    addedProductIds.value[p.id] = false
-  }, 2200)
-}
-
 const defaultServices = [
   {
     key: 'machineryRepair',
@@ -545,68 +527,11 @@ useHead(() => {
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div 
-            v-for="product in featuredProducts" 
+          <AppProductCard
+            v-for="product in featuredProducts"
             :key="product.id"
-            class="group flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#162032] shadow-sm hover:border-[#2B71AE] hover:shadow-xl transition-all duration-300"
-          >
-            <NuxtLink :to="localePath(`/p/${product.slug}`)" class="block">
-              <!-- Product Image -->
-              <div class="relative aspect-square w-full overflow-hidden bg-slate-100 dark:bg-slate-800/80">
-                <img
-                  v-if="product.coverImage"
-                  :src="product.coverImage"
-                  :alt="locale === 'ar' ? product.nameAr : product.nameEn"
-                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div v-else class="flex h-full items-center justify-center text-xs text-slate-400">
-                  <Boxes class="h-8 w-8 text-slate-400/50" />
-                </div>
-
-                <!-- Category badge -->
-                <span 
-                  v-if="product.category" 
-                  class="absolute top-2.5 start-2.5 rounded-md bg-slate-900/80 backdrop-blur-md px-2 py-0.5 text-[11px] font-semibold text-white"
-                >
-                  {{ locale === 'ar' ? product.category.nameAr : product.category.nameEn }}
-                </span>
-              </div>
-
-              <!-- Product Info -->
-              <div class="p-3.5 sm:p-4">
-                <h3 class="font-heading text-sm sm:text-base font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-[#2B71AE] dark:group-hover:text-[#F5CC07] transition-colors leading-snug mb-2">
-                  {{ locale === 'ar' ? product.nameAr : product.nameEn }}
-                </h3>
-
-                <div class="flex items-baseline gap-2">
-                  <span class="text-base sm:text-lg font-extrabold text-[#2B71AE] dark:text-[#F5CC07]">
-                    {{ product.price }} <span class="text-xs font-semibold">EGP</span>
-                  </span>
-                  <span 
-                    v-if="product.compareAtPrice" 
-                    class="text-xs text-slate-400 line-through"
-                  >
-                    {{ product.compareAtPrice }} EGP
-                  </span>
-                </div>
-              </div>
-            </NuxtLink>
-
-            <!-- Card Actions -->
-            <div class="p-3.5 sm:p-4 pt-0">
-              <button
-                type="button"
-                @click="handleAddToCart(product)"
-                class="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98]"
-                :class="addedProductIds[product.id] ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-[#F5CC07] text-slate-900 dark:bg-slate-800 dark:text-white dark:hover:bg-[#F5CC07] dark:hover:text-slate-950'"
-              >
-                <Check v-if="addedProductIds[product.id]" class="h-4 w-4" />
-                <ShoppingCart v-else class="h-4 w-4" />
-                <span>{{ addedProductIds[product.id] ? t('home.addedToCart') : t('home.addToCart') }}</span>
-              </button>
-            </div>
-          </div>
+            :product="product"
+          />
         </div>
       </div>
     </section>
