@@ -94,5 +94,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  await notifyAdmins({
+    type: 'new_service_request',
+    relatedEntityId: request.id,
+    url: `/admin/services/requests/${request.id}`,
+    titleEn: 'New service request',
+    titleAr: 'طلب خدمة جديد',
+    bodyEn: `${service.nameEn} — #${request.id.slice(-6).toUpperCase()}`,
+    bodyAr: `${service.nameAr} — #${request.id.slice(-6).toUpperCase()}`,
+  })
+
   return { requestId: request.id, message: 'Request submitted successfully' }
 })

@@ -18,6 +18,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const serviceId = route.params.id as string
 const fetch = useRequestFetch()
+const toast = useAdminToast()
 
 useHead(() => ({ title: `Form Builder | Admin | ${t('brand.name')}` }))
 
@@ -50,7 +51,8 @@ function removeOption(idx: number) {
 
 async function addField() {
   if (!newField.labelAr.trim() || !newField.labelEn.trim()) {
-    alert(locale.value === 'ar' ? 'يرجى إدخال اسم الحقل باللغتين العربية والإنجليزية.' : 'Field labels in both English and Arabic are required.')
+    const msg = locale.value === 'ar' ? 'يرجى إدخال اسم الحقل باللغتين العربية والإنجليزية.' : 'Field labels in both English and Arabic are required.'
+    toast.warning(msg)
     return
   }
   saving.value = true
@@ -67,15 +69,23 @@ async function addField() {
       },
     })
     isCreating.value = false
+    const addedLabel = newField.labelEn
     newField.labelAr = ''
     newField.labelEn = ''
     newField.fieldType = 'text'
     newField.isRequired = false
     newField.options = []
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تمت إضافة الحقل' : 'Field Added',
+      locale.value === 'ar' ? 'تمت إضافة الحقل بنجاح.' : `Field "${addedLabel}" added to form.`,
+    )
   }
-  catch (e) {
-    alert('Error adding field')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل إضافة الحقل' : 'Failed to Add Field',
+      e?.data?.message || 'Error adding field',
+    )
   }
   finally {
     saving.value = false
@@ -87,9 +97,16 @@ async function removeField(id: string, label: string) {
   try {
     await $fetch(`/api/admin/services/${serviceId}/form/fields/${id}`, { method: 'DELETE' })
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم حذف الحقل' : 'Field Removed',
+      locale.value === 'ar' ? `تم حذف الحقل "${label}".` : `Field "${label}" removed.`,
+    )
   }
-  catch (e) {
-    alert('Error removing field')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل حذف الحقل' : 'Failed to Remove Field',
+      e?.data?.message || 'Error removing field',
+    )
   }
 }
 
@@ -110,9 +127,16 @@ async function moveField(index: number, dir: -1 | 1) {
       method: 'PUT',
       body: { fieldIds: newFields.map(f => f.id) },
     })
+    toast.success(
+      locale.value === 'ar' ? 'تم حفظ الترتيب' : 'Order Saved',
+      locale.value === 'ar' ? 'تم حفظ ترتيب حقول النموذج.' : 'Field order updated.',
+    )
   }
-  catch (e) {
-    alert('Failed to save field order')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل حفظ الترتيب' : 'Failed to Save Order',
+      e?.data?.message || 'Failed to save field order',
+    )
     await refresh()
   }
   finally {

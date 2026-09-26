@@ -18,6 +18,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const reqId = route.params.id as string
 const fetch = useRequestFetch()
+const toast = useAdminToast()
 
 useHead(() => ({ title: `Request Detail | Admin | ${t('brand.name')}` }))
 
@@ -38,9 +39,16 @@ async function updateStatus(newStatus: string) {
     })
     updateMessage.value = locale.value === 'ar' ? 'تم تحديث الحالة بنجاح' : 'Status updated successfully'
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث الحالة' : 'Status Updated',
+      locale.value === 'ar' ? `تم تغيير حالة طلب الخدمة إلى "${newStatus}".` : `Service request status changed to "${newStatus}".`,
+    )
   }
   catch (e) {
-    alert('Error updating status')
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث الحالة' : 'Update Failed',
+      locale.value === 'ar' ? 'تعذر تحديث حالة طلب الخدمة.' : 'Error updating status',
+    )
   }
   finally {
     updating.value = false

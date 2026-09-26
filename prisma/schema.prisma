@@ -24,6 +24,8 @@ model AdminUser {
 
   permissions   AdminPermission[]
   statusChanges OrderStatusHistory[]
+  deviceTokens  AdminDeviceToken[]
+  notifications AdminNotification[]
 }
 
 model AdminPermission {
@@ -309,6 +311,39 @@ model ServiceRequestAttachment {
   request ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId])
+}
+
+// ─── Admin push notifications & notification center ────────────
+
+model AdminDeviceToken {
+  id          String   @id @default(cuid())
+  adminUserId String
+  fcmToken    String   @unique
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+}
+
+model AdminNotification {
+  id              String   @id @default(cuid())
+  adminUserId     String
+  type            String // 'new_order' | 'new_service_request' | 'new_quote'
+  titleEn         String
+  titleAr         String
+  bodyEn          String
+  bodyAr          String
+  relatedEntityId String?
+  url             String?
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, isRead])
+  @@index([adminUserId, createdAt])
 }
 
 // ─── Site settings (singleton, id = 1) ─────────────────────────

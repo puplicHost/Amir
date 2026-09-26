@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'orders.view')
+  const user = await requirePermission(event, 'orders.view')
+  const canViewFinancials = user.isSuper || user.permissions.includes('dashboard.financials.view')
   const q = getQuery(event)
   const page = Math.max(1, Number(q.page) || 1)
   const limit = Math.min(50, Math.max(1, Number(q.limit) || 25))
@@ -34,5 +35,10 @@ export default defineEventHandler(async (event) => {
     }),
   ])
   
-  return { orders, total, page, limit, pages: Math.ceil(total / limit) }
+  const mappedOrders = orders.map(o => ({
+    ...o,
+    totalAmount: canViewFinancials ? o.totalAmount : null,
+  }))
+
+  return { orders: mappedOrders, total, page, limit, pages: Math.ceil(total / limit) }
 })

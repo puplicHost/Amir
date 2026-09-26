@@ -20,6 +20,8 @@ const localePath = useLocalePath()
 const route = useRoute()
 const id = String(route.params.id)
 const fetch = useRequestFetch()
+const canFinancialsView = useAdminCan('dashboard.financials.view')
+const toast = useAdminToast()
 
 const { data, refresh, error } = await useAsyncData(`admin-order-${id}`, () =>
   fetch<{ order: any }>(`/api/admin/orders/${id}`),
@@ -47,9 +49,17 @@ async function updateStatus() {
     })
     updateMessage.value = locale.value === 'ar' ? 'تم تحديث الحالة بنجاح' : 'Status updated successfully'
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث حالة الطلب' : 'Status Updated',
+      locale.value === 'ar' ? `تم تغيير حالة الطلب إلى "${newStatus.value}".` : `Order status changed to "${newStatus.value}".`,
+    )
   }
-  catch (e) {
-    alert((e as any)?.data?.message || 'Update failed')
+  catch (e: any) {
+    const msg = e?.data?.message || 'Update failed'
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث الحالة' : 'Update Failed',
+      msg,
+    )
     newStatus.value = data.value!.order.status
   }
   finally {
@@ -128,7 +138,8 @@ function formatDate(d: string) {
                       </div>
                     </td>
                     <td class="py-3 text-end font-mono text-slate-600 dark:text-slate-400">
-                      {{ item.productPriceSnapshot }} EGP
+                      <span v-if="canFinancialsView && item.productPriceSnapshot !== null">{{ item.productPriceSnapshot }} EGP</span>
+                      <span v-else class="text-slate-400 font-bold">•••</span>
                     </td>
                     <td class="py-3 text-center">
                       <span class="inline-block rounded bg-slate-100 px-2 py-0.5 font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -136,7 +147,8 @@ function formatDate(d: string) {
                       </span>
                     </td>
                     <td class="py-3 text-end font-mono font-bold text-slate-900 dark:text-slate-100">
-                      {{ item.subtotal }} EGP
+                      <span v-if="canFinancialsView && item.subtotal !== null">{{ item.subtotal }} EGP</span>
+                      <span v-else class="text-slate-400 font-bold">•••</span>
                     </td>
                   </tr>
                 </tbody>
@@ -146,7 +158,8 @@ function formatDate(d: string) {
                       {{ locale === 'ar' ? 'المبلغ الإجمالي:' : 'Total Amount:' }}
                     </td>
                     <td class="pt-4 text-end font-heading text-base text-[#2B71AE] dark:text-[#F5CC07]">
-                      {{ data.order.totalAmount }} EGP
+                      <span v-if="canFinancialsView && data.order.totalAmount !== null">{{ data.order.totalAmount }} EGP</span>
+                      <span v-else class="font-mono text-slate-400 font-bold">•••</span>
                     </td>
                   </tr>
                 </tfoot>

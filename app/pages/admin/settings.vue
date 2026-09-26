@@ -89,8 +89,8 @@ function switchTab(id: string) {
       </button>
     </div>
 
-    <!-- Active Tab Content Area -->
-    <div class="max-w-3xl">
+    <!-- Active Tab Content Area (wide enough for 2-3 column grids) -->
+    <div class="max-w-5xl">
       <div v-if="activeTab === 'general'" role="tabpanel">
         <AdminSettingsGeneral />
       </div>

@@ -18,6 +18,7 @@ import { PERMISSION_GROUPS } from '~~/shared/permissions'
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 const { t, locale } = useI18n()
+const toast = useAdminToast()
 
 interface AdminUserRow {
   id: string
@@ -109,9 +110,19 @@ async function save() {
     }
     showModal.value = false
     await refresh()
+    toast.success(
+      editing.value
+        ? (locale.value === 'ar' ? 'تم تعديل بيانات المسؤول' : 'Administrator Updated')
+        : (locale.value === 'ar' ? 'تمت إضافة المسؤول بنجاح' : 'Administrator Created'),
+      locale.value === 'ar' ? `تم حفظ حساب "${form.name}".` : `Account for "${form.name}" saved.`,
+    )
   }
-  catch (e) {
-    formError.value = (e as { data?: { message?: string } })?.data?.message || 'Save failed'
+  catch (e: any) {
+    formError.value = e?.data?.message || 'Save failed'
+    toast.error(
+      locale.value === 'ar' ? 'فشل حفظ المسؤول' : 'Save Failed',
+      formError.value,
+    )
   }
   finally {
     saving.value = false
@@ -124,9 +135,16 @@ async function removeUser(user: AdminUserRow) {
   try {
     await $fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم حذف المسؤول' : 'Administrator Deleted',
+      locale.value === 'ar' ? `تم حذف حساب "${user.name}".` : `Account for "${user.name}" deleted.`,
+    )
   }
-  catch (e) {
-    alert((e as { data?: { message?: string } })?.data?.message || 'Delete failed')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل حذف المسؤول' : 'Delete Failed',
+      e?.data?.message || 'Delete failed',
+    )
   }
   finally {
     deletingId.value = null
@@ -146,6 +164,17 @@ function formatDate(d: string | null) {
 
 function getUserInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+}
+
+const groupLabels: Record<string, { en: string, ar: string }> = {
+  dashboard: { en: 'Financial Visibility (Dashboard & Orders)', ar: 'الرؤية المالية (لوحة التحكم والطلبات)' },
+  products: { en: 'Products Management', ar: 'إدارة المنتجات' },
+  orders: { en: 'Orders & Fulfillment', ar: 'الطلبات والشحن' },
+  quotes: { en: 'Price Quotations', ar: 'عروض الأسعار' },
+  services: { en: 'Engineering Services', ar: 'الخدمات الهندسية' },
+  categories: { en: 'Catalog Categories', ar: 'تصنيفات المتجر' },
+  settings: { en: 'Platform Settings', ar: 'إعدادات المنصة' },
+  users: { en: 'Staff & Roles', ar: 'الموظفون والأدوار' },
 }
 
 const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
@@ -368,7 +397,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               >
                 <div class="mb-2 flex items-center justify-between">
                   <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    {{ group }}
+                    {{ groupLabels[group] ? (locale === 'ar' ? groupLabels[group].ar : groupLabels[group].en) : group }}
                   </span>
                   <button
                     type="button"

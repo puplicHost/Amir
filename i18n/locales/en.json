@@ -98,6 +98,9 @@
     "users": "Users",
     "settings": "Settings",
     "logout": "Logout",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications yet",
     "shellNotice": "Admin shell - functional modules arrive in later phases."
   },
   "common": {

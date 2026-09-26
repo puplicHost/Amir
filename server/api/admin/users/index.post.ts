@@ -8,7 +8,7 @@ interface CreateUserBody {
 }
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'users.manage')
+  const actor = await requirePermission(event, 'users.manage')
   const body = await readBody<CreateUserBody>(event)
 
   const name = typeof body.name === 'string' ? body.name.trim() : ''
@@ -47,5 +47,15 @@ export default defineEventHandler(async (event) => {
       permissions: { select: { permission: true } },
     },
   })
+  await notifyAdmins({
+    type: 'new_staff_user',
+    relatedEntityId: user.id,
+    url: '/admin/users',
+    titleEn: `New staff account: ${user.name}`,
+    titleAr: `حساب إداري جديد: ${user.name}`,
+    bodyEn: `${user.email} · by ${actor.name}`,
+    bodyAr: `${user.email} · بواسطة ${actor.name}`,
+  })
+
   return { user: { ...user, permissions: user.permissions.map(p => p.permission) } }
 })

@@ -128,6 +128,16 @@ export default defineEventHandler(async (event) => {
     data: { pdfPath: relativePath },
   })
 
+  await notifyAdmins({
+    type: 'new_quote',
+    relatedEntityId: quote.id,
+    url: `/admin/quotes/${quote.id}`,
+    titleEn: `New quote request ${quote.quoteNumber}`,
+    titleAr: `طلب عرض سعر جديد ${quote.quoteNumber}`,
+    bodyEn: `${quote.companyName} · ${grandTotal} EGP`,
+    bodyAr: `${quote.companyName} · ${grandTotal} ج.م`,
+  })
+
   return {
     quoteId: quote.id,
     quoteNumber: quote.quoteNumber,

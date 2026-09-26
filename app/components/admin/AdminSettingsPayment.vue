@@ -47,9 +47,9 @@ async function saveAndClearSecrets() {
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="saveAndClearSecrets">
+  <form class="space-y-4" @submit.prevent="saveAndClearSecrets">
     <!-- Active Checkout Methods Card -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="mb-3 flex items-center gap-2">
         <CreditCard class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
@@ -80,7 +80,7 @@ async function saveAndClearSecrets() {
     </div>
 
     <!-- Online Gateway Configuration Card -->
-    <div v-if="form.onlineEnabled" class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div v-if="form.onlineEnabled" class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="mb-2 flex items-center gap-2">
         <Lock class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">

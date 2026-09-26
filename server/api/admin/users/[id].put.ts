@@ -73,5 +73,33 @@ export default defineEventHandler(async (event) => {
       permissions: { select: { permission: true } },
     },
   })
+
+  // Security-audit notification — only for permission or active-state changes.
+  const oldPerms = target.permissions.map(p => p.permission).sort().join(',')
+  const newPerms = (permissions ?? target.permissions.map(p => p.permission)).sort().join(',')
+  const permsChanged = oldPerms !== newPerms
+  const activeChanged = body.isActive !== undefined && target.isActive !== user.isActive
+  if (permsChanged || activeChanged) {
+    const changesEn: string[] = []
+    const changesAr: string[] = []
+    if (permsChanged) {
+      changesEn.push(`permissions: ${newPerms || 'none'}`)
+      changesAr.push(`الصلاحيات: ${newPerms || 'لا يوجد'}`)
+    }
+    if (activeChanged) {
+      changesEn.push(user.isActive ? 'reactivated' : 'deactivated')
+      changesAr.push(user.isActive ? 'تم التفعيل' : 'تم التعطيل')
+    }
+    await notifyAdmins({
+      type: 'staff_updated',
+      relatedEntityId: user.id,
+      url: '/admin/users',
+      titleEn: `Staff updated: ${user.name}`,
+      titleAr: `تعديل حساب إداري: ${user.name}`,
+      bodyEn: `${user.email} · ${changesEn.join(' · ')} · by ${actor.name}`,
+      bodyAr: `${user.email} · ${changesAr.join(' · ')} · بواسطة ${actor.name}`,
+    })
+  }
+
   return { user: { ...user, permissions: user.permissions.map(p => p.permission) } }
 })

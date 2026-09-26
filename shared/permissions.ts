@@ -2,6 +2,7 @@
 // Server validates against ALL_PERMISSIONS; UI groups them for display.
 
 export const PERMISSION_GROUPS = {
+  dashboard: ['dashboard.financials.view'],
   products: ['products.view', 'products.create', 'products.edit', 'products.delete'],
   orders: ['orders.view', 'orders.manage'],
   quotes: ['quotes.view', 'quotes.manage'],

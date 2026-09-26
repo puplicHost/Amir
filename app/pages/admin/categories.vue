@@ -4,6 +4,7 @@ import { FolderTree, Image as ImageIcon, Pencil, Plus, Search, Star, Trash2, X }
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 const { t, locale } = useI18n()
+const toast = useAdminToast()
 
 interface Category {
   id: string
@@ -29,9 +30,16 @@ async function saveSortOrder(c: Category) {
       body: { sortOrder: next },
     })
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث الترتيب' : 'Order Updated',
+      locale.value === 'ar' ? `تم حفظ ترتيب الفئة "${c.nameAr || c.nameEn}".` : `Sort order updated for "${c.nameEn}".`,
+    )
   }
-  catch (e) {
-    alert((e as { data?: { message?: string } })?.data?.message || 'Failed to save order')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل حفظ الترتيب' : 'Failed to save order',
+      e?.data?.message || 'Failed to save order',
+    )
     await refresh()
   }
   finally {
@@ -136,7 +144,9 @@ function onCoverChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) {
     if (file.size > 5 * 1024 * 1024) {
-      formError.value = locale.value === 'ar' ? 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت' : 'Image size must be 5MB or less.'
+      const msg = locale.value === 'ar' ? 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت' : 'Image size must be 5MB or less.'
+      formError.value = msg
+      toast.warning(msg)
       return
     }
     coverFile.value = file
@@ -180,9 +190,19 @@ async function save() {
 
     showModal.value = false
     await refresh()
+    toast.success(
+      editing.value
+        ? (locale.value === 'ar' ? 'تم تعديل الفئة بنجاح' : 'Category Updated')
+        : (locale.value === 'ar' ? 'تمت إضافة الفئة بنجاح' : 'Category Created'),
+      locale.value === 'ar' ? `تم حفظ فئة "${form.nameAr || form.nameEn}".` : `"${form.nameEn}" saved.`,
+    )
   }
-  catch (e) {
-    formError.value = (e as { data?: { message?: string } })?.data?.message || 'Save failed'
+  catch (e: any) {
+    formError.value = e?.data?.message || 'Save failed'
+    toast.error(
+      locale.value === 'ar' ? 'فشل حفظ الفئة' : 'Save Failed',
+      formError.value,
+    )
   }
   finally {
     saving.value = false
@@ -196,9 +216,16 @@ async function removeCategory(c: Category) {
     await $fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' })
     await refresh()
     if (!pagedCategories.value.length && page.value > 1) await gotoPage(page.value - 1)
+    toast.success(
+      locale.value === 'ar' ? 'تم حذف الفئة' : 'Category Deleted',
+      locale.value === 'ar' ? `تم حذف الفئة "${c.nameAr || c.nameEn}".` : `Category "${c.nameEn}" deleted.`,
+    )
   }
-  catch (e) {
-    alert((e as { data?: { message?: string } })?.data?.message || 'Delete failed')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل حذف الفئة' : 'Delete Failed',
+      e?.data?.message || 'Delete failed',
+    )
   }
   finally {
     deletingId.value = null

@@ -2,6 +2,7 @@
 import { Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-vue-next'
 
 const { locale } = useI18n()
+const toast = useAdminToast()
 
 const {
   form, data, refresh, loading, statusMessage, isError, dirty, save, reset,
@@ -38,19 +39,35 @@ const missingAr = computed(() => ({
 
 const missingArCount = computed(() => Object.values(missingAr.value).filter(Boolean).length)
 
+const uploadLabels: Record<string, { en: string, ar: string }> = {
+  logo: { en: 'Logo', ar: 'الشعار' },
+  favicon: { en: 'Favicon', ar: 'أيقونة المتصفح' },
+  hero: { en: 'Hero image', ar: 'صورة الواجهة' },
+}
+
 async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   uploadingType.value = type
+  const label = uploadLabels[type][locale.value === 'ar' ? 'ar' : 'en']
   const fd = new FormData()
   fd.append('file', file)
   try {
     await $fetch(`/api/admin/settings/${type}`, { method: 'POST', body: fd })
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم رفع الملف بنجاح' : 'Upload Successful',
+      locale.value === 'ar' ? `تم حفظ ${label} الجديد.` : `New ${label.toLowerCase()} saved.`,
+    )
   }
   catch (e: any) {
-    statusMessage.value = e?.data?.message || (locale.value === 'ar' ? 'فشل رفع الملف.' : 'Upload failed.')
+    const msg = e?.data?.message || (locale.value === 'ar' ? 'فشل رفع الملف.' : 'Upload failed.')
+    statusMessage.value = msg
     isError.value = true
+    toast.error(
+      locale.value === 'ar' ? 'فشل رفع الملف' : 'Upload Failed',
+      msg,
+    )
   }
   finally {
     uploadingType.value = null
@@ -60,13 +77,13 @@ async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="save">
+  <form class="space-y-4" @submit.prevent="save">
     <!-- Section 1: Brand & Identity -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
         {{ locale === 'ar' ? 'هوية العلامة التجارية' : 'Brand Identity' }}
       </h2>
-      <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">
         {{ locale === 'ar' ? 'اسم المنصة والشعار اللفظي باللغتين العربية والإنجليزية.' : 'Platform name and corporate tagline displayed across storefront and notifications.' }}
       </p>
 
@@ -101,84 +118,66 @@ async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
       </div>
     </div>
 
-    <!-- Section 2: Visual Brand Assets -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <!-- Section 2: Visual Brand Assets (compact 3-card row) -->
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
         {{ locale === 'ar' ? 'الأصول والوسائط البصرية' : 'Visual Assets' }}
       </h2>
-      <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">
         {{ locale === 'ar' ? 'الشعار الرسمي، أيقونة المتصفح، وخلفية القسم الترحيبي (Hero).' : 'Official logo, favicon, and hero section background imagery.' }}
       </p>
 
-      <div class="space-y-4">
-        <!-- Logo Upload -->
-        <div class="flex flex-col gap-3 rounded-md border p-3.5 sm:flex-row sm:items-center sm:justify-between" :style="{ borderColor: 'var(--color-border)' }">
-          <div class="flex items-center gap-3">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border bg-slate-50 p-1.5 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
-              <img v-if="data?.logoPath" :src="data.logoPath" alt="Logo preview" class="max-h-full max-w-full object-contain" />
-              <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 dark:text-slate-100">Storefront Logo</p>
-              <p class="text-[11px] text-slate-400">PNG or SVG with transparent background recommended.</p>
-            </div>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <!-- Logo Upload Card -->
+        <div class="flex flex-col rounded-md border p-3" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="flex h-16 items-center justify-center overflow-hidden rounded-md border bg-slate-50 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+            <img v-if="data?.logoPath" :src="data.logoPath" alt="Logo preview" class="max-h-full max-w-full object-contain" />
+            <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
           </div>
-          <div>
-            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#2B71AE] px-3.5 py-1.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400">
-              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{{ uploadingType === 'logo' ? 'Uploading…' : 'Upload Logo' }}</span>
-              <input type="file" accept="image/*" class="hidden" @change="uploadFile('logo', $event)" />
-            </label>
-          </div>
+          <p class="mt-2 text-xs font-bold text-slate-900 dark:text-slate-100">Storefront Logo</p>
+          <p class="mb-2 text-[11px] text-slate-400">PNG/SVG transparent recommended.</p>
+          <label class="mt-auto inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-[#2B71AE] px-3 py-1.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400">
+            <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{{ uploadingType === 'logo' ? 'Uploading…' : 'Upload Logo' }}</span>
+            <input type="file" accept="image/*" class="hidden" @change="uploadFile('logo', $event)" />
+          </label>
         </div>
 
-        <!-- Favicon Upload -->
-        <div class="flex flex-col gap-3 rounded-md border p-3.5 sm:flex-row sm:items-center sm:justify-between" :style="{ borderColor: 'var(--color-border)' }">
-          <div class="flex items-center gap-3">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border bg-slate-50 p-1.5 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
-              <img v-if="data?.faviconPath" :src="data.faviconPath" alt="Favicon preview" class="h-6 w-6 object-contain" />
-              <ImageIcon v-else class="h-5 w-5 text-slate-400" aria-hidden="true" />
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 dark:text-slate-100">Favicon</p>
-              <p class="text-[11px] text-slate-400">Square 32x32px or 64x64px browser icon.</p>
-            </div>
+        <!-- Favicon Upload Card -->
+        <div class="flex flex-col rounded-md border p-3" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="flex h-16 items-center justify-center overflow-hidden rounded-md border bg-slate-50 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+            <img v-if="data?.faviconPath" :src="data.faviconPath" alt="Favicon preview" class="h-8 w-8 object-contain" />
+            <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
           </div>
-          <div>
-            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{{ uploadingType === 'favicon' ? 'Uploading…' : 'Upload Favicon' }}</span>
-              <input type="file" accept="image/x-icon,image/png" class="hidden" @change="uploadFile('favicon', $event)" />
-            </label>
-          </div>
+          <p class="mt-2 text-xs font-bold text-slate-900 dark:text-slate-100">Favicon</p>
+          <p class="mb-2 text-[11px] text-slate-400">Square 32×32 or 64×64 browser icon.</p>
+          <label class="mt-auto inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+            <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{{ uploadingType === 'favicon' ? 'Uploading…' : 'Upload Favicon' }}</span>
+            <input type="file" accept="image/x-icon,image/png" class="hidden" @change="uploadFile('favicon', $event)" />
+          </label>
         </div>
 
-        <!-- Hero Background Upload -->
-        <div class="flex flex-col gap-3 rounded-md border p-3.5 sm:flex-row sm:items-center sm:justify-between" :style="{ borderColor: 'var(--color-border)' }">
-          <div class="flex items-center gap-3">
-            <div class="flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-slate-50 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
-              <img v-if="data?.heroImagePath" :src="data.heroImagePath" alt="Hero background" class="h-full w-full object-cover" />
-              <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 dark:text-slate-100">Homepage Hero Image</p>
-              <p class="text-[11px] text-slate-400">High-resolution banner background (1920x800 recommended).</p>
-            </div>
+        <!-- Hero Background Upload Card -->
+        <div class="flex flex-col rounded-md border p-3" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="flex h-16 items-center justify-center overflow-hidden rounded-md border bg-slate-50 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+            <img v-if="data?.heroImagePath" :src="data.heroImagePath" alt="Hero background" class="h-full w-full object-cover" />
+            <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
           </div>
-          <div>
-            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{{ uploadingType === 'hero' ? 'Uploading…' : 'Upload Hero Image' }}</span>
-              <input type="file" accept="image/*" class="hidden" @change="uploadFile('hero', $event)" />
-            </label>
-          </div>
+          <p class="mt-2 text-xs font-bold text-slate-900 dark:text-slate-100">Homepage Hero Image</p>
+          <p class="mb-2 text-[11px] text-slate-400">Wide banner background (1920×800).</p>
+          <label class="mt-auto inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+            <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{{ uploadingType === 'hero' ? 'Uploading…' : 'Upload Hero Image' }}</span>
+            <input type="file" accept="image/*" class="hidden" @change="uploadFile('hero', $event)" />
+          </label>
         </div>
       </div>
     </div>
 
     <!-- Section 3: Promotional Banner -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="mb-3.5 flex items-center gap-2">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3 flex items-center gap-2">
         <Sparkles class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
           {{ locale === 'ar' ? 'البانر الترويجي العام' : 'Store Promotional Banner' }}

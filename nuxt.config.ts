@@ -8,6 +8,15 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Server-only. Min 32 chars; enforced in server/utils/auth.ts.
     sessionPassword: '',
+    public: {
+      // Firebase web config (public keys only). Overridden by
+      // NUXT_PUBLIC_FIREBASE_* env vars. Empty = push disabled (graceful).
+      firebaseApiKey: '',
+      firebaseAuthDomain: '',
+      firebaseMessagingSenderId: '',
+      firebaseAppId: '',
+      firebaseVapidKey: '',
+    },
   },
 
   modules: [

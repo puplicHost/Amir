@@ -21,6 +21,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const id = String(route.params.id)
+const toast = useAdminToast()
 
 const fetch = useRequestFetch()
 
@@ -50,9 +51,17 @@ async function updateStatus() {
     })
     updateMessage.value = locale.value === 'ar' ? 'تم تحديث الحالة بنجاح' : 'Status updated successfully'
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث حالة العرض' : 'Quote Status Updated',
+      locale.value === 'ar' ? `تم تغيير حالة عرض السعر إلى "${newStatus.value}".` : `Status changed to "${newStatus.value}".`,
+    )
   }
-  catch (e) {
-    alert((e as any)?.data?.message || 'Update failed')
+  catch (e: any) {
+    const msg = e?.data?.message || 'Update failed'
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث الحالة' : 'Update Failed',
+      msg,
+    )
     newStatus.value = data.value!.quote.status
   }
   finally {

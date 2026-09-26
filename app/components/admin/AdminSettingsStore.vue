@@ -21,10 +21,10 @@ const {
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="save">
+  <form class="space-y-4" @submit.prevent="save">
     <!-- Store Configuration Card -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="mb-4 flex items-center gap-2">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3 flex items-center gap-2">
         <Store class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
           {{ locale === 'ar' ? 'العملة والتصفح في المتجر' : 'Catalog & Currency Settings' }}

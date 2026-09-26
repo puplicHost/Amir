@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
   const randomStr = randomBytes(3).toString('hex').toUpperCase()
   const orderNumber = `ME-${dateStr}-${randomStr}`
 
-  await prisma.order.create({
+  const order = await prisma.order.create({
     data: {
       orderNumber,
       customerName: String(name).trim(),
@@ -73,6 +73,16 @@ export default defineEventHandler(async (event) => {
       items: { create: orderItems },
       statusHistory: { create: [{ status: 'Pending' }] },
     },
+  })
+
+  await notifyAdmins({
+    type: 'new_order',
+    relatedEntityId: order.id,
+    url: `/admin/orders/${order.id}`,
+    titleEn: `New order ${orderNumber}`,
+    titleAr: `طلب جديد ${orderNumber}`,
+    bodyEn: `${order.customerName} · ${totalAmount} EGP · ${paymentMethod}`,
+    bodyAr: `${order.customerName} · ${totalAmount} ج.م · ${paymentMethod}`,
   })
 
   return { orderNumber, totalAmount }

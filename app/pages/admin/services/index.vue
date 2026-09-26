@@ -21,6 +21,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
+const toast = useAdminToast()
 
 const activeTab = ref<'services' | 'requests'>((route.query.tab as 'services' | 'requests') || 'services')
 
@@ -132,9 +133,17 @@ async function saveService() {
     })
     showServiceModal.value = false
     await refreshServices()
+    toast.success(
+      locale.value === 'ar' ? 'تمت إضافة الخدمة' : 'Service Added',
+      locale.value === 'ar' ? `تم حفظ خدمة "${serviceForm.nameAr || serviceForm.nameEn}".` : `Service "${serviceForm.nameEn}" added successfully.`,
+    )
   }
   catch (e: any) {
     serviceFormError.value = e?.data?.message || 'Save failed'
+    toast.error(
+      locale.value === 'ar' ? 'فشل حفظ الخدمة' : 'Save Failed',
+      serviceFormError.value,
+    )
   }
   finally {
     savingService.value = false
@@ -147,9 +156,16 @@ async function deleteService(s: any) {
   try {
     await $fetch(`/api/admin/services/${s.id}`, { method: 'DELETE' })
     await refreshServices()
+    toast.success(
+      locale.value === 'ar' ? 'تم حذف الخدمة' : 'Service Deleted',
+      locale.value === 'ar' ? `تم حذف خدمة "${s.nameAr || s.nameEn}".` : `Service "${s.nameEn}" deleted.`,
+    )
   }
   catch (e: any) {
-    alert(e.data?.message || 'Error deleting service')
+    toast.error(
+      locale.value === 'ar' ? 'فشل حذف الخدمة' : 'Delete Failed',
+      e?.data?.message || 'Error deleting service',
+    )
   }
   finally {
     deleting.value = ''
@@ -158,14 +174,22 @@ async function deleteService(s: any) {
 
 async function toggleActive(service: any) {
   try {
+    const nextState = !service.isActive
     await $fetch(`/api/admin/services/${service.id}`, {
       method: 'PUT',
-      body: { ...service, isActive: !service.isActive },
+      body: { ...service, isActive: nextState },
     })
     await refreshServices()
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث الحالة' : 'Status Updated',
+      locale.value === 'ar' ? `خدمة "${service.nameAr || service.nameEn}" الآن ${nextState ? 'نشطة' : 'معطلة'}.` : `Service "${service.nameEn}" is now ${nextState ? 'active' : 'inactive'}.`,
+    )
   }
-  catch (e) {
-    alert('Error toggling service active state')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث الحالة' : 'Update Failed',
+      e?.data?.message || 'Error toggling service active state',
+    )
   }
 }
 

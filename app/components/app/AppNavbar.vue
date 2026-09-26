@@ -46,7 +46,10 @@ function isActiveRoute(path: string, exact = false) {
 
 const isProductsActive = computed(() => {
   const p = productsHref.value
-  return route.path === p || route.path.startsWith(`${p}/`) || route.path.startsWith(localePath('/p/'))
+  // NOTE: plain string prefix checks only — never pass '/p/' (no slug) through
+  // localePath()/router.resolve(), it matches no route and spams
+  // "No match found for location with path" warnings on every render.
+  return route.path === p || route.path.startsWith(`${p}/`) || /(^|\/)p\//.test(route.path)
 })
 </script>
 

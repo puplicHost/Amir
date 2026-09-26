@@ -25,6 +25,7 @@ const paymentMethod = ref(String(route.query.paymentMethod || ''))
 const page = ref(Number(route.query.page) || 1)
 const limit = 20
 const canOrdersManage = useAdminCan('orders.manage')
+const canFinancialsView = useAdminCan('dashboard.financials.view')
 const flashOrderId = ref<string | null>(null)
 let flashTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -234,8 +235,13 @@ function formatDate(d: string) {
               <!-- Total -->
               <td class="px-4 py-3">
                 <div class="flex items-baseline gap-1">
-                  <span class="font-bold text-slate-900 dark:text-slate-100">{{ o.totalAmount }}</span>
-                  <span class="text-xs text-slate-500">EGP</span>
+                  <template v-if="canFinancialsView && o.totalAmount !== null && o.totalAmount !== undefined">
+                    <span class="font-bold text-slate-900 dark:text-slate-100">{{ o.totalAmount }}</span>
+                    <span class="text-xs text-slate-500">EGP</span>
+                  </template>
+                  <template v-else>
+                    <span class="font-mono font-bold text-slate-400 dark:text-slate-500" :title="locale === 'ar' ? 'بيانات مالية محجوبة' : 'Financial data masked'">•••</span>
+                  </template>
                   <span class="ms-1 rounded bg-slate-100 px-1.5 py-0.2 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                     {{ o._count?.items || 1 }} {{ locale === 'ar' ? 'عنصر' : 'items' }}
                   </span>

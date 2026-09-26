@@ -11,18 +11,19 @@ export default defineEventHandler(async (event) => {
   const password = typeof body.password === 'string' ? body.password : ''
 
   // Generic failure: never reveal whether the email exists.
-  const fail = () => {
+  const fail = async () => {
+    await recordFailedLogin(email)
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
 
-  if (!email || !password) fail()
+  if (!email || !password) await fail()
 
   const user = await prisma.adminUser.findUnique({
     where: { email },
     include: { permissions: true },
   })
-  if (!user || !user.isActive) fail()
-  if (!(await verifyPassword(password, user.passwordHash))) fail()
+  if (!user || !user.isActive) await fail()
+  if (!(await verifyPassword(password, user.passwordHash))) await fail()
 
   await prisma.adminUser.update({
     where: { id: user!.id },

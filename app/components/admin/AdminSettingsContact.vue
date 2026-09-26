@@ -30,10 +30,10 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="save">
+  <form class="space-y-4" @submit.prevent="save">
     <!-- Section 1: Official Communication Channels -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="mb-4 flex items-center gap-2">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3 flex items-center gap-2">
         <Phone class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
           {{ locale === 'ar' ? 'قنوات الاتصال الرسمية' : 'Contact Channels' }}
@@ -61,8 +61,8 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
     </div>
 
     <!-- Section 2: Physical Address -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="mb-4 flex items-center gap-2">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3 flex items-center gap-2">
         <MapPin class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
           {{ locale === 'ar' ? 'العنوان والمقر' : 'Headquarters & Address' }}
@@ -85,8 +85,8 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
     </div>
 
     <!-- Section 3: Social Profiles -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="mb-4 flex items-center gap-2">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3 flex items-center gap-2">
         <Share2 class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
         <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
           {{ locale === 'ar' ? 'منصات التواصل الاجتماعي' : 'Social Profiles' }}
@@ -113,7 +113,7 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
     </div>
 
     <!-- Section 4: Map Embed -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
         {{ locale === 'ar' ? 'خريطة جوجل (Google Maps)' : 'Google Maps Location' }}
       </h2>

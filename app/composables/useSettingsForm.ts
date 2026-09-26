@@ -44,6 +44,12 @@ export async function useSettingsForm<T extends Record<string, any>>(options: Se
   const { locale } = useI18n()
   const fetch = useRequestFetch()
   const dirtyFlag = useSettingsDirtyFlag()
+  let dismissTimer: ReturnType<typeof setTimeout> | null = null
+  // Register before any await: lifecycle hooks after an await warn
+  // ("onUnmounted called with no active instance") and never run.
+  onUnmounted(() => {
+    if (dismissTimer) clearTimeout(dismissTimer)
+  })
 
   const { data, refresh } = await useAsyncData(options.key, () => fetch<any>(options.endpoint))
 
@@ -51,7 +57,6 @@ export async function useSettingsForm<T extends Record<string, any>>(options: Se
   const loading = ref(false)
   const statusMessage = ref('')
   const isError = ref(false)
-  let dismissTimer: ReturnType<typeof setTimeout> | null = null
   let snapshot = snapshotOf(form)
 
   function hydrate() {
@@ -83,10 +88,6 @@ export async function useSettingsForm<T extends Record<string, any>>(options: Se
     dismissTimer = setTimeout(() => { if (!isError.value) statusMessage.value = '' }, 4000)
   }
 
-  onUnmounted(() => {
-    if (dismissTimer) clearTimeout(dismissTimer)
-  })
-
   async function save(): Promise<boolean> {
     if (loading.value) return false
     loading.value = true
@@ -99,11 +100,23 @@ export async function useSettingsForm<T extends Record<string, any>>(options: Se
       })
       await refresh()
       hydrate()
-      flash(locale.value === 'ar' ? options.successAr : options.successEn, false)
+      const msg = locale.value === 'ar' ? options.successAr : options.successEn
+      flash(msg, false)
+      const toast = useAdminToast()
+      toast.success(
+        locale.value === 'ar' ? 'تم حفظ الإعدادات' : 'Settings Saved',
+        msg,
+      )
       return true
     }
     catch (e: any) {
-      flash(e?.data?.message || (locale.value === 'ar' ? options.failAr : options.failEn), true)
+      const msg = e?.data?.message || (locale.value === 'ar' ? options.failAr : options.failEn)
+      flash(msg, true)
+      const toast = useAdminToast()
+      toast.error(
+        locale.value === 'ar' ? 'فشل حفظ الإعدادات' : 'Save Failed',
+        msg,
+      )
       return false
     }
     finally {

@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'orders.view')
+  const user = await requirePermission(event, 'orders.view')
+  const canViewFinancials = user.isSuper || user.permissions.includes('dashboard.financials.view')
   const id = getRouterParam(event, 'id')
   
   const order = await prisma.order.findUnique({
@@ -14,5 +15,20 @@ export default defineEventHandler(async (event) => {
   })
   
   if (!order) throw createError({ statusCode: 404, statusMessage: 'Order not found' })
+
+  if (!canViewFinancials) {
+    return {
+      order: {
+        ...order,
+        totalAmount: null,
+        items: order.items.map(item => ({
+          ...item,
+          productPriceSnapshot: null,
+          subtotal: null,
+        })),
+      },
+    }
+  }
+
   return { order }
 })

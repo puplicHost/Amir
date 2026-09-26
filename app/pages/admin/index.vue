@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Clock,
   ExternalLink,
+  FileText,
   FolderTree,
   Package,
   Plus,
@@ -60,6 +61,7 @@ const canServicesView = useAdminCan('services.view')
 const canProductsView = useAdminCan('products.view')
 const canCategoriesManage = useAdminCan('categories.manage')
 const canSettingsView = useAdminCan('settings.view')
+const canFinancialsView = useAdminCan('dashboard.financials.view')
 
 const stats = computed(() => data.value?.stats)
 const recentOrders = computed(() => data.value?.recentOrders || [])
@@ -102,9 +104,11 @@ const cards = computed(() => [
   {
     label: locale.value === 'ar' ? 'إجمالي الطلبات' : 'Total Orders',
     value: stats.value?.totalOrders ?? 0,
-    hint: stats.value?.totalRevenue
-      ? (locale.value === 'ar' ? `حجم المبيعات: ${formatCurrency(stats.value.totalRevenue)}` : `Volume: ${formatCurrency(stats.value.totalRevenue)}`)
-      : (locale.value === 'ar' ? 'كل الطلبات المسجلة' : 'All lifetime orders'),
+    hint: canFinancialsView.value
+      ? (stats.value?.totalRevenue !== null && stats.value?.totalRevenue !== undefined
+        ? (locale.value === 'ar' ? `حجم المبيعات: ${formatCurrency(stats.value.totalRevenue)}` : `Volume: ${formatCurrency(stats.value.totalRevenue)}`)
+        : (locale.value === 'ar' ? 'كل الطلبات المسجلة' : 'All lifetime orders'))
+      : (locale.value === 'ar' ? 'حجم المبيعات: •••' : 'Volume: •••'),
     icon: ShoppingCart,
     to: '/admin/orders',
     iconBg: 'bg-blue-50 text-[#2B71AE] dark:bg-blue-950/60 dark:text-blue-400',
@@ -147,36 +151,52 @@ const cards = computed(() => [
   },
 ])
 
+const canQuotesView = useAdminCan('quotes.view')
+
 const quickActions = computed(() => [
   {
     title: locale.value === 'ar' ? 'إضافة منتج جديد' : 'Add New Product',
-    desc: locale.value === 'ar' ? 'إنشاء منتج بالصور والأسعار' : 'Create catalog item with specs & images',
+    desc: locale.value === 'ar' ? 'إنشاء منتج بالصور والأسعار والمواصفات' : 'Create catalog item with specs & images',
     to: '/admin/products/new',
     icon: Plus,
     show: canProductsView.value,
   },
   {
+    title: locale.value === 'ar' ? 'إدارة الطلبات والشحن' : 'Manage Orders',
+    desc: locale.value === 'ar' ? 'متابعة وتحديث حالات الشحن والطلبات' : 'Process, filter & update order dispatch',
+    to: '/admin/orders',
+    icon: ShoppingCart,
+    show: canOrdersView.value,
+  },
+  {
+    title: locale.value === 'ar' ? 'إنشاء عرض سعر جديد' : 'Create Price Quote',
+    desc: locale.value === 'ar' ? 'إنشاء عرض سعر رسمي واستخراج ملف PDF' : 'Draft official B2B quote with PDF export',
+    to: '/admin/quotes/new',
+    icon: FileText,
+    show: canQuotesView.value,
+  },
+  {
     title: locale.value === 'ar' ? 'إدارة الفئات' : 'Manage Categories',
-    desc: locale.value === 'ar' ? 'تعديل وتصنيف فئات المتجر' : 'Organize catalog categories & covers',
+    desc: locale.value === 'ar' ? 'تعديل وتصنيف فئات المتجر وصور الغلاف' : 'Organize catalog categories & covers',
     to: '/admin/categories',
     icon: FolderTree,
     show: canCategoriesManage.value,
   },
   {
-    title: locale.value === 'ar' ? 'طلبات الخدمات' : 'Review Service Requests',
-    desc: locale.value === 'ar' ? 'متابعة طلبات الصيانة والأنظمة' : 'Manage incoming engineering inquiries',
+    title: locale.value === 'ar' ? 'طلبات الخدمات الهندسية' : 'Service Requests',
+    desc: locale.value === 'ar' ? 'متابعة طلبات الصيانة واستفسارات العملاء' : 'Review incoming maintenance inquiries',
     to: '/admin/services',
     icon: Wrench,
     show: canServicesView.value,
   },
   {
     title: locale.value === 'ar' ? 'إعدادات المنصة' : 'Platform Settings',
-    desc: locale.value === 'ar' ? 'تحديث معلومات التواصل والبانرات' : 'Update contact info, SEO & store info',
+    desc: locale.value === 'ar' ? 'تحديث معلومات التواصل والبانرات والسيو' : 'Update contact info, SEO & store config',
     to: '/admin/settings',
     icon: Settings,
     show: canSettingsView.value,
   },
-])
+].filter(a => a.show))
 </script>
 
 <template>
@@ -331,7 +351,12 @@ const quickActions = computed(() => [
 
                   <!-- Total Amount -->
                   <td class="px-4 py-3.5 whitespace-nowrap font-bold text-slate-900 dark:text-slate-100">
-                    {{ formatCurrency(order.totalAmount) }}
+                    <span v-if="order.totalAmount !== null && order.totalAmount !== undefined && canFinancialsView">
+                      {{ formatCurrency(order.totalAmount) }}
+                    </span>
+                    <span v-else class="font-mono text-slate-400 font-bold" :title="locale === 'ar' ? 'بيانات مالية محجوبة' : 'Financial data masked'">
+                      •••
+                    </span>
                   </td>
 
                   <!-- Time (relative time depends on wall-clock "now", which differs
@@ -480,28 +505,33 @@ const quickActions = computed(() => [
         </div>
       </div>
 
-      <div class="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NuxtLink
           v-for="action in quickActions"
           :key="action.title"
           :to="localePath(action.to)"
-          class="group flex flex-col justify-between rounded-xl border bg-white p-4 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2B71AE]/50 hover:shadow-sm dark:bg-[#162032] dark:hover:bg-slate-800/30"
+          class="group flex flex-col justify-between rounded-xl border bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2B71AE] hover:shadow-md dark:bg-[#162032] dark:hover:border-[#2B71AE]"
           :style="{ borderColor: 'var(--color-border)' }"
         >
-          <div class="space-y-2">
-            <div class="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-[#2B71AE]/10 text-[#2B71AE] transition-colors group-hover:bg-[#2B71AE] group-hover:text-white dark:bg-slate-800 dark:text-[#F5CC07]">
-              <component :is="action.icon" class="h-4 w-4" aria-hidden="true" />
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#2B71AE]/10 text-[#2B71AE] transition-colors group-hover:bg-[#2B71AE] group-hover:text-white dark:bg-slate-800 dark:text-[#F5CC07] dark:group-hover:bg-[#F5CC07] dark:group-hover:text-slate-950">
+                <component :is="action.icon" class="h-5 w-5" aria-hidden="true" />
+              </div>
+              <ArrowUpRight class="h-4 w-4 text-slate-400 opacity-60 transition-all group-hover:opacity-100 group-hover:text-[#2B71AE] dark:group-hover:text-[#F5CC07] rtl:rotate-270" aria-hidden="true" />
             </div>
-            <h3 class="font-heading text-xs font-bold text-slate-900 transition-colors group-hover:text-[#2B71AE] dark:text-slate-100 dark:group-hover:text-[#F5CC07]">
+
+            <h3 class="font-heading text-sm font-bold text-slate-900 transition-colors group-hover:text-[#2B71AE] dark:text-slate-100 dark:group-hover:text-[#F5CC07]">
               {{ action.title }}
             </h3>
-            <p class="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+            <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
               {{ action.desc }}
             </p>
           </div>
-          <div class="mt-3 flex items-center gap-1 text-[11px] font-semibold text-[#2B71AE] dark:text-[#F5CC07]">
-            <span>{{ locale === 'ar' ? 'فتح' : 'Open' }}</span>
-            <ArrowUpRight class="h-3 w-3 rtl:rotate-270" aria-hidden="true" />
+
+          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-[#2B71AE] dark:border-slate-800/80 dark:text-[#F5CC07]">
+            <span>{{ locale === 'ar' ? 'بدء الإجراء' : 'Open action' }}</span>
+            <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" aria-hidden="true" />
           </div>
         </NuxtLink>
       </div>

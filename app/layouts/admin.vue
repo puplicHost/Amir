@@ -1,5 +1,9 @@
 <script setup lang="ts">
 const mobileOpen = ref(false)
+
+onMounted(() => {
+  useAdminPush()
+})
 </script>
 
 <template>
@@ -20,5 +24,8 @@ const mobileOpen = ref(false)
         </div>
       </main>
     </div>
+
+    <!-- Foreground push toasts -->
+    <AdminToasts />
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink, Filter, Package, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next'
+import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Trash2 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
@@ -19,6 +19,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
+const toast = useAdminToast()
 
 const search = ref(String(route.query.search || ''))
 const categoryId = ref(String(route.query.categoryId || ''))
@@ -83,12 +84,39 @@ async function removeProduct(p: Row) {
   try {
     await $fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
     await refresh()
+    toast.success(
+      locale.value === 'ar' ? 'تم حذف المنتج' : 'Product Deleted',
+      locale.value === 'ar' ? `تم حذف المنتج "${p.nameAr || p.nameEn}" بنجاح.` : `"${p.nameEn}" has been removed.`,
+    )
   }
-  catch (e) {
-    alert((e as { data?: { message?: string } })?.data?.message || 'Delete failed')
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل حذف المنتج' : 'Delete Failed',
+      e?.data?.message || 'Delete failed',
+    )
   }
   finally {
     deletingId.value = null
+  }
+}
+
+async function shareProduct(p: Row) {
+  const path = localePath(`/p/${p.slug}`)
+  const url = typeof window !== 'undefined'
+    ? `${window.location.origin}${path}`
+    : path
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.success(
+      locale.value === 'ar' ? 'تم نسخ الرابط' : 'Link Copied',
+      locale.value === 'ar' ? `تم نسخ رابط المنتج "${p.nameAr || p.nameEn}" إلى الحافظة.` : `Public product link copied to clipboard.`,
+    )
+  }
+  catch {
+    toast.error(
+      locale.value === 'ar' ? 'فشل نسخ الرابط' : 'Copy Failed',
+      locale.value === 'ar' ? 'تعذر الوصول إلى الحافظة.' : 'Could not access clipboard.',
+    )
   }
 }
 </script>
@@ -253,16 +281,15 @@ async function removeProduct(p: Row) {
                     <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
                     <span>{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
                   </NuxtLink>
-                  <a
-                    :href="localePath(`/p/${p.slug}`)"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                    :title="locale === 'ar' ? 'عرض في الموقع' : 'Preview on public site'"
+                  <button
+                    type="button"
+                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    :title="locale === 'ar' ? 'نسخ رابط المنتج للمشاركة' : 'Copy public product link to clipboard'"
+                    @click="shareProduct(p)"
                   >
-                    <ExternalLink class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'معاينة' : 'View' }}</span>
-                  </a>
+                    <Share2 class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'مشاركة' : 'Share' }}</span>
+                  </button>
                   <button
                     type="button"
                     :disabled="deletingId === p.id"

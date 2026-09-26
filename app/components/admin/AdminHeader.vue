@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink, Globe, Menu, Moon, Sun } from 'lucide-vue-next'
+import { Globe, Menu, Moon, Sun } from 'lucide-vue-next'
 
 defineEmits<{
   (e: 'toggle-sidebar'): void
@@ -41,21 +41,12 @@ const userInitials = computed(() => {
       >
         <Menu class="h-5 w-5" aria-hidden="true" />
       </button>
-
-      <!-- Store link shortcut -->
-      <NuxtLink
-        :to="localePath('/')"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-[#2B71AE] hover:text-[#2B71AE] dark:border-slate-800 dark:text-slate-300 dark:hover:border-[#F5CC07] dark:hover:text-[#F5CC07]"
-        :title="locale === 'ar' ? 'عرض المتجر في نافذة جديدة' : 'Open public store in a new tab'"
-      >
-        <ExternalLink class="h-3.5 w-3.5" aria-hidden="true" />
-        <span class="hidden sm:inline">{{ locale === 'ar' ? 'عرض المتجر' : 'View Store' }}</span>
-      </NuxtLink>
     </div>
 
     <div class="flex items-center gap-2">
+      <!-- Notification center -->
+      <AdminNotificationBell />
+
       <!-- Language toggle -->
       <button
         type="button"

@@ -1,6 +1,7 @@
 export default defineEventHandler(async (event) => {
   // Any authenticated admin user can view the dashboard stats
-  await requireAuth(event)
+  const user = await requireAuth(event)
+  const canViewFinancials = user.isSuper || user.permissions.includes('dashboard.financials.view')
 
   const [
     totalOrders,
@@ -147,7 +148,7 @@ export default defineEventHandler(async (event) => {
     customerName: o.customerName,
     customerGovernorat: o.customerGovernorat,
     status: o.status,
-    totalAmount: Number(o.totalAmount || 0),
+    totalAmount: canViewFinancials ? Number(o.totalAmount || 0) : null,
     createdAt: o.createdAt,
     itemCount: o._count.items,
   }))
@@ -160,7 +161,7 @@ export default defineEventHandler(async (event) => {
       totalProducts,
       totalCategories,
       activeServices,
-      totalRevenue: Number(revenueAggregate._sum.totalAmount || 0),
+      totalRevenue: canViewFinancials ? Number(revenueAggregate._sum.totalAmount || 0) : null,
     },
     recentOrders,
     recentServiceRequests,

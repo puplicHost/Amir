@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -14,6 +15,7 @@ import {
   Layers,
   Play,
   Plus,
+  Save,
   Tag,
   Trash2,
   UploadCloud,
@@ -33,8 +35,9 @@ interface Attr {
   valueEn: string
 }
 interface ProductImage {
-  id: string
+  id?: string
   path: string
+  file?: File
   sortOrder: number
   isCover: boolean
 }
@@ -42,14 +45,16 @@ interface ProductVideo {
   id?: string
   type: string
   url: string
+  file?: File
 }
 interface ProductDocument {
-  id: string
+  id?: string
   labelAr: string
   labelEn: string
   filePath: string
   fileType: string
   sortOrder: number
+  file?: File
 }
 interface Existing {
   id: string
@@ -74,6 +79,7 @@ const props = defineProps<{ existing?: Existing | null }>()
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const fetch = useRequestFetch()
+const toast = useAdminToast()
 
 const { data: catData } = await useAsyncData('product-form-categories', () =>
   fetch<{ categories: Category[] }>('/api/categories'),
@@ -81,8 +87,8 @@ const { data: catData } = await useAsyncData('product-form-categories', () =>
 
 const step = ref(1)
 const error = ref('')
+const stepErrors = ref<Record<number, string>>({})
 const saving = ref(false)
-const uploading = ref(false)
 
 const form = reactive({
   nameAr: props.existing?.nameAr || '',
@@ -103,163 +109,177 @@ const form = reactive({
   geoContent: props.existing?.seo?.geoContent || '',
 })
 
-const images = ref<ProductImage[]>([...(props.existing?.images || [])])
-const savedId = ref<string | null>(props.existing?.id || null)
+// Local state for media (purely client-collected until single final save)
+const localImages = ref<ProductImage[]>([
+  ...(props.existing?.images || []).map((img, idx) => ({ ...img, isCover: idx === 0 })),
+])
+const deletedImageIds = ref<string[]>([])
+
+const video = ref<ProductVideo | null>(props.existing?.video ? { ...props.existing.video } : null)
+const videoMode = ref<'url' | 'upload'>('url')
+const videoUrlInput = ref('')
+const removeVideoOnSave = ref(false)
+
+const localDocuments = ref<ProductDocument[]>([
+  ...(props.existing?.documents || []).map(d => ({ ...d })),
+])
+const deletedDocIds = ref<string[]>([])
+const docFile = ref<File | null>(null)
+const docLabelEn = ref('')
+const docLabelAr = ref('')
+
+const isEditMode = computed(() => Boolean(props.existing?.id))
 
 const steps = computed(() => [
   { id: 1, label: locale.value === 'ar' ? 'المعلومات الأساسية' : 'Basic info', icon: Layers },
   { id: 2, label: locale.value === 'ar' ? 'التسعير' : 'Pricing', icon: Tag },
   { id: 3, label: locale.value === 'ar' ? 'المواصفات' : 'Attributes', icon: Plus },
-  { id: 4, label: locale.value === 'ar' ? 'الصور والوسائط' : 'Images', icon: ImageIcon },
-  { id: 5, label: locale.value === 'ar' ? 'السيو ومحركات البحث' : 'SEO & Discovery', icon: Globe },
+  { id: 4, label: locale.value === 'ar' ? 'الصور والوسائط' : 'Images & Media', icon: ImageIcon },
+  { id: 5, label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI', icon: Globe },
 ])
 
-function validateStep(s: number): boolean {
-  error.value = ''
-  if (s === 1 && (!form.nameAr.trim() || !form.nameEn.trim() || !form.categoryId)) {
-    error.value = locale.value === 'ar' ? 'الاسم باللغتين واختيار الفئة حقول مطلوبة.' : 'Name (AR/EN) and category are required.'
-    return false
+function validateStep(s: number, silent = false): boolean {
+  delete stepErrors.value[s]
+  if (!silent) error.value = ''
+
+  if (s === 1) {
+    if (!form.nameAr.trim() || !form.nameEn.trim() || !form.categoryId) {
+      const msg = locale.value === 'ar' ? 'الاسم باللغتين واختيار الفئة حقول مطلوبة.' : 'Name (AR/EN) and category are required.'
+      stepErrors.value[1] = msg
+      if (!silent) error.value = msg
+      return false
+    }
   }
+
   if (s === 2) {
     const price = Number(form.price)
-    if (!Number.isFinite(price) || price < 0) {
-      error.value = locale.value === 'ar' ? 'يرجى إدخال سعر صحيح للمنتج.' : 'Valid price is required.'
+    if (!form.price || !Number.isFinite(price) || price < 0) {
+      const msg = locale.value === 'ar' ? 'يرجى إدخال سعر صحيح للمنتج.' : 'Valid price is required.'
+      stepErrors.value[2] = msg
+      if (!silent) error.value = msg
       return false
     }
     if (form.compareAtPrice !== '') {
       const c = Number(form.compareAtPrice)
       if (!Number.isFinite(c) || c <= price) {
-        error.value = locale.value === 'ar' ? 'سعر المقارنة (قبل الخصم) يجب أن يكون أكبر من السعر الفعلي.' : 'Compare-at price must be greater than active price.'
+        const msg = locale.value === 'ar' ? 'سعر المقارنة (قبل الخصم) يجب أن يكون أكبر من السعر الفعلي.' : 'Compare-at price must be greater than active price.'
+        stepErrors.value[2] = msg
+        if (!silent) error.value = msg
         return false
       }
     }
   }
+
+  if (s === 3) {
+    for (const a of form.attributes) {
+      const hasAny = a.keyEn.trim() || a.keyAr.trim() || a.valueEn.trim() || a.valueAr.trim()
+      if (hasAny) {
+        if ((!a.keyEn.trim() && !a.keyAr.trim()) || (!a.valueEn.trim() && !a.valueAr.trim())) {
+          const msg = locale.value === 'ar' ? 'يرجى إكمال اسم وقيمة المواصفة المدخلة.' : 'Please enter both attribute name and value.'
+          stepErrors.value[3] = msg
+          if (!silent) error.value = msg
+          return false
+        }
+      }
+    }
+  }
+
+  return true
+}
+
+function validateAll(): boolean {
+  stepErrors.value = {}
+  error.value = ''
+
+  for (let s = 1; s <= 5; s++) {
+    validateStep(s, true)
+  }
+
+  const invalidSteps = Object.keys(stepErrors.value).map(Number).sort((a, b) => a - b)
+  if (invalidSteps.length > 0) {
+    const firstInvalid = invalidSteps[0]
+    step.value = firstInvalid
+    error.value = stepErrors.value[firstInvalid]
+    toast.error(
+      locale.value === 'ar' ? `خطأ في بيانات الخطوة ${firstInvalid}` : `Validation Error in Step ${firstInvalid}`,
+      error.value,
+    )
+    return false
+  }
+
   return true
 }
 
 function next() {
-  if (validateStep(step.value)) step.value = Math.min(5, step.value + 1)
+  if (validateStep(step.value)) {
+    step.value = Math.min(5, step.value + 1)
+    error.value = ''
+  }
 }
 
 function goToStep(s: number) {
-  if (s < step.value || validateStep(step.value)) {
-    step.value = s
-  }
+  // Free movement between steps, clearing current error
+  step.value = s
+  error.value = stepErrors.value[s] || ''
 }
 
 function addAttr() {
   form.attributes.push({ keyAr: '', keyEn: '', valueAr: '', valueEn: '' })
 }
 
-async function saveCore(): Promise<string | null> {
-  error.value = ''
-  saving.value = true
-  try {
-    const payload = {
-      nameAr: form.nameAr.trim(),
-      nameEn: form.nameEn.trim(),
-      slug: form.slug.trim() || undefined,
-      categoryId: form.categoryId,
-      descriptionAr: form.descriptionAr || null,
-      descriptionEn: form.descriptionEn || null,
-      isActive: form.isActive,
-      price: Number(form.price),
-      compareAtPrice: form.compareAtPrice === '' ? null : Number(form.compareAtPrice),
-      attributes: form.attributes,
-      seo: {
-        metaTitleAr: form.metaTitleAr || null,
-        metaTitleEn: form.metaTitleEn || null,
-        metaDescriptionAr: form.metaDescriptionAr || null,
-        metaDescriptionEn: form.metaDescriptionEn || null,
-        keywords: form.keywords || null,
-        geoContent: form.geoContent || null,
-      },
-    }
-    if (savedId.value) {
-      await $fetch(`/api/admin/products/${savedId.value}`, { method: 'PUT', body: payload })
-      return savedId.value
-    }
-    const res = await $fetch<{ product: { id: string } }>('/api/admin/products', { method: 'POST', body: payload })
-    savedId.value = res.product.id
-    return res.product.id
-  }
-  catch (e) {
-    error.value = (e as { data?: { message?: string } })?.data?.message || 'Save failed'
-    return null
-  }
-  finally {
-    saving.value = false
-  }
-}
-
-async function publish() {
-  if (!validateStep(1) || !validateStep(2)) {
-    step.value = 1
-    return
-  }
-  const id = await saveCore()
-  if (id) await navigateTo(localePath('/admin/products'))
-}
-
-async function onFiles(e: Event) {
+// Media: Images
+function onFiles(e: Event) {
   const files = Array.from((e.target as HTMLInputElement).files || [])
   if (!files.length) return
   error.value = ''
-  // Persist core data first so images have a product to attach to.
-  const id = savedId.value || await saveCore()
-  if (!id) return
+
   const oversized = files.filter(f => f.size > 5 * 1024 * 1024)
   if (oversized.length) {
-    error.value = locale.value === 'ar' ? 'حجم كل صورة يجب ألا يتجاوز 5 ميجابايت.' : 'Each image must be 5MB or less.'
+    const msg = locale.value === 'ar' ? 'حجم كل صورة يجب ألا يتجاوز 5 ميجابايت.' : 'Each image must be 5MB or less.'
+    error.value = msg
+    toast.warning(msg)
     return
   }
-  uploading.value = true
-  try {
-    const fd = new FormData()
-    for (const f of files) fd.append('images', f)
-    const res = await $fetch<{ images: ProductImage[] }>(`/api/admin/products/${id}/images`, { method: 'POST', body: fd })
-    images.value = res.images
+
+  for (const f of files) {
+    const url = URL.createObjectURL(f)
+    localImages.value.push({
+      path: url,
+      file: f,
+      sortOrder: localImages.value.length + 1,
+      isCover: localImages.value.length === 0,
+    })
   }
-  catch (e) {
-    error.value = (e as { data?: { message?: string } })?.data?.message || 'Upload failed'
-  }
-  finally {
-    uploading.value = false
-    ;(e.target as HTMLInputElement).value = ''
-  }
+
+  ;(e.target as HTMLInputElement).value = ''
 }
 
-async function removeImage(img: ProductImage) {
-  if (!savedId.value) return
-  await $fetch(`/api/admin/products/${savedId.value}/images/${img.id}`, { method: 'DELETE' })
-  images.value = images.value.filter(i => i.id !== img.id)
-}
-
-async function moveImage(index: number, dir: -1 | 1) {
-  if (!savedId.value) return
-  const next = [...images.value]
-  const j = index + dir
-  if (j < 0 || j >= next.length) return
-  ;[next[index], next[j]] = [next[j]!, next[index]!]
-  images.value = next
-  await $fetch(`/api/admin/products/${savedId.value}/images/order`, {
-    method: 'PUT',
-    body: { order: next.map(i => i.id) },
+function removeImage(index: number) {
+  const item = localImages.value[index]
+  if (item.id) {
+    deletedImageIds.value.push(item.id)
+  }
+  localImages.value.splice(index, 1)
+  // Ensure first image is cover
+  localImages.value.forEach((img, i) => {
+    img.isCover = i === 0
+    img.sortOrder = i + 1
   })
-  // First image is cover.
-  images.value = images.value.map((img, i) => ({ ...img, isCover: i === 0 }))
 }
 
-const video = ref<ProductVideo | null>(props.existing?.video || null)
-const documents = ref<ProductDocument[]>([...(props.existing?.documents || [])])
-const videoMode = ref<'url' | 'upload'>('url')
-const videoUrlInput = ref('')
-const videoUploading = ref(false)
-const docUploading = ref(false)
-const docFile = ref<File | null>(null)
-const docLabelEn = ref('')
-const docLabelAr = ref('')
+function moveImage(index: number, dir: -1 | 1) {
+  const j = index + dir
+  if (j < 0 || j >= localImages.value.length) return
+  const temp = localImages.value[index]
+  localImages.value[index] = localImages.value[j]
+  localImages.value[j] = temp
+  localImages.value.forEach((img, i) => {
+    img.isCover = i === 0
+    img.sortOrder = i + 1
+  })
+}
 
+// Media: Video
 function getEmbedUrl(url: string, type: string): string {
   if (type === 'youtube') {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
@@ -280,69 +300,43 @@ function getEmbedUrl(url: string, type: string): string {
   return url
 }
 
-async function saveVideoUrl() {
+function attachVideoUrl() {
   const url = videoUrlInput.value.trim()
   if (!url) return
-  error.value = ''
-  const id = savedId.value || await saveCore()
-  if (!id) return
-  videoUploading.value = true
-  try {
-    const res = await $fetch<{ video: ProductVideo }>(`/api/admin/products/${id}/video`, {
-      method: 'POST',
-      body: { url },
-    })
-    video.value = res.video
-    videoUrlInput.value = ''
+  const isVimeo = /vimeo\.com/.test(url)
+  video.value = {
+    type: isVimeo ? 'vimeo' : 'youtube',
+    url,
   }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Failed to save video'
-  }
-  finally {
-    videoUploading.value = false
-  }
+  removeVideoOnSave.value = false
+  videoUrlInput.value = ''
 }
 
-async function onVideoFileUpload(e: Event) {
+function onVideoFileUpload(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   if (file.size > 50 * 1024 * 1024) {
-    error.value = locale.value === 'ar' ? 'حجم ملف الفيديو يجب ألا يتجاوز 50 ميجابايت.' : 'Video file must be 50MB or less.'
+    const msg = locale.value === 'ar' ? 'حجم ملف الفيديو يجب ألا يتجاوز 50 ميجابايت.' : 'Video file must be 50MB or less.'
+    error.value = msg
+    toast.warning(msg)
     return
   }
-  error.value = ''
-  const id = savedId.value || await saveCore()
-  if (!id) return
-  videoUploading.value = true
-  try {
-    const fd = new FormData()
-    fd.append('video', file)
-    const res = await $fetch<{ video: ProductVideo }>(`/api/admin/products/${id}/video`, {
-      method: 'POST',
-      body: fd,
-    })
-    video.value = res.video
+  const previewUrl = URL.createObjectURL(file)
+  video.value = {
+    type: 'upload',
+    url: previewUrl,
+    file,
   }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Video upload failed'
-  }
-  finally {
-    videoUploading.value = false
-    ;(e.target as HTMLInputElement).value = ''
-  }
+  removeVideoOnSave.value = false
+  ;(e.target as HTMLInputElement).value = ''
 }
 
-async function removeVideo() {
-  if (!savedId.value) return
-  try {
-    await $fetch(`/api/admin/products/${savedId.value}/video`, { method: 'DELETE' })
-    video.value = null
-  }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Failed to remove video'
-  }
+function removeVideo() {
+  video.value = null
+  removeVideoOnSave.value = true
 }
 
+// Media: Documents
 function onDocFileSelected(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) {
@@ -353,47 +347,144 @@ function onDocFileSelected(e: Event) {
   }
 }
 
-async function uploadDocument() {
+function addDocument() {
   const file = docFile.value
   if (!file) return
   if (file.size > 10 * 1024 * 1024) {
-    error.value = locale.value === 'ar' ? 'حجم ملف الـ PDF يجب ألا يتجاوز 10 ميجابايت.' : 'PDF file must be 10MB or less.'
+    const msg = locale.value === 'ar' ? 'حجم ملف الـ PDF يجب ألا يتجاوز 10 ميجابايت.' : 'PDF file must be 10MB or less.'
+    error.value = msg
+    toast.warning(msg)
     return
   }
-  error.value = ''
-  const id = savedId.value || await saveCore()
-  if (!id) return
-  docUploading.value = true
-  try {
-    const fd = new FormData()
-    fd.append('document', file)
-    fd.append('labelEn', docLabelEn.value.trim() || file.name)
-    fd.append('labelAr', docLabelAr.value.trim() || docLabelEn.value.trim() || file.name)
-    const res = await $fetch<{ document: ProductDocument }>(`/api/admin/products/${id}/documents`, {
-      method: 'POST',
-      body: fd,
-    })
-    documents.value.push(res.document)
-    docFile.value = null
-    docLabelEn.value = ''
-    docLabelAr.value = ''
-  }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Document upload failed'
-  }
-  finally {
-    docUploading.value = false
-  }
+
+  localDocuments.value.push({
+    labelEn: docLabelEn.value.trim() || file.name,
+    labelAr: docLabelAr.value.trim() || docLabelEn.value.trim() || file.name,
+    filePath: file.name,
+    fileType: 'pdf',
+    sortOrder: localDocuments.value.length + 1,
+    file,
+  })
+
+  docFile.value = null
+  docLabelEn.value = ''
+  docLabelAr.value = ''
 }
 
-async function removeDocument(doc: ProductDocument) {
-  if (!savedId.value) return
+function removeDocument(index: number) {
+  const item = localDocuments.value[index]
+  if (item.id) {
+    deletedDocIds.value.push(item.id)
+  }
+  localDocuments.value.splice(index, 1)
+}
+
+// Single Save Handler: Submits Core Product + Uploads Media in One Unified Flow
+async function saveAll() {
+  if (saving.value) return
+  if (!validateAll()) return
+
+  saving.value = true
+  error.value = ''
+
   try {
-    await $fetch(`/api/admin/products/${savedId.value}/documents/${doc.id}`, { method: 'DELETE' })
-    documents.value = documents.value.filter(d => d.id !== doc.id)
+    const payload = {
+      nameAr: form.nameAr.trim(),
+      nameEn: form.nameEn.trim(),
+      slug: form.slug.trim() || undefined,
+      categoryId: form.categoryId,
+      descriptionAr: form.descriptionAr || null,
+      descriptionEn: form.descriptionEn || null,
+      isActive: form.isActive,
+      price: Number(form.price),
+      compareAtPrice: form.compareAtPrice === '' ? null : Number(form.compareAtPrice),
+      attributes: form.attributes.filter(a => (a.keyEn.trim() || a.keyAr.trim()) && (a.valueEn.trim() || a.valueAr.trim())),
+      seo: {
+        metaTitleAr: form.metaTitleAr || null,
+        metaTitleEn: form.metaTitleEn || null,
+        metaDescriptionAr: form.metaDescriptionAr || null,
+        metaDescriptionEn: form.metaDescriptionEn || null,
+        keywords: form.keywords || null,
+        geoContent: form.geoContent || null,
+      },
+    }
+
+    let productId = props.existing?.id
+
+    if (productId) {
+      await $fetch(`/api/admin/products/${productId}`, { method: 'PUT', body: payload })
+    }
+    else {
+      const res = await $fetch<{ product: { id: string } }>('/api/admin/products', {
+        method: 'POST',
+        body: payload,
+      })
+      productId = res.product.id
+    }
+
+    // Process deleted images
+    for (const imgId of deletedImageIds.value) {
+      await $fetch(`/api/admin/products/${productId}/images/${imgId}`, { method: 'DELETE' }).catch(() => null)
+    }
+
+    // Upload new image files
+    const newFiles = localImages.value.filter(i => i.file).map(i => i.file!)
+    if (newFiles.length > 0) {
+      const fd = new FormData()
+      for (const f of newFiles) fd.append('images', f)
+      await $fetch(`/api/admin/products/${productId}/images`, { method: 'POST', body: fd })
+    }
+
+    // Process video changes
+    if (removeVideoOnSave.value) {
+      await $fetch(`/api/admin/products/${productId}/video`, { method: 'DELETE' }).catch(() => null)
+    }
+    else if (video.value?.file) {
+      const fd = new FormData()
+      fd.append('video', video.value.file)
+      await $fetch(`/api/admin/products/${productId}/video`, { method: 'POST', body: fd })
+    }
+    else if (video.value?.url && video.value.url !== props.existing?.video?.url && !video.value.file) {
+      await $fetch(`/api/admin/products/${productId}/video`, {
+        method: 'POST',
+        body: { url: video.value.url },
+      })
+    }
+
+    // Process deleted documents
+    for (const docId of deletedDocIds.value) {
+      await $fetch(`/api/admin/products/${productId}/documents/${docId}`, { method: 'DELETE' }).catch(() => null)
+    }
+
+    // Upload new documents
+    const newDocs = localDocuments.value.filter(d => d.file)
+    for (const d of newDocs) {
+      const fd = new FormData()
+      fd.append('document', d.file!)
+      fd.append('labelEn', d.labelEn)
+      fd.append('labelAr', d.labelAr)
+      await $fetch(`/api/admin/products/${productId}/documents`, { method: 'POST', body: fd })
+    }
+
+    toast.success(
+      isEditMode.value
+        ? (locale.value === 'ar' ? 'تم حفظ التعديلات بنجاح' : 'Changes Saved Successfully')
+        : (locale.value === 'ar' ? 'تم إنشاء المنتج بنجاح' : 'Product Created Successfully'),
+      locale.value === 'ar' ? `تم حفظ كافة بيانات ومواصفات المنتج "${form.nameAr || form.nameEn}".` : `All data and media for "${form.nameEn || form.nameAr}" have been saved.`,
+    )
+
+    await navigateTo(localePath('/admin/products'))
   }
   catch (e: any) {
-    error.value = e?.data?.message || 'Failed to remove document'
+    const msg = e?.data?.message || (locale.value === 'ar' ? 'حدث خطأ أثناء حفظ المنتج.' : 'Failed to save product.')
+    error.value = msg
+    toast.error(
+      locale.value === 'ar' ? 'فشل حفظ المنتج' : 'Save Failed',
+      msg,
+    )
+  }
+  finally {
+    saving.value = false
   }
 }
 
@@ -402,53 +493,71 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
 
 <template>
   <div class="space-y-6">
-    <!-- Step Navigation Indicator -->
+    <!-- Top Persistent Controls Header: Wizard Step Navigator + Save Button -->
     <div class="rounded-md border bg-white p-3.5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <ol class="flex flex-wrap items-center justify-between gap-2 text-xs" aria-label="Product form wizard">
-        <li
-          v-for="(s, idx) in steps"
-          :key="s.id"
-          class="flex items-center gap-2"
-        >
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Step Navigation Indicator -->
+        <ol class="flex flex-wrap items-center gap-1.5 text-xs" aria-label="Product form wizard">
+          <li
+            v-for="(s, idx) in steps"
+            :key="s.id"
+            class="flex items-center gap-1.5"
+          >
+            <button
+              type="button"
+              class="flex items-center gap-2 rounded-md px-3 py-1.5 font-medium transition-all"
+              :class="[
+                stepErrors[s.id]
+                  ? 'border border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-500/50'
+                  : step === s.id
+                    ? 'bg-[#2B71AE] text-white shadow-xs font-semibold'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+              ]"
+              :title="stepErrors[s.id] || s.label"
+              @click="goToStep(s.id)"
+            >
+              <span
+                class="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
+                :class="[
+                  stepErrors[s.id]
+                    ? 'bg-rose-600 text-white'
+                    : step === s.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                ]"
+              >
+                <AlertCircle v-if="stepErrors[s.id]" class="h-3 w-3" aria-hidden="true" />
+                <span v-else>{{ s.id }}</span>
+              </span>
+              <span>{{ s.label }}</span>
+            </button>
+            <span v-if="idx < steps.length - 1" class="hidden text-slate-300 sm:inline dark:text-slate-700">›</span>
+          </li>
+        </ol>
+
+        <!-- Top Persistent Save Action Button -->
+        <div class="flex items-center justify-end gap-2 shrink-0">
           <button
             type="button"
-            class="flex items-center gap-2 rounded-md px-3 py-1.5 font-medium transition-colors"
-            :class="[
-              step === s.id
-                ? 'bg-[#2B71AE] text-white shadow-xs font-semibold'
-                : step > s.id
-                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300'
-                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-            ]"
-            @click="goToStep(s.id)"
+            :disabled="saving"
+            class="inline-flex h-9 items-center gap-2 rounded-md bg-[#2B71AE] px-5 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#285E8E] active:scale-[0.98] disabled:opacity-50"
+            @click="saveAll"
           >
-            <span
-              class="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
-              :class="[
-                step === s.id
-                  ? 'bg-white/20 text-white'
-                  : step > s.id
-                    ? 'bg-emerald-600 text-white dark:bg-emerald-500'
-                    : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-              ]"
-            >
-              <Check v-if="step > s.id" class="h-3 w-3" aria-hidden="true" />
-              <span v-else>{{ s.id }}</span>
-            </span>
-            <span>{{ s.label }}</span>
+            <Save class="h-4 w-4" aria-hidden="true" />
+            <span>{{ saving ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (isEditMode ? (locale === 'ar' ? 'حفظ التعديلات' : 'Save Changes') : (locale === 'ar' ? 'حفظ المنتج' : 'Save Product')) }}</span>
           </button>
-          <span v-if="idx < steps.length - 1" class="hidden text-slate-300 sm:inline dark:text-slate-700">›</span>
-        </li>
-      </ol>
+        </div>
+      </div>
     </div>
 
     <!-- Error Banner -->
     <div
       v-if="error"
       role="alert"
-      class="rounded-md border border-rose-200 bg-rose-50 p-3.5 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+      class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 p-3.5 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
     >
-      {{ error }}
+      <AlertCircle class="h-4 w-4 shrink-0" />
+      <span>{{ error }}</span>
     </div>
 
     <!-- Step 1: Basic Information -->
@@ -605,7 +714,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         {{ locale === 'ar' ? 'معرض صور المنتج' : 'Product Image Gallery' }}
       </h2>
       <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
-        {{ locale === 'ar' ? 'الصورة الأولى تعتبر صورة الغلاف الرئيسية للمنتج. يمكنك ترتيب الصور بالأسهم.' : 'The first image acts as the primary catalog cover. Reorder using directional controls.' }}
+        {{ locale === 'ar' ? 'الصورة الأولى تعتبر صورة الغلاف الرئيسية للمنتج. يمكنك ترتيب الصور بالأسهم وحذف أي صورة.' : 'The first image acts as the primary catalog cover. Reorder using directional controls.' }}
       </p>
 
       <!-- Dropzone -->
@@ -623,15 +732,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <input type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFiles" />
       </label>
 
-      <div v-if="uploading" class="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-[#2B71AE]">
-        <span>Uploading and optimizing images…</span>
-      </div>
-
       <!-- Gallery Grid -->
-      <div v-if="images.length" class="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-if="localImages.length" class="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <div
-          v-for="(img, i) in images"
-          :key="img.id"
+          v-for="(img, i) in localImages"
+          :key="img.id || img.path"
           class="group relative overflow-hidden rounded-md border bg-slate-50 p-1.5 dark:bg-[#0B1520]"
           :class="{ 'ring-2 ring-[#2B71AE]': i === 0 }"
           :style="{ borderColor: 'var(--color-border)' }"
@@ -645,6 +750,13 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             class="absolute start-2.5 top-2.5 rounded-full bg-[#F5CC07] px-2 py-0.5 text-[10px] font-bold text-slate-900 shadow-xs"
           >
             Cover
+          </span>
+
+          <span
+            v-if="img.file"
+            class="absolute end-2.5 top-2.5 rounded-full bg-blue-600 text-white px-1.5 py-0.2 text-[9px] font-bold shadow-xs"
+          >
+            New
           </span>
 
           <div class="mt-1.5 flex items-center justify-between gap-1 pt-1 text-xs">
@@ -662,14 +774,14 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
               type="button"
               class="flex h-7 items-center justify-center rounded px-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               :title="locale === 'ar' ? 'حذف الصورة' : 'Delete photo'"
-              @click="removeImage(img)"
+              @click="removeImage(i)"
             >
               <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
             <button
               type="button"
               class="flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700"
-              :disabled="i === images.length - 1"
+              :disabled="i === localImages.length - 1"
               :title="locale === 'ar' ? 'تحريك للخلف' : 'Move right'"
               @click="moveImage(i, 1)"
             >
@@ -680,20 +792,17 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         </div>
       </div>
 
-      <!-- Section 2: Product Video (Optional) -->
-      <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-800">
-        <div class="flex items-center gap-2 mb-1">
-          <Video class="h-4 w-4 text-[#2B71AE]" />
-          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
-            {{ locale === 'ar' ? 'فيديو توضيحي للمنتج (اختياري)' : 'Product Video (Optional)' }}
-          </h3>
-        </div>
-        <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
-          {{ locale === 'ar' ? 'يمكنك إرفاق رابط يوتيوب أو فيميو، أو رفع ملف فيديو مباشر (MP4).' : 'Attach a YouTube/Vimeo URL, or upload a direct video file (MP4, WebM up to 50MB).' }}
+      <!-- Video Section -->
+      <div class="mt-8 border-t border-slate-200/80 dark:border-slate-800 pt-6">
+        <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
+          {{ locale === 'ar' ? 'فيديو المنتج (اختياري)' : 'Product Demonstration Video (Optional)' }}
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+          {{ locale === 'ar' ? 'أضف رابط فيديو من يوتيوب أو فيميو أو ارفع ملف فيديو مباشر للمنتج.' : 'Attach a YouTube/Vimeo URL or select a direct video file.' }}
         </p>
 
-        <!-- Existing Video Preview -->
-        <div v-if="video" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#0B1520] max-w-lg space-y-3">
+        <!-- Current Video Preview -->
+        <div v-if="video && !removeVideoOnSave" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#0B1520] max-w-xl space-y-3">
           <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
             <iframe
               v-if="video.type === 'youtube' || video.type === 'vimeo'"
@@ -754,11 +863,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             />
             <button
               type="button"
-              :disabled="videoUploading || !videoUrlInput.trim()"
+              :disabled="!videoUrlInput.trim()"
               class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-colors"
-              @click="saveVideoUrl"
+              @click="attachVideoUrl"
             >
-              <span>{{ videoUploading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الرابط' : 'Attach Video') }}</span>
+              <span>{{ locale === 'ar' ? 'إرفاق الرابط' : 'Attach Video' }}</span>
             </button>
           </div>
 
@@ -767,50 +876,50 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             <label class="flex cursor-pointer items-center justify-between rounded-md border border-dashed p-4 hover:border-[#2B71AE] hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50 transition-colors">
               <div class="flex items-center gap-3">
                 <Video class="h-6 w-6 text-slate-400" />
-                <div class="text-xs">
-                  <span class="font-bold text-slate-800 dark:text-slate-200">{{ locale === 'ar' ? 'اختر ملف فيديو (MP4, WebM)' : 'Select video file (MP4, WebM)' }}</span>
-                  <span class="block text-[11px] text-slate-400">Max size 50MB.</span>
+                <div>
+                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
+                    {{ locale === 'ar' ? 'اختر ملف فيديو (MP4, WebM)' : 'Choose a video file (MP4, WebM)' }}
+                  </span>
+                  <span class="text-[11px] text-slate-400 block">Max 50MB</span>
                 </div>
               </div>
-              <input type="file" accept="video/mp4,video/webm,video/ogg" class="hidden" @change="onVideoFileUpload" />
-              <span class="rounded bg-[#2B71AE] px-3 py-1.5 text-xs font-semibold text-white">{{ locale === 'ar' ? 'تصفح' : 'Browse' }}</span>
+              <input type="file" accept="video/mp4,video/webm" class="hidden" @change="onVideoFileUpload" />
             </label>
           </div>
         </div>
       </div>
 
-      <!-- Section 3: Product Documents & Datasheets (PDF) -->
-      <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-800">
-        <div class="flex items-center gap-2 mb-1">
-          <FileText class="h-4 w-4 text-[#2B71AE]" />
-          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
-            {{ locale === 'ar' ? 'كتيبات المواصفات والملفات الفنية (PDF)' : 'Product Datasheets & Documentation (PDF)' }}
-          </h3>
-        </div>
-        <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
-          {{ locale === 'ar' ? 'يمكنك إرفاق عدة ملفات PDF (كتيب مواصفات، دليل مستخدم، شهادات فحص). الحد الأقصى 10 ميجابايت للملف.' : 'Attach multiple PDF files (datasheets, user manuals, certificates). Max 10MB per PDF.' }}
+      <!-- Technical Documents Section -->
+      <div class="mt-8 border-t border-slate-200/80 dark:border-slate-800 pt-6">
+        <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
+          {{ locale === 'ar' ? 'كتيبات المواصفات والملفات الفنية (PDF)' : 'Technical Documents & Datasheets (PDF)' }}
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+          {{ locale === 'ar' ? 'أرفق ملفات PDF مثل كتيبات المواصفات (Datasheets) أو مخططات التوصيل (Schematics).' : 'Attach PDF datasheets, schematics, or user guides for clients.' }}
         </p>
 
-        <!-- List of Uploaded Documents -->
-        <div v-if="documents.length" class="space-y-2 mb-4 max-w-xl">
+        <!-- Current Documents List -->
+        <div v-if="localDocuments.length" class="space-y-2 mb-4 max-w-xl">
           <div
-            v-for="doc in documents"
-            :key="doc.id"
-            class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-[#0B1520]"
+            v-for="(doc, i) in localDocuments"
+            :key="doc.id || doc.labelEn + i"
+            class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#0B1520]"
           >
             <div class="flex items-center gap-2.5 min-w-0">
-              <span class="rounded bg-rose-100 dark:bg-rose-950/60 px-1.5 py-0.5 font-bold text-[10px] text-rose-700 dark:text-rose-400">PDF</span>
+              <FileText class="h-5 w-5 text-rose-500 shrink-0" />
               <div class="min-w-0">
-                <p class="font-bold text-slate-800 dark:text-slate-200 truncate">{{ locale === 'ar' ? doc.labelAr : doc.labelEn }}</p>
-                <span class="text-[10px] text-slate-400">{{ doc.labelEn }} / {{ doc.labelAr }}</span>
+                <span class="font-bold text-xs text-slate-900 dark:text-slate-100 block truncate">{{ doc.labelEn }}</span>
+                <span v-if="doc.labelAr" class="text-[10px] text-slate-500 block truncate">{{ doc.labelAr }}</span>
               </div>
             </div>
-
             <div class="flex items-center gap-2">
-              <a :href="doc.filePath" target="_blank" download class="text-slate-500 hover:text-[#2B71AE] p-1">
-                <Download class="h-3.5 w-3.5" />
-              </a>
-              <button type="button" class="text-slate-400 hover:text-rose-600 p-1" @click="removeDocument(doc)">
+              <span v-if="doc.file" class="rounded bg-blue-100 text-blue-700 px-1.5 py-0.2 text-[9px] font-bold">New</span>
+              <button
+                type="button"
+                class="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-1.5 rounded transition-colors"
+                :title="locale === 'ar' ? 'حذف المستند' : 'Remove document'"
+                @click="removeDocument(i)"
+              >
                 <Trash2 class="h-3.5 w-3.5" />
               </button>
             </div>
@@ -850,12 +959,12 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             />
             <button
               type="button"
-              :disabled="docUploading || !docFile"
+              :disabled="!docFile"
               class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-colors w-full sm:w-auto"
-              @click="uploadDocument"
+              @click="addDocument"
             >
               <UploadCloud class="h-3.5 w-3.5" />
-              <span>{{ docUploading ? (locale === 'ar' ? 'جاري الرفع…' : 'Uploading…') : (locale === 'ar' ? 'رفع المستند' : 'Upload PDF') }}</span>
+              <span>{{ locale === 'ar' ? 'إضافة المستند' : 'Add Document' }}</span>
             </button>
           </div>
         </div>
@@ -919,6 +1028,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
 
     <!-- Wizard Navigation Footer Controls -->
     <div class="flex items-center justify-between border-t pt-5" :style="{ borderColor: 'var(--color-border)' }">
+      <!-- Previous Step Button -->
       <button
         type="button"
         class="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -931,24 +1041,27 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
       </button>
 
       <div class="flex items-center gap-2.5">
+        <!-- Next Step Button (if not on final step) -->
         <button
           v-if="step < 5"
           type="button"
-          class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E]"
+          class="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           @click="next"
         >
-          <span>{{ locale === 'ar' ? 'المتابعة' : 'Next' }}</span>
+          <span>{{ locale === 'ar' ? 'الخطوة التالية' : 'Next Step' }}</span>
           <ArrowLeft v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
           <ArrowRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
         </button>
+
+        <!-- Primary Persistent Single-Save Action Button -->
         <button
-          v-else
           type="button"
           :disabled="saving"
-          class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-7 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:opacity-50"
-          @click="publish"
+          class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-7 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#285E8E] active:scale-[0.98] disabled:opacity-50"
+          @click="saveAll"
         >
-          <span>{{ saving ? (locale === 'ar' ? 'جاري النشر…' : 'Saving…') : (savedId ? (locale === 'ar' ? 'حفظ التعديلات' : 'Save & Finish') : (locale === 'ar' ? 'نشر المنتج' : 'Publish Product')) }}</span>
+          <Save class="h-4 w-4" aria-hidden="true" />
+          <span>{{ saving ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (isEditMode ? (locale === 'ar' ? 'حفظ التعديلات' : 'Save Changes') : (locale === 'ar' ? 'حفظ المنتج' : 'Save Product')) }}</span>
         </button>
       </div>
     </div>
