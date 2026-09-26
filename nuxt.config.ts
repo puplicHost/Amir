@@ -16,6 +16,9 @@ export default defineNuxtConfig({
       firebaseMessagingSenderId: '',
       firebaseAppId: '',
       firebaseVapidKey: '',
+      // Canonical public site URL (e.g. https://mango-electronics.com).
+      // Used for Meta domain verification display + CAPI event_source_url.
+      siteUrl: '',
     },
   },
 

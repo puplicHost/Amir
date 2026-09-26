@@ -643,7 +643,7 @@ useHead(() => {
                 <span>{{ t('home.whatsappChat') }}</span>
               </a>
 
-              <a 
+              <a
                 v-if="phoneContact"
                 :href="`tel:${phoneContact}`"
                 dir="ltr"
@@ -652,6 +652,10 @@ useHead(() => {
                 <Phone class="h-4 w-4 text-blue-300" />
                 <span>{{ phoneContact }}</span>
               </a>
+            </div>
+
+            <div class="mt-6 flex justify-center">
+              <AppSocialLinks variant="footer" />
             </div>
           </div>
         </div>

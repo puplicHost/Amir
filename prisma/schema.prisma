@@ -395,6 +395,10 @@ model SiteSettings {
   contactAddressEn  String? @db.Text
   socialFacebook    String?
   socialInstagram   String?
+  socialTiktok      String?
+  socialYoutube     String?
+  socialLinkedin    String?
+  socialX           String?
   googleMapsEmbedUrl String? @db.Text
 
   seoMetaTitleTemplateAr String?
@@ -411,6 +415,13 @@ model SiteSettings {
   tickerTextEn String? @db.Text
   tickerActive Boolean @default(false)
   tickerSpeed  Int     @default(30)
+
+  // Meta (Facebook) Pixel + Conversions API — access token stored AES-256-GCM
+  // encrypted, mirroring paymentGatewayCredentials. Never returned raw.
+  metaPixelId      String?
+  metaCapiToken    String? @db.Text
+  metaTestEventCode String?
+  metaEnabled      Boolean @default(false)
 
   paymentCodEnabled           Boolean @default(true)
   paymentOnlineEnabled        Boolean @default(false)

@@ -13,6 +13,10 @@ export default defineCachedEventHandler(async () => {
     contactAddressEn: settings.contactAddressEn,
     socialFacebook: settings.socialFacebook,
     socialInstagram: settings.socialInstagram,
+    socialTiktok: settings.socialTiktok,
+    socialYoutube: settings.socialYoutube,
+    socialLinkedin: settings.socialLinkedin,
+    socialX: settings.socialX,
     googleMapsEmbedUrl: settings.googleMapsEmbedUrl,
   }
 }, { maxAge: 60 })

@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { 
-  ArrowRight, 
-  Facebook, 
-  Headphones, 
-  Instagram, 
-  Mail, 
-  MapPin, 
-  MessageCircle, 
-  Phone, 
-  ShieldCheck, 
-  Sparkles 
+import {
+  ArrowRight,
+  Headphones,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  Sparkles
 } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
@@ -159,36 +157,14 @@ const whatsappUrl = computed(() => {
             </div>
           </div>
 
-          <!-- Social Channels -->
-          <div 
-            v-if="contact?.socialFacebook || contact?.socialInstagram" 
-            class="flex items-center justify-between rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-[#162032]"
+          <!-- Social Channels (only configured platforms render) -->
+          <div
+            class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-[#162032]"
           >
             <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               {{ locale === 'ar' ? 'تابعنا على المنصات الاجتماعية:' : 'Official Social Channels:' }}
             </span>
-            <div class="flex items-center gap-2.5">
-              <a 
-                v-if="contact.socialFacebook" 
-                :href="contact.socialFacebook" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#1877F2] hover:bg-[#1877F2] hover:text-white dark:bg-slate-800 transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook class="w-5 h-5" />
-              </a>
-              <a 
-                v-if="contact.socialInstagram" 
-                :href="contact.socialInstagram" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#E4405F] hover:bg-[#E4405F] hover:text-white dark:bg-slate-800 transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram class="w-5 h-5" />
-              </a>
-            </div>
+            <AppSocialLinks variant="card" />
           </div>
         </div>
 

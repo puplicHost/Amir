@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Zap } from 'lucide-vue-next'
+import { Globe, Mail, MapPin, Phone, ShieldCheck, Zap } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -28,12 +28,6 @@ const tagline = computed(() => {
   return (locale.value === 'ar' ? general.value?.taglineAr : general.value?.taglineEn) || t('brand.tagline')
 })
 
-const facebookUrl = computed(() => contact.value?.socialFacebook || 'https://facebook.com')
-const instagramUrl = computed(() => contact.value?.socialInstagram || 'https://instagram.com')
-const whatsappUrl = computed(() => {
-  const num = contact.value?.contactWhatsapp || contact.value?.contactPhone1
-  return num ? `https://wa.me/${num.replace(/[^0-9]/g, '')}` : 'https://wa.me'
-})
 </script>
 
 <template>
@@ -64,35 +58,9 @@ const whatsappUrl = computed(() => {
             {{ tagline }}. {{ locale === 'ar' ? 'حلول هندسية متطورة، توريد قطع أصلية معتمدة، وبرمجة وصيانة خطوط الإنتاج والأنظمة الذكية في مصر.' : 'Specialized engineering automation, genuine industrial components, and rapid diagnostic support across Egypt.' }}
           </p>
 
-          <!-- Social Links -->
-          <div class="flex items-center gap-2.5 pt-2">
-            <a 
-              :href="facebookUrl" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300 hover:border-[#2B71AE] hover:bg-[#2B71AE] hover:text-white transition-all active:scale-95" 
-              aria-label="Facebook"
-            >
-              <Facebook class="w-4 h-4" />
-            </a>
-            <a 
-              :href="instagramUrl" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300 hover:border-[#2B71AE] hover:bg-[#2B71AE] hover:text-white transition-all active:scale-95" 
-              aria-label="Instagram"
-            >
-              <Instagram class="w-4 h-4" />
-            </a>
-            <a 
-              :href="whatsappUrl" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300 hover:border-emerald-500 hover:bg-emerald-600 hover:text-white transition-all active:scale-95" 
-              aria-label="WhatsApp"
-            >
-              <MessageCircle class="w-4 h-4" />
-            </a>
+          <!-- Social Links (only configured platforms render; empty = hidden) -->
+          <div class="pt-2">
+            <AppSocialLinks variant="footer" />
           </div>
         </div>
 

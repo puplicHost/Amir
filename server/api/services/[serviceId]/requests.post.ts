@@ -104,5 +104,12 @@ export default defineEventHandler(async (event) => {
     bodyAr: `${service.nameAr} — #${request.id.slice(-6).toUpperCase()}`,
   })
 
+  await sendMetaCapiEvent({
+    eventName: 'Lead',
+    eventId: request.id,
+    clientIp: getRequestIP(event, { xForwardedFor: true }) || undefined,
+    clientUa: getRequestHeader(event, 'user-agent') || undefined,
+  })
+
   return { requestId: request.id, message: 'Request submitted successfully' }
 })

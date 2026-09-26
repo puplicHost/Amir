@@ -2,6 +2,7 @@
 import {
   CreditCard,
   Globe,
+  Megaphone,
   Phone,
   Sliders,
   Store,
@@ -14,7 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const settingsDirty = useSettingsDirtyFlag()
 
-const VALID_TABS = ['general', 'contact', 'seo', 'store', 'payment'] as const
+const VALID_TABS = ['general', 'contact', 'seo', 'store', 'payment', 'meta'] as const
 
 const activeTab = ref(
   VALID_TABS.includes(route.query.tab as any) ? String(route.query.tab) : 'general',
@@ -33,6 +34,7 @@ const tabs = computed(() => [
   { id: 'seo', label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI Discovery', icon: Globe },
   { id: 'store', label: locale.value === 'ar' ? 'تهيئة المتجر' : 'Store Config', icon: Store },
   { id: 'payment', label: locale.value === 'ar' ? 'بوابات الدفع' : 'Payment Gateways', icon: CreditCard },
+  { id: 'meta', label: locale.value === 'ar' ? 'تكامل ميتا' : 'Meta Integration', icon: Megaphone },
 ])
 
 const { confirm: confirmDialog } = useAdminConfirm()
@@ -110,6 +112,9 @@ async function switchTab(id: string) {
       </div>
       <div v-else-if="activeTab === 'payment'" role="tabpanel">
         <AdminSettingsPayment />
+      </div>
+      <div v-else-if="activeTab === 'meta'" role="tabpanel">
+        <AdminSettingsMeta />
       </div>
     </div>
   </div>

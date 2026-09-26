@@ -85,5 +85,16 @@ export default defineEventHandler(async (event) => {
     bodyAr: `${order.customerName} · ${totalAmount} ج.م · ${paymentMethod}`,
   })
 
+  await sendMetaCapiEvent({
+    eventName: 'Purchase',
+    eventId: orderNumber,
+    email: order.customerEmail,
+    phone: order.customerPhone,
+    clientIp: getRequestIP(event, { xForwardedFor: true }) || undefined,
+    clientUa: getRequestHeader(event, 'user-agent') || undefined,
+    value: totalAmount,
+    currency: 'EGP',
+  })
+
   return { orderNumber, totalAmount }
 })

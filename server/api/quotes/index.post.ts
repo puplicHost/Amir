@@ -138,6 +138,17 @@ export default defineEventHandler(async (event) => {
     bodyAr: `${quote.companyName} · ${grandTotal} ج.م`,
   })
 
+  await sendMetaCapiEvent({
+    eventName: 'Lead',
+    eventId: quote.quoteNumber,
+    email: quote.email,
+    phone: quote.phone,
+    clientIp: getRequestIP(event, { xForwardedFor: true }) || undefined,
+    clientUa: getRequestHeader(event, 'user-agent') || undefined,
+    value: grandTotal,
+    currency: 'EGP',
+  })
+
   return {
     quoteId: quote.id,
     quoteNumber: quote.quoteNumber,

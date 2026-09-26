@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Facebook, Instagram, Mail, MapPin, Phone, Share2 } from 'lucide-vue-next'
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Music2, Phone, Share2, Twitter, Youtube } from 'lucide-vue-next'
 
 const { locale } = useI18n()
 const canManageSettings = useAdminCan('settings.manage')
@@ -18,6 +18,10 @@ const {
     contactAddressEn: '',
     socialFacebook: '',
     socialInstagram: '',
+    socialTiktok: '',
+    socialYoutube: '',
+    socialLinkedin: '',
+    socialX: '',
     googleMapsEmbedUrl: '',
   },
   saveEndpoint: '/api/admin/settings/contact',
@@ -108,9 +112,44 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
             <Instagram class="h-3.5 w-3.5 text-[#E4405F]" />
             <span>Instagram Profile URL</span>
           </span>
-          <input v-model="form.socialInstagram" type="url" placeholder="https://instagram.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.socialInstagram" type="url" placeholder="https://instagram.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" dir="ltr" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <Music2 class="h-3.5 w-3.5 text-slate-700 dark:text-slate-300" />
+            <span>TikTok Profile URL</span>
+          </span>
+          <input v-model="form.socialTiktok" type="url" placeholder="https://tiktok.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" dir="ltr" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <Youtube class="h-3.5 w-3.5 text-[#FF0000]" />
+            <span>YouTube Channel URL</span>
+          </span>
+          <input v-model="form.socialYoutube" type="url" placeholder="https://youtube.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" dir="ltr" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <Linkedin class="h-3.5 w-3.5 text-[#0A66C2]" />
+            <span>LinkedIn Company URL</span>
+          </span>
+          <input v-model="form.socialLinkedin" type="url" placeholder="https://linkedin.com/company/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" dir="ltr" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <Twitter class="h-3.5 w-3.5 text-slate-700 dark:text-slate-300" />
+            <span>X (Twitter) Profile URL</span>
+          </span>
+          <input v-model="form.socialX" type="url" placeholder="https://x.com/..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" dir="ltr" />
         </label>
       </div>
+      <p class="mt-3 text-[11px] text-slate-400">
+        {{ locale === 'ar' ? 'الحقول الفارغة لن تظهر أيقوناتها في الموقع. رقم واتساب للمحادثة يُدار من حقل رقم واتساب أعلاه.' : 'Empty fields hide their icons publicly. The WhatsApp chat number is managed via the WhatsApp field above.' }}
+      </p>
     </div>
 
     <!-- Section 4: Map Embed -->
