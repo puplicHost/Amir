@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Trash2 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.view' })
 
 interface Row {
   id: string
@@ -78,8 +78,17 @@ async function resetFilters() {
   await refresh()
 }
 
+const { confirm: confirmDialog } = useAdminConfirm()
+const canCreateProduct = useAdminCan('products.create')
+const canEditProduct = useAdminCan('products.edit')
+const canDeleteProduct = useAdminCan('products.delete')
+
 async function removeProduct(p: Row) {
-  if (!confirm(`Are you sure you want to delete "${p.nameEn}"? All product images will be permanently removed.`)) return
+  const ok = await confirmDialog({
+    title: locale.value === 'ar' ? `حذف المنتج "${p.nameAr || p.nameEn}"؟` : `Delete product "${p.nameEn}"?`,
+    message: locale.value === 'ar' ? 'سيتم حذف جميع صور المنتج نهائياً. لا يمكن التراجع عن هذا الإجراء.' : 'All product images will be permanently removed. This cannot be undone.',
+  })
+  if (!ok) return
   deletingId.value = p.id
   try {
     await $fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
@@ -130,6 +139,7 @@ async function shareProduct(p: Row) {
     >
       <template #actions>
         <NuxtLink
+          v-if="canCreateProduct"
           :to="localePath('/admin/products/new')"
           class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
         >
@@ -275,6 +285,7 @@ async function shareProduct(p: Row) {
               <td class="px-4 py-3 text-end">
                 <div class="flex items-center justify-end gap-1.5">
                   <NuxtLink
+                    v-if="canEditProduct"
                     :to="localePath(`/admin/products/${p.id}/edit`)"
                     class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                   >
@@ -291,6 +302,7 @@ async function shareProduct(p: Row) {
                     <span class="hidden sm:inline">{{ locale === 'ar' ? 'مشاركة' : 'Share' }}</span>
                   </button>
                   <button
+                    v-if="canDeleteProduct"
                     type="button"
                     :disabled="deletingId === p.id"
                     class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
@@ -325,6 +337,7 @@ async function shareProduct(p: Row) {
             </button>
             <NuxtLink
               v-else
+              v-if="canCreateProduct"
               :to="localePath('/admin/products/new')"
               class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E]"
             >

@@ -58,7 +58,6 @@ const { data, pending, refresh } = await useAsyncData<DashboardResponse>(
 
 const canOrdersView = useAdminCan('orders.view')
 const canServicesView = useAdminCan('services.view')
-const canProductsView = useAdminCan('products.view')
 const canCategoriesManage = useAdminCan('categories.manage')
 const canSettingsView = useAdminCan('settings.view')
 const canFinancialsView = useAdminCan('dashboard.financials.view')
@@ -152,6 +151,7 @@ const cards = computed(() => [
 ])
 
 const canQuotesView = useAdminCan('quotes.view')
+const canCreateProduct = useAdminCan('products.create')
 
 const quickActions = computed(() => [
   {
@@ -159,7 +159,7 @@ const quickActions = computed(() => [
     desc: locale.value === 'ar' ? 'إنشاء منتج بالصور والأسعار والمواصفات' : 'Create catalog item with specs & images',
     to: '/admin/products/new',
     icon: Plus,
-    show: canProductsView.value,
+    show: canCreateProduct.value,
   },
   {
     title: locale.value === 'ar' ? 'إدارة الطلبات والشحن' : 'Manage Orders',
@@ -221,7 +221,7 @@ const quickActions = computed(() => [
 
         <!-- Add Product CTA -->
         <NuxtLink
-          v-if="canProductsView"
+          v-if="canCreateProduct"
           :to="localePath('/admin/products/new')"
           class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-3.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
         >

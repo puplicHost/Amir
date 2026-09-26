@@ -346,6 +346,28 @@ model AdminNotification {
   @@index([adminUserId, createdAt])
 }
 
+// ─── Homepage banners ──────────────────────────────────────────
+
+model Banner {
+  id                  String   @id @default(cuid())
+  titleAr             String
+  titleEn             String
+  descriptionAr       String?  @db.Text
+  descriptionEn       String?  @db.Text
+  backgroundImagePath String?
+  buttonTextAr        String?
+  buttonTextEn        String?
+  buttonLinkType      String?
+  buttonLinkValue     String?
+  placement           String   @default("below_services")
+  widthPercent        Int      @default(100)
+  isActive            Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+
+  @@index([placement, isActive, sortOrder])
+}
+
 // ─── Site settings (singleton, id = 1) ─────────────────────────
 
 model SiteSettings {
@@ -384,6 +406,11 @@ model SiteSettings {
 
   defaultCurrency String @default("EGP")
   productsPerPage Int    @default(16)
+
+  tickerTextAr String? @db.Text
+  tickerTextEn String? @db.Text
+  tickerActive Boolean @default(false)
+  tickerSpeed  Int     @default(30)
 
   paymentCodEnabled           Boolean @default(true)
   paymentOnlineEnabled        Boolean @default(false)

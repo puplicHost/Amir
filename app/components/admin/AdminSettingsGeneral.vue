@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-vue-next'
+import { Image as ImageIcon, UploadCloud } from 'lucide-vue-next'
 
 const { locale } = useI18n()
+const canManageSettings = useAdminCan('settings.manage')
 const toast = useAdminToast()
 
 const {
@@ -14,11 +15,6 @@ const {
     siteNameEn: '',
     taglineAr: '',
     taglineEn: '',
-    bannerTextAr: '',
-    bannerTextEn: '',
-    bannerButtonTextAr: '',
-    bannerButtonTextEn: '',
-    bannerButtonUrl: '',
   },
   saveEndpoint: '/api/admin/settings/general',
   successAr: 'تم حفظ الإعدادات العامة بنجاح.',
@@ -33,8 +29,6 @@ const uploadingType = ref<string | null>(null)
 const missingAr = computed(() => ({
   siteName: !!form.siteNameEn.trim() && !form.siteNameAr.trim(),
   tagline: !!form.taglineEn.trim() && !form.taglineAr.trim(),
-  bannerText: !!form.bannerTextEn.trim() && !form.bannerTextAr.trim(),
-  bannerButtonText: !!form.bannerButtonTextEn.trim() && !form.bannerButtonTextAr.trim(),
 }))
 
 const missingArCount = computed(() => Object.values(missingAr.value).filter(Boolean).length)
@@ -175,49 +169,8 @@ async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
       </div>
     </div>
 
-    <!-- Section 3: Promotional Banner -->
-    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="mb-3 flex items-center gap-2">
-        <Sparkles class="h-4 w-4 text-[#F5CC07]" aria-hidden="true" />
-        <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
-          {{ locale === 'ar' ? 'البانر الترويجي العام' : 'Store Promotional Banner' }}
-        </h2>
-      </div>
-
-      <div class="space-y-4">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Banner Text (EN)</span>
-            <textarea v-model="form.bannerTextEn" rows="2" placeholder="e.g. 20% off all maintenance services" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
-          </label>
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Banner Text (AR)</span>
-            <textarea v-model="form.bannerTextAr" rows="2" dir="rtl" placeholder="مثال: خصم 20% على جميع خدمات الصيانة" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: missingAr.bannerText ? '#F59E0B' : 'var(--color-border)' }" />
-            <span v-if="missingAr.bannerText" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
-              {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
-            </span>
-          </label>
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-3">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (EN)</span>
-            <input v-model="form.bannerButtonTextEn" type="text" placeholder="Book Now" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
-          </label>
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Text (AR)</span>
-            <input v-model="form.bannerButtonTextAr" type="text" placeholder="احجز الآن" dir="rtl" :class="settingsInputCls" :style="{ borderColor: missingAr.bannerButtonText ? '#F59E0B' : 'var(--color-border)' }" />
-            <span v-if="missingAr.bannerButtonText" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
-              {{ locale === 'ar' ? 'تنبيه: النص بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
-            </span>
-          </label>
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Button Target URL</span>
-            <input v-model="form.bannerButtonUrl" type="text" placeholder="/services" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
-          </label>
-        </div>
-      </div>
-    </div>
+    <!-- Banner management moved to the dedicated Banners section (/admin/banners).
+         Legacy bannerText*/bannerButton* fields remain readable for migration. -->
 
     <!-- Inline Feedback Banner -->
     <div
@@ -234,6 +187,7 @@ async function uploadFile(type: 'logo' | 'favicon' | 'hero', event: Event) {
     <AdminSettingsSaveBar
       :loading="loading"
       :dirty="dirty"
+      :disabled="!canManageSettings"
       :save-label="locale === 'ar' ? 'حفظ الإعدادات العامة' : 'Save General Settings'"
       :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
       :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"

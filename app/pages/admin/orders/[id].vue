@@ -13,7 +13,7 @@ import {
   User,
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'orders.view' })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -22,6 +22,7 @@ const id = String(route.params.id)
 const fetch = useRequestFetch()
 const canFinancialsView = useAdminCan('dashboard.financials.view')
 const toast = useAdminToast()
+const { confirm: confirmDialog } = useAdminConfirm()
 
 const { data, refresh, error } = await useAsyncData(`admin-order-${id}`, () =>
   fetch<{ order: any }>(`/api/admin/orders/${id}`),
@@ -36,7 +37,12 @@ if (data.value?.order) {
 }
 
 async function updateStatus() {
-  if (!confirm(locale.value === 'ar' ? `هل أنت متأكد من تغيير حالة الطلب إلى "${newStatus.value}"؟` : `Change order status to "${newStatus.value}"?`)) {
+  const okStatus = await confirmDialog({
+    title: locale.value === 'ar' ? `تغيير حالة الطلب إلى "${newStatus.value}"؟` : `Change order status to "${newStatus.value}"?`,
+    confirmLabel: locale.value === 'ar' ? 'تغيير' : 'Change',
+    danger: false,
+  })
+  if (!okStatus) {
     newStatus.value = data.value!.order.status
     return
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FolderTree, Image as ImageIcon, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'categories.manage' })
 
 const { t, locale } = useI18n()
 const toast = useAdminToast()
@@ -209,8 +209,14 @@ async function save() {
   }
 }
 
+const { confirm: confirmDialog } = useAdminConfirm()
+
 async function removeCategory(c: Category) {
-  if (!confirm(`Are you sure you want to delete category "${c.nameEn}"? This action cannot be undone.`)) return
+  const ok = await confirmDialog({
+    title: locale.value === 'ar' ? `حذف الفئة "${c.nameAr || c.nameEn}"؟` : `Delete category "${c.nameEn}"?`,
+    message: locale.value === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء.' : 'This action cannot be undone.',
+  })
+  if (!ok) return
   deletingId.value = c.id
   try {
     await $fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' })

@@ -7,7 +7,7 @@ import {
   Store,
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'settings.view' })
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -35,14 +35,19 @@ const tabs = computed(() => [
   { id: 'payment', label: locale.value === 'ar' ? 'بوابات الدفع' : 'Payment Gateways', icon: CreditCard },
 ])
 
-function switchTab(id: string) {
+const { confirm: confirmDialog } = useAdminConfirm()
+
+async function switchTab(id: string) {
   if (id === activeTab.value) return
   if (settingsDirty.value) {
-    const confirmed = confirm(
-      locale.value === 'ar'
+    const confirmed = await confirmDialog({
+      title: locale.value === 'ar' ? 'تجاهل التغييرات غير المحفوظة؟' : 'Discard unsaved changes?',
+      message: locale.value === 'ar'
         ? 'لديك تغييرات غير محفوظة في هذا القسم. هل تريد المتابعة بدون حفظ؟'
         : 'You have unsaved changes in this section. Switch tabs without saving?',
-    )
+      confirmLabel: locale.value === 'ar' ? 'تجاهل والمتابعة' : 'Discard & Switch',
+      danger: false,
+    })
     if (!confirmed) return
   }
   activeTab.value = id

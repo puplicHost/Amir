@@ -12,7 +12,7 @@ import {
   User,
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'orders.view' })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()

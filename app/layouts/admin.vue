@@ -27,5 +27,8 @@ onMounted(() => {
 
     <!-- Foreground push toasts -->
     <AdminToasts />
+
+    <!-- Branded destructive-action confirmations -->
+    <AdminConfirmDialog />
   </div>
 </template>

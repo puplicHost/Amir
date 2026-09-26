@@ -2,6 +2,7 @@
 import { Globe, Search, Sparkles } from 'lucide-vue-next'
 
 const { locale } = useI18n()
+const canManageSettings = useAdminCan('settings.manage')
 
 const {
   form, loading, statusMessage, isError, dirty, save, reset,
@@ -102,6 +103,7 @@ const {
     <AdminSettingsSaveBar
       :loading="loading"
       :dirty="dirty"
+      :disabled="!canManageSettings"
       :save-label="locale === 'ar' ? 'حفظ إعدادات السيو' : 'Save SEO Settings'"
       :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
       :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"

@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['services.view', 'services.config'] })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -150,8 +150,15 @@ async function saveService() {
   }
 }
 
+const { confirm: confirmDialog } = useAdminConfirm()
+const canConfigServices = useAdminCan('services.config')
+
 async function deleteService(s: any) {
-  if (!confirm(locale.value === 'ar' ? `هل أنت متأكد من حذف خدمة "${s.nameEn}"؟` : `Are you sure you want to delete service "${s.nameEn}"?`)) return
+  const ok = await confirmDialog({
+    title: locale.value === 'ar' ? `حذف خدمة "${s.nameAr || s.nameEn}"؟` : `Delete service "${s.nameEn}"?`,
+    message: locale.value === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء.' : 'This action cannot be undone.',
+  })
+  if (!ok) return
   deleting.value = s.id
   try {
     await $fetch(`/api/admin/services/${s.id}`, { method: 'DELETE' })
@@ -211,7 +218,7 @@ function formatDate(d: string) {
     >
       <template #actions>
         <button
-          v-if="activeTab === 'services'"
+          v-if="activeTab === 'services' && canConfigServices"
           type="button"
           class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
           @click="openCreateService"
@@ -294,7 +301,16 @@ function formatDate(d: string) {
 
                 <!-- Active Toggle -->
                 <td class="px-4 py-3 text-center">
+                  <span
+                    v-if="!canConfigServices"
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    :class="s.isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400'"
+                  >
+                    <span class="h-1.5 w-1.5 rounded-full" :class="s.isActive ? 'bg-emerald-500' : 'bg-slate-400'" />
+                    <span>{{ s.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive') }}</span>
+                  </span>
                   <button
+                    v-else
                     type="button"
                     class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
                     :class="s.isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'"
@@ -326,6 +342,7 @@ function formatDate(d: string) {
                 <td class="px-4 py-3 text-end">
                   <div class="flex items-center justify-end gap-1.5">
                     <NuxtLink
+                      v-if="canConfigServices"
                       :to="localePath(`/admin/services/${s.id}/form`)"
                       class="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                     >
@@ -334,6 +351,7 @@ function formatDate(d: string) {
                     </NuxtLink>
 
                     <button
+                      v-if="canConfigServices"
                       type="button"
                       :disabled="deleting === s.id || (s._count?.requests || 0) > 0"
                       class="inline-flex h-8 items-center gap-1 rounded px-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950/40"

@@ -11,7 +11,7 @@ import {
   Search 
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['quotes.view', 'services.view', 'orders.view'] })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()

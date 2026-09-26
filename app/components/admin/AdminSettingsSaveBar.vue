@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { Check, RotateCcw, Save } from 'lucide-vue-next'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   loading?: boolean
   dirty?: boolean
+  /** Extra disable condition (e.g. missing manage permission). */
+  disabled?: boolean
   saveLabel?: string
   savingLabel?: string
   resetLabel?: string
 }>(), {
   loading: false,
   dirty: false,
+  disabled: false,
   saveLabel: 'Save',
   savingLabel: 'Saving…',
   resetLabel: 'Reset',
@@ -59,7 +62,7 @@ const { locale } = useI18n()
 
       <button
         type="submit"
-        :disabled="loading || !dirty"
+        :disabled="loading || !dirty || disabled"
         class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Save class="h-3.5 w-3.5" aria-hidden="true" />

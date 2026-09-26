@@ -13,9 +13,8 @@ import {
   Users,
   X,
 } from 'lucide-vue-next'
-import { PERMISSION_GROUPS } from '~~/shared/permissions'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'users.manage' })
 
 const { t, locale } = useI18n()
 const toast = useAdminToast()
@@ -69,6 +68,87 @@ function openEdit(user: AdminUserRow) {
   showModal.value = true
 }
 
+interface ResourceAction {
+  key: string
+  en: string
+  ar: string
+  permission: string
+}
+
+interface ResourceDef {
+  group: string
+  actions: ResourceAction[]
+}
+
+// Resource × action matrix. Every checkbox maps to a real backend permission
+// string (shared/permissions.ts) — single-permission resources expose one
+// "Manage" checkbox instead of misleading per-action boxes.
+const RESOURCE_DEFS: ResourceDef[] = [
+  {
+    group: 'dashboard',
+    actions: [
+      { key: 'view', en: 'View (financial figures)', ar: 'عرض (الأرقام المالية)', permission: 'dashboard.financials.view' },
+    ],
+  },
+  {
+    group: 'products',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'products.view' },
+      { key: 'create', en: 'Create', ar: 'إنشاء', permission: 'products.create' },
+      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'products.edit' },
+      { key: 'delete', en: 'Delete', ar: 'حذف', permission: 'products.delete' },
+    ],
+  },
+  {
+    group: 'orders',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'orders.view' },
+      { key: 'update', en: 'Update (status)', ar: 'تعديل (الحالة)', permission: 'orders.manage' },
+    ],
+  },
+  {
+    group: 'quotes',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'quotes.view' },
+      { key: 'create', en: 'Create', ar: 'إنشاء', permission: 'quotes.manage' },
+      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'quotes.manage' },
+    ],
+  },
+  {
+    group: 'services',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'services.view' },
+      { key: 'update', en: 'Manage (requests)', ar: 'إدارة (الطلبات)', permission: 'services.manage' },
+      { key: 'configure', en: 'Configure', ar: 'تهيئة', permission: 'services.config' },
+    ],
+  },
+  {
+    group: 'categories',
+    actions: [
+      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'categories.manage' },
+    ],
+  },
+  {
+    group: 'banners',
+    actions: [
+      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'banners.manage' },
+    ],
+  },
+  {
+    group: 'settings',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'settings.view' },
+      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'settings.manage' },
+    ],
+  },
+  {
+    group: 'users',
+    actions: [
+      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'users.manage' },
+    ],
+  },
+]
+
 function togglePermission(p: string) {
   const i = form.permissions.indexOf(p)
   if (i >= 0) form.permissions.splice(i, 1)
@@ -85,6 +165,14 @@ function toggleGroup(perms: readonly string[]) {
       if (!form.permissions.includes(p)) form.permissions.push(p)
     })
   }
+}
+
+function toggleResourceGroup(res: ResourceDef) {
+  toggleGroup(res.actions.map(a => a.permission))
+}
+
+function groupSelectedCount(res: ResourceDef) {
+  return res.actions.filter(a => form.permissions.includes(a.permission)).length
 }
 
 async function save() {
@@ -129,8 +217,14 @@ async function save() {
   }
 }
 
+const { confirm: confirmDialog } = useAdminConfirm()
+
 async function removeUser(user: AdminUserRow) {
-  if (!confirm(`Are you sure you want to delete administrator "${user.name}"?`)) return
+  const ok = await confirmDialog({
+    title: locale.value === 'ar' ? `حذف المسؤول "${user.name}"؟` : `Delete administrator "${user.name}"?`,
+    message: locale.value === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء.' : 'This action cannot be undone.',
+  })
+  if (!ok) return
   deletingId.value = user.id
   try {
     await $fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
@@ -173,6 +267,7 @@ const groupLabels: Record<string, { en: string, ar: string }> = {
   quotes: { en: 'Price Quotations', ar: 'عروض الأسعار' },
   services: { en: 'Engineering Services', ar: 'الخدمات الهندسية' },
   categories: { en: 'Catalog Categories', ar: 'تصنيفات المتجر' },
+  banners: { en: 'Homepage Banners', ar: 'بنرات الصفحة الرئيسية' },
   settings: { en: 'Platform Settings', ar: 'إعدادات المنصة' },
   users: { en: 'Staff & Roles', ar: 'الموظفون والأدوار' },
 }
@@ -387,48 +482,54 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
                 {{ form.permissions.length }} selected
               </span>
             </div>
+            <p class="mb-2 rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-[#2B71AE] dark:bg-blue-950/40 dark:text-blue-300">
+              {{ locale === 'ar' ? 'ملاحظة: تسري تغييرات الصلاحيات على المستخدم فور تحميله لأي صفحة (التحقق لحظي من الخادم)، بينما تتحدث القائمة الجانبية لديه عند تنقله بين الصفحات — لا حاجة لتسجيل الخروج.' : 'Note: permission changes are enforced immediately by the API; the staff member’s sidebar refreshes on their next page navigation — no re-login needed.' }}
+            </p>
 
-            <div class="space-y-3">
+            <div class="space-y-2.5">
               <div
-                v-for="(perms, group) in PERMISSION_GROUPS"
-                :key="group"
-                class="rounded-md border p-3 bg-slate-50/50 dark:bg-slate-800/30"
+                v-for="res in RESOURCE_DEFS"
+                :key="res.group"
+                class="rounded-md border bg-slate-50/50 p-3 dark:bg-slate-800/30"
                 :style="{ borderColor: 'var(--color-border)' }"
               >
-                <div class="mb-2 flex items-center justify-between">
-                  <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    {{ groupLabels[group] ? (locale === 'ar' ? groupLabels[group].ar : groupLabels[group].en) : group }}
-                  </span>
-                  <button
-                    type="button"
-                    class="text-[10px] font-semibold text-[#2B71AE] hover:underline dark:text-blue-400"
-                    @click="toggleGroup(perms)"
-                  >
-                    {{ perms.every(p => form.permissions.includes(p)) ? (locale === 'ar' ? 'إلغاء الكل' : 'Deselect all') : (locale === 'ar' ? 'تحديد الكل' : 'Select all') }}
-                  </button>
-                </div>
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div class="flex min-w-0 items-center justify-between gap-2 sm:w-44 sm:shrink-0">
+                    <span class="truncate text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      {{ groupLabels[res.group] ? (locale === 'ar' ? groupLabels[res.group].ar : groupLabels[res.group].en) : res.group }}
+                    </span>
+                    <button
+                      type="button"
+                      class="shrink-0 text-[10px] font-semibold text-[#2B71AE] hover:underline dark:text-blue-400"
+                      @click="toggleResourceGroup(res)"
+                    >
+                      {{ groupSelectedCount(res) === res.actions.length ? (locale === 'ar' ? 'إلغاء الكل' : 'Deselect all') : (locale === 'ar' ? 'تحديد الكل' : 'Select all') }}
+                    </button>
+                  </div>
 
-                <!-- Permission Checkbox Chips using logical spacing (me-3) -->
-                <div class="flex flex-wrap gap-2">
-                  <label
-                    v-for="p in perms"
-                    :key="p"
-                    class="inline-flex cursor-pointer items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors select-none"
-                    :class="[
-                      form.permissions.includes(p)
-                        ? 'border-[#2B71AE] bg-[#2B71AE]/10 text-[#2B71AE] font-semibold dark:border-blue-500 dark:text-blue-300'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400'
-                    ]"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="form.permissions.includes(p)"
-                      class="hidden"
-                      @change="togglePermission(p)"
-                    />
-                    <Check v-if="form.permissions.includes(p)" class="h-3 w-3" aria-hidden="true" />
-                    <span>{{ p }}</span>
-                  </label>
+                  <!-- Standard action checkboxes (View / Create / Update / Delete) -->
+                  <div class="flex flex-1 flex-wrap gap-2">
+                    <label
+                      v-for="a in res.actions"
+                      :key="a.key"
+                      class="inline-flex cursor-pointer items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors select-none"
+                      :class="[
+                        form.permissions.includes(a.permission)
+                          ? 'border-[#2B71AE] bg-[#2B71AE]/10 text-[#2B71AE] font-semibold dark:border-blue-500 dark:text-blue-300'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400'
+                      ]"
+                      :title="a.permission"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="form.permissions.includes(a.permission)"
+                        class="hidden"
+                        @change="togglePermission(a.permission)"
+                      />
+                      <Check v-if="form.permissions.includes(a.permission)" class="h-3 w-3" aria-hidden="true" />
+                      <span>{{ locale === 'ar' ? a.ar : a.en }}</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.edit' })
 
 const { t, locale } = useI18n()
 const route = useRoute()

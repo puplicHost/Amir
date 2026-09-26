@@ -2,6 +2,7 @@
 import { Facebook, Instagram, Mail, MapPin, Phone, Share2 } from 'lucide-vue-next'
 
 const { locale } = useI18n()
+const canManageSettings = useAdminCan('settings.manage')
 
 const {
   form, loading, statusMessage, isError, dirty, save, reset,
@@ -145,6 +146,7 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
     <AdminSettingsSaveBar
       :loading="loading"
       :dirty="dirty"
+      :disabled="!canManageSettings"
       :save-label="locale === 'ar' ? 'حفظ معلومات التواصل' : 'Save Contact Settings'"
       :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
       :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"

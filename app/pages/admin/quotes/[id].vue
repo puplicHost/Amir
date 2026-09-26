@@ -15,7 +15,7 @@ import {
   User 
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['quotes.view', 'services.view', 'orders.view'] })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -37,8 +37,15 @@ if (data.value?.quote) {
   newStatus.value = data.value.quote.status
 }
 
+const { confirm: confirmDialog } = useAdminConfirm()
+
 async function updateStatus() {
-  if (!confirm(locale.value === 'ar' ? `هل أنت متأكد من تغيير حالة العرض إلى "${newStatus.value}"؟` : `Change quote status to "${newStatus.value}"?`)) {
+  const okStatus = await confirmDialog({
+    title: locale.value === 'ar' ? `تغيير حالة العرض إلى "${newStatus.value}"؟` : `Change quote status to "${newStatus.value}"?`,
+    confirmLabel: locale.value === 'ar' ? 'تغيير' : 'Change',
+    danger: false,
+  })
+  if (!okStatus) {
     newStatus.value = data.value!.quote.status
     return
   }

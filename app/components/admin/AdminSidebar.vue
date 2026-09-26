@@ -7,6 +7,7 @@ import {
   FolderTree,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Settings,
   ShoppingCart,
   Users,
@@ -39,6 +40,7 @@ const canQuotesManage = useAdminCan('quotes.view')
 const canServicesView = useAdminCan('services.view')
 const canUsersManage = useAdminCan('users.manage')
 const canSettingsView = useAdminCan('settings.view')
+const canBannersManage = useAdminCan('banners.manage')
 
 const canQuotesView = computed(() => canQuotesManage.value || canServicesView.value || canOrdersView.value || data.value?.user.isSuper)
 
@@ -49,6 +51,7 @@ const items = computed(() => [
   { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
   { label: locale.value === 'ar' ? 'عروض الأسعار' : 'Quote Requests', to: '/admin/quotes', icon: FileText, show: canQuotesView.value },
   { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
+  { label: locale.value === 'ar' ? 'البنرات' : 'Banners', to: '/admin/banners', icon: Megaphone, show: canBannersManage.value },
   { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },
   { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value },
 ])

@@ -2,6 +2,7 @@
 import { CreditCard, Lock } from 'lucide-vue-next'
 
 const { locale } = useI18n()
+const canManageSettings = useAdminCan('settings.manage')
 
 const {
   form, data, loading, statusMessage, isError, dirty, save, reset, markSaved,
@@ -138,6 +139,7 @@ async function saveAndClearSecrets() {
     <AdminSettingsSaveBar
       :loading="loading"
       :dirty="dirty"
+      :disabled="!canManageSettings"
       :save-label="locale === 'ar' ? 'حفظ إعدادات الدفع' : 'Save Payment Settings'"
       :saving-label="locale === 'ar' ? 'جاري الحفظ…' : 'Saving…'"
       :reset-label="locale === 'ar' ? 'تراجع' : 'Reset'"

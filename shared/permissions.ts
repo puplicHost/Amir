@@ -8,6 +8,7 @@ export const PERMISSION_GROUPS = {
   quotes: ['quotes.view', 'quotes.manage'],
   services: ['services.view', 'services.manage', 'services.config'],
   categories: ['categories.manage'],
+  banners: ['banners.manage'],
   settings: ['settings.view', 'settings.manage'],
   users: ['users.manage'],
 } as const

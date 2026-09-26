@@ -266,6 +266,9 @@ useHead(() => {
       </div>
     </section>
 
+    <!-- Dynamic promo banners: below_hero slot (managed in /admin/banners) -->
+    <AppHomeBanners placement="below_hero" />
+
     <!-- 2. Proof & Trust Authority Bar (Dedicated section UNDER the hero) -->
     <section class="border-y border-slate-800 bg-[#0F1D2E] text-white py-6 sm:py-8 px-4">
       <div class="mx-auto max-w-7xl">
@@ -437,6 +440,9 @@ useHead(() => {
       </div>
     </section>
 
+    <!-- Dynamic promo banners: below_services slot (managed in /admin/banners) -->
+    <AppHomeBanners placement="below_services" />
+
     <!-- 4. Featured Categories (Visual Hardware & Component Catalog) -->
     <section class="py-16 sm:py-24 px-4 bg-slate-50 dark:bg-[#0E1B2B]/60 border-y border-slate-200/80 dark:border-slate-800/80">
       <div class="mx-auto max-w-7xl">
@@ -512,6 +518,9 @@ useHead(() => {
         </div>
       </div>
     </section>
+
+    <!-- Dynamic promo banners: below_categories slot (managed in /admin/banners) -->
+    <AppHomeBanners placement="below_categories" />
 
     <!-- 5. Featured Hardware Products (Live E-Commerce Component Grid) -->
     <section v-if="featuredProducts.length" class="py-16 sm:py-24 px-4 bg-white dark:bg-[#0B1520] transition-colors">
@@ -648,6 +657,9 @@ useHead(() => {
         </div>
       </div>
     </section>
+
+    <!-- Dynamic promo banners: above_footer slot (managed in /admin/banners) -->
+    <AppHomeBanners placement="above_footer" />
 
   </div>
 </template>

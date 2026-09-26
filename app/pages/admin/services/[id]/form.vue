@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'services.config' })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -92,8 +92,14 @@ async function addField() {
   }
 }
 
+const { confirm: confirmDialog } = useAdminConfirm()
+
 async function removeField(id: string, label: string) {
-  if (!confirm(locale.value === 'ar' ? `هل أنت متأكد من حذف الحقل "${label}"؟` : `Remove field "${label}"?`)) return
+  const ok = await confirmDialog({
+    title: locale.value === 'ar' ? `حذف الحقل "${label}"؟` : `Remove field "${label}"?`,
+    message: locale.value === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء.' : 'This action cannot be undone.',
+  })
+  if (!ok) return
   try {
     await $fetch(`/api/admin/services/${serviceId}/form/fields/${id}`, { method: 'DELETE' })
     await refresh()
