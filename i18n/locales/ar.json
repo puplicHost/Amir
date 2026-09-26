@@ -101,6 +101,8 @@
     "notifications": "الإشعارات",
     "markAllRead": "تعيين الكل كمقروء",
     "noNotifications": "لا توجد إشعارات بعد",
+    "viewAllNotifications": "عرض كل الإشعارات",
+    "allNotifications": "كل الإشعارات",
     "shellNotice": "هيكل لوحة الإدارة - الوحدات الوظيفية في المراحل القادمة."
   },
   "common": {

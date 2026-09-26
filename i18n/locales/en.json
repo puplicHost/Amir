@@ -101,6 +101,8 @@
     "notifications": "Notifications",
     "markAllRead": "Mark all as read",
     "noNotifications": "No notifications yet",
+    "viewAllNotifications": "View all notifications",
+    "allNotifications": "All Notifications",
     "shellNotice": "Admin shell - functional modules arrive in later phases."
   },
   "common": {

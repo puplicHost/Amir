@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Bell, CheckCheck, Inbox } from 'lucide-vue-next'
+import { ArrowRight, Bell, CheckCheck, Inbox } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const tick = useAdminNotifTick()
+const { TYPE_META, typeGroupOf, typeLabel } = useNotificationUi()
 
 interface AdminNotificationItem {
   id: string
@@ -18,17 +19,18 @@ interface AdminNotificationItem {
 }
 
 const open = ref(false)
-const page = ref(1)
-const limit = 15
+// Dropdown shows the latest items only (fixed first page); deeper browsing
+// lives on the dedicated /admin/notifications page.
+const limit = 7
 const fetch = useRequestFetch()
 
 // Client-only fetch: relative timestamps depend on wall-clock "now".
-const { data, refresh } = await useAsyncData('admin-notifications', () =>
+const { data, refresh, pending } = await useAsyncData('admin-notifications', () =>
   fetch<{ notifications: AdminNotificationItem[], unreadCount: number, total: number, pages: number }>(
     '/api/admin/notifications',
-    { params: { page: page.value, limit } },
+    { params: { page: 1, limit } },
   ),
-  { server: false, watch: [page, tick] },
+  { server: false, watch: [tick] },
 )
 
 let poller: ReturnType<typeof setInterval> | null = null
@@ -69,7 +71,7 @@ function formatRel(dateStr: string) {
 }
 
 async function openNotification(n: AdminNotificationItem) {
-  open.value = false
+  setOpen(false)
   if (!n.isRead) {
     try {
       await $fetch(`/api/admin/notifications/${n.id}/read`, { method: 'PUT' })
@@ -88,9 +90,23 @@ async function markAllRead() {
   catch { /* best-effort */ }
 }
 
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') setOpen(false)
+}
+
+// Imperative listener management (no lifecycle APIs after await).
+function setOpen(v: boolean) {
+  open.value = v
+  if (import.meta.client) {
+    if (v) window.addEventListener('keydown', onKeydown)
+    else window.removeEventListener('keydown', onKeydown)
+  }
+}
+
 function toggle() {
-  open.value = !open.value
-  if (open.value) refresh()
+  const next = !open.value
+  setOpen(next)
+  if (next) refresh()
 }
 </script>
 
@@ -107,6 +123,8 @@ function toggle() {
       <Bell class="h-4 w-4" aria-hidden="true" />
       <span
         v-if="unreadCount > 0"
+        role="status"
+        :aria-label="locale === 'ar' ? `${unreadCount} إشعارات غير مقروءة` : `${unreadCount} unread notifications`"
         class="absolute -top-1 -end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F5CC07] px-1 text-[10px] font-black text-slate-950 shadow-xs"
       >
         {{ unreadCount > 99 ? '99+' : unreadCount }}
@@ -119,18 +137,27 @@ function toggle() {
       tabindex="-1"
       aria-hidden="true"
       class="fixed inset-0 z-40 cursor-default bg-transparent"
-      @click="open = false"
+      @click="setOpen(false)"
     />
 
+    <Transition
+      enter-active-class="transition duration-150 ease-out motion-reduce:transition-none"
+      enter-from-class="transform opacity-0 scale-95 -translate-y-1"
+      enter-to-class="transform opacity-100 scale-100 translate-y-0"
+      leave-active-class="transition duration-100 ease-in motion-reduce:transition-none"
+      leave-from-class="transform opacity-100 scale-100"
+      leave-to-class="transform opacity-0 scale-95"
+    >
     <div
       v-if="open"
-      class="absolute end-0 top-full z-50 mt-2 max-h-96 w-80 overflow-hidden rounded-lg border bg-white shadow-xl sm:w-96 dark:bg-[#162032]"
+      class="absolute end-0 top-full z-50 mt-2 flex max-h-[min(26rem,calc(100vh-5rem))] w-80 origin-top flex-col overflow-hidden rounded-xl border bg-white/95 shadow-2xl backdrop-blur-md sm:w-96 dark:bg-[#162032]/95"
+      :class="locale === 'ar' ? 'origin-top-left' : 'origin-top-right'"
       :style="{ borderColor: 'var(--color-border)' }"
       role="menu"
       :aria-label="t('admin.notifications')"
     >
       <div
-        class="flex items-center justify-between border-b px-4 py-3"
+        class="flex shrink-0 items-center justify-between border-b px-4 py-3"
         :style="{ borderColor: 'var(--color-border)' }"
       >
         <p class="text-xs font-bold text-slate-900 dark:text-slate-100">
@@ -148,62 +175,83 @@ function toggle() {
         </button>
       </div>
 
-      <div class="max-h-80 overflow-y-auto">
+      <div class="min-h-0 flex-1 overflow-y-auto">
+        <div v-if="pending && !items.length" class="space-y-2.5 p-4" aria-hidden="true">
+          <div v-for="i in 3" :key="i" class="flex animate-pulse items-start gap-2.5">
+            <div class="mt-1 h-8 w-8 shrink-0 rounded-lg bg-slate-200 dark:bg-slate-700" />
+            <div class="flex-1 space-y-1.5">
+              <div class="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
+              <div class="h-2.5 w-full rounded bg-slate-100 dark:bg-slate-800" />
+            </div>
+          </div>
+        </div>
+
         <button
           v-for="n in items"
           :key="n.id"
           type="button"
-          class="flex w-full items-start gap-2.5 border-b px-4 py-3 text-start transition-colors last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          class="flex w-full items-start gap-2.5 border-b px-4 py-3 text-start transition-colors last:border-b-0 hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+          :class="{ 'bg-[#2B71AE]/[0.04] dark:bg-[#F5CC07]/[0.05]': !n.isRead }"
           :style="{ borderColor: 'var(--color-border)' }"
           @click="openNotification(n)"
         >
           <span
-            class="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-            :class="n.isRead ? 'bg-slate-200 dark:bg-slate-700' : 'bg-[#2B71AE] dark:bg-[#F5CC07]'"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            :class="TYPE_META[typeGroupOf(n.type)]?.chip || 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'"
             aria-hidden="true"
-          />
+          >
+            <component :is="TYPE_META[typeGroupOf(n.type)]?.icon" v-if="TYPE_META[typeGroupOf(n.type)]" class="h-4 w-4" />
+            <span v-else class="h-2 w-2 rounded-full" :class="n.isRead ? 'bg-slate-300 dark:bg-slate-600' : TYPE_META[typeGroupOf(n.type)]?.dot" />
+          </span>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-xs font-bold" :class="n.isRead ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'">
-              {{ titleOf(n) }}
+            <span class="flex items-center gap-1.5">
+              <span class="block truncate text-xs font-bold" :class="n.isRead ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'">
+                {{ titleOf(n) }}
+              </span>
+              <span
+                v-if="!n.isRead"
+                class="shrink-0 rounded-full bg-[#F5CC07]/20 px-1.5 py-px text-[9px] font-black uppercase tracking-wide text-amber-700 dark:text-[#F5CC07]"
+              >
+                {{ locale === 'ar' ? 'جديد' : 'New' }}
+              </span>
             </span>
             <span class="mt-0.5 line-clamp-2 block text-[11px] text-slate-500 dark:text-slate-400">
               {{ bodyOf(n) }}
             </span>
-            <span class="mt-1 block text-[10px] text-slate-400 dark:text-slate-500">
-              {{ formatRel(n.createdAt) }}
+            <span class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+              <span>{{ typeLabel(typeGroupOf(n.type)) }}</span>
+              <span aria-hidden="true">·</span>
+              <span>{{ formatRel(n.createdAt) }}</span>
             </span>
           </span>
         </button>
 
-        <div v-if="!items.length" class="flex flex-col items-center p-8 text-center">
+        <div v-if="!pending && !items.length" class="flex flex-col items-center p-8 text-center">
           <Inbox class="mb-2 h-6 w-6 text-slate-300 dark:text-slate-600" aria-hidden="true" />
           <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">{{ t('admin.noNotifications') }}</p>
         </div>
       </div>
 
       <div
-        v-if="pages > 1"
-        class="flex items-center justify-between border-t px-4 py-2 text-[11px]"
+        class="flex shrink-0 items-center justify-between gap-2 border-t bg-slate-50/70 px-4 py-2.5 dark:bg-slate-800/40"
         :style="{ borderColor: 'var(--color-border)' }"
       >
-        <button
-          type="button"
-          :disabled="page <= 1"
-          class="font-semibold text-[#2B71AE] disabled:opacity-40 dark:text-[#F5CC07]"
-          @click="page = Math.max(1, page - 1)"
+        <span v-if="total > limit" class="text-[11px] text-slate-500 dark:text-slate-400">
+          {{ locale === 'ar' ? `عرض أحدث ${items.length} من ${total}` : `Showing latest ${items.length} of ${total}` }}
+        </span>
+        <span v-else class="text-[11px] text-slate-400 dark:text-slate-500">
+          {{ locale === 'ar' ? 'أحدث الإشعارات' : 'Latest notifications' }}
+        </span>
+        <NuxtLink
+          :to="localePath('/admin/notifications')"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#2B71AE]/10 px-3 py-1.5 text-xs font-bold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/20 dark:bg-[#F5CC07]/15 dark:text-[#F5CC07] dark:hover:bg-[#F5CC07]/25"
+          @click="setOpen(false)"
         >
-          ←
-        </button>
-        <span class="font-mono text-slate-500">{{ page }} / {{ pages }}</span>
-        <button
-          type="button"
-          :disabled="page >= pages"
-          class="font-semibold text-[#2B71AE] disabled:opacity-40 dark:text-[#F5CC07]"
-          @click="page = Math.min(pages, page + 1)"
-        >
-          →
-        </button>
+          <span>{{ t('admin.viewAllNotifications') }}</span>
+          <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+        </NuxtLink>
       </div>
     </div>
+    </Transition>
   </div>
 </template>
