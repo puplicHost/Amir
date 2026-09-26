@@ -27,6 +27,7 @@ useHead(() => ({
 const form = reactive({
   companyName: '',
   contactName: '',
+  contactTitle: '',
   phone: '',
   email: '',
   notes: '',
@@ -75,6 +76,7 @@ async function submitQuote() {
       body: {
         companyName: form.companyName.trim(),
         contactName: form.contactName.trim(),
+        contactTitle: form.contactTitle.trim() || undefined,
         phone: form.phone.trim(),
         email: form.email.trim() || undefined,
         notes: form.notes.trim() || undefined,
@@ -340,6 +342,20 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
                   type="text"
                   required
                   :placeholder="locale === 'ar' ? 'اسم المهندس أو المشتريات' : 'Name of contact engineer or buyer'"
+                  :class="inputCls"
+                  :style="{ borderColor: 'var(--color-border)' }"
+                />
+              </label>
+
+              <label class="block">
+                <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {{ locale === 'ar' ? 'المسمى الوظيفي (اختياري)' : 'Job Title (Optional)' }}
+                </span>
+                <input
+                  v-model="form.contactTitle"
+                  type="text"
+                  maxlength="120"
+                  :placeholder="locale === 'ar' ? 'مثال: مدير المشتريات' : 'e.g. Purchasing Manager'"
                   :class="inputCls"
                   :style="{ borderColor: 'var(--color-border)' }"
                 />

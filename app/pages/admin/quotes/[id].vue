@@ -251,6 +251,7 @@ function formatDate(d: string) {
                 <div>
                   <span class="text-slate-400 block">{{ locale === 'ar' ? 'المسؤول' : 'Contact Person' }}</span>
                   <span class="font-semibold text-slate-800 dark:text-slate-200">{{ data.quote.contactName }}</span>
+                  <span v-if="data.quote.contactTitle" class="text-slate-500 dark:text-slate-400 block">{{ data.quote.contactTitle }}</span>
                 </div>
               </div>
 

@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Building2,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Download,
   FileText,
   Loader2,
@@ -36,6 +38,7 @@ useHead(() => ({
 const form = reactive({
   companyName: '',
   contactName: '',
+  contactTitle: '',
   phone: '',
   email: '',
   notes: '',
@@ -60,22 +63,80 @@ const selectedItems = ref<SelectedItem[]>([])
 // Item Selection Mode: 'catalog' | 'custom'
 const activeItemMode = ref<'catalog' | 'custom'>('catalog')
 
-// Catalog Product Search & Selection State
+// Catalog Product Browsing & Search State
+// Mode A: Paginated browsing (when search box is empty) — allows browsing through all 100 products
+// Mode B: Search-as-you-type (when search box has text) — debounced fresh backend queries across full catalog
+const DEFAULT_LIMIT = 12
+const SEARCH_LIMIT = 30
+
+const browsePage = ref(1)
+const browseTotal = ref(0)
+const catalogTotal = ref(0)
+const browseLoading = ref(false)
+
 const productSearch = ref('')
 const searchResults = ref<any[]>([])
+const searchTotal = ref(0)
 const searching = ref(false)
 let searchDebounceTimer: any = null
 
 const fetch = useRequestFetch()
 const { data: initialProductsData, pending: initialLoading } = await useAsyncData('admin-new-quote-init-products', () =>
-  fetch<{ products: any[] }>('/api/products?limit=15'),
+  fetch<{ products: any[], total: number, pages: number }>(`/api/products?page=1&limit=${DEFAULT_LIMIT}`),
 )
 
+const browseProducts = ref<any[]>(initialProductsData.value?.products || [])
+browseTotal.value = initialProductsData.value?.total || 0
+catalogTotal.value = initialProductsData.value?.total || 0
+
+const browsePages = computed(() => Math.max(1, Math.ceil(browseTotal.value / DEFAULT_LIMIT)))
+
+const isSearching = computed(() => productSearch.value.trim().length > 0)
+
 const availableProducts = computed(() => {
-  if (productSearch.value.trim()) {
+  if (isSearching.value) {
     return searchResults.value
   }
-  return initialProductsData.value?.products || []
+  return browseProducts.value
+})
+
+// Total matches for the active view (search total vs full catalog total)
+const visibleTotal = computed(() => isSearching.value ? searchTotal.value : catalogTotal.value)
+
+async function goToPage(p: number | string) {
+  if (typeof p !== 'number') return
+  if (p < 1 || p > browsePages.value || p === browsePage.value) return
+  browseLoading.value = true
+  try {
+    const res = await $fetch<{ products: any[], total: number, pages: number }>(
+      `/api/products?page=${p}&limit=${DEFAULT_LIMIT}`,
+    )
+    browseProducts.value = res.products || []
+    browsePage.value = p
+    browseTotal.value = res.total || 0
+    catalogTotal.value = res.total || 0
+  }
+  catch {
+    toast.error(locale.value === 'ar' ? 'فشل تحميل المنتجات' : 'Failed to load products')
+  }
+  finally {
+    browseLoading.value = false
+  }
+}
+
+const visiblePageNumbers = computed(() => {
+  const total = browsePages.value
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const current = browsePage.value
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total]
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total]
 })
 
 function onSearchInput() {
@@ -83,6 +144,7 @@ function onSearchInput() {
   const q = productSearch.value.trim()
   if (!q) {
     searchResults.value = []
+    searchTotal.value = 0
     searching.value = false
     return
   }
@@ -90,11 +152,15 @@ function onSearchInput() {
   searching.value = true
   searchDebounceTimer = setTimeout(async () => {
     try {
-      const res = await $fetch<{ products: any[] }>(`/api/products?search=${encodeURIComponent(q)}&limit=15`)
+      const res = await $fetch<{ products: any[], total: number }>(`/api/products?search=${encodeURIComponent(q)}&limit=${SEARCH_LIMIT}`)
+      // Guard against out-of-order responses: ignore if the query changed while fetching
+      if (productSearch.value.trim() !== q) return
       searchResults.value = res.products || []
+      searchTotal.value = Number(res.total) || 0
     }
     catch {
       searchResults.value = []
+      searchTotal.value = 0
     }
     finally {
       searching.value = false
@@ -105,6 +171,7 @@ function onSearchInput() {
 function clearSearch() {
   productSearch.value = ''
   searchResults.value = []
+  searchTotal.value = 0
   searching.value = false
 }
 
@@ -298,6 +365,7 @@ async function submitQuote() {
       body: {
         companyName: form.companyName.trim(),
         contactName: form.contactName.trim(),
+        contactTitle: form.contactTitle.trim() || undefined,
         phone: form.phone.trim(),
         email: form.email.trim() || undefined,
         notes: form.notes.trim() || undefined,
@@ -373,9 +441,9 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
     <div class="grid gap-6 lg:grid-cols-12 items-start">
       
       <!-- Left Column: Product Selection & Line Items (7 cols) -->
-      <div class="lg:col-span-7 space-y-6">
+      <div class="lg:col-span-7 space-y-5">
         
-        <!-- Product Selection Card (Catalog Search or Custom Item) -->
+        <!-- Product Selection Card (Catalog Search/Browse or Custom Item) -->
         <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
           <!-- Selection Mode Switcher -->
           <div class="mb-4 flex items-center justify-between border-b pb-3" :style="{ borderColor: 'var(--color-border)' }">
@@ -389,7 +457,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                 @click="activeItemMode = 'catalog'"
               >
                 <Search class="h-3.5 w-3.5" />
-                <span>{{ locale === 'ar' ? 'البحث في الكتالوج' : 'Catalog Products' }}</span>
+                <span>{{ locale === 'ar' ? 'كتالوج المنتجات' : 'Product Catalog' }}</span>
               </button>
 
               <button
@@ -406,14 +474,18 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
             </div>
 
             <span class="text-[11px] font-mono text-slate-400">
-              {{ activeItemMode === 'catalog' ? `${availableProducts.length} ${locale === 'ar' ? 'متاح' : 'available'}` : (locale === 'ar' ? 'إدخال يدوي' : 'Manual Entry') }}
+              {{ activeItemMode === 'catalog'
+                ? (isSearching
+                  ? (locale === 'ar' ? `${availableProducts.length} من ${visibleTotal} نتيجة` : `${availableProducts.length} of ${visibleTotal} matches`)
+                  : (locale === 'ar' ? `صفحة ${browsePage} من ${browsePages} (${catalogTotal} منتج)` : `Page ${browsePage} of ${browsePages} (${catalogTotal} products)`))
+                : (locale === 'ar' ? 'إدخال يدوي' : 'Manual Entry') }}
             </span>
           </div>
 
-          <!-- MODE 1: Catalog Search & Checklist -->
+          <!-- MODE 1: Catalog Search & Paginated Browse -->
           <div v-if="activeItemMode === 'catalog'">
             <!-- Search Input Box -->
-            <div class="relative mb-3.5">
+            <div class="relative mb-2">
               <Search class="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
               <input
                 v-model="productSearch"
@@ -432,57 +504,67 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                 <X class="h-3.5 w-3.5" />
               </button>
             </div>
+            
+            <!-- Dynamic Guidance Hint -->
+            <p class="mb-3 text-[11px] text-slate-500 dark:text-slate-400">
+              {{ isSearching
+                ? (locale === 'ar'
+                  ? `نتائج البحث عن "${productSearch}" — ${visibleTotal} نتيجة مطابقة عبر الكتالوج.`
+                  : `Search results for "${productSearch}" — ${visibleTotal} matches across catalog.`)
+                : (locale === 'ar'
+                  ? `تصفح جميع المنتجات الـ ${catalogTotal} عبر الصفحات أدناه، أو اكتب اسم المنتج للبحث الفوري.`
+                  : `Browse all ${catalogTotal} products below via pages, or type a name to search instantly.`) }}
+            </p>
 
             <!-- Loading Indicator -->
-            <div v-if="searching" class="py-4 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+            <div v-if="searching || browseLoading" class="py-6 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
               <Loader2 class="h-4 w-4 animate-spin text-[#2B71AE]" />
-              <span>{{ locale === 'ar' ? 'جاري البحث في الكتالوج…' : 'Searching catalog…' }}</span>
+              <span>{{ searching ? (locale === 'ar' ? 'جاري البحث في الكتالوج…' : 'Searching catalog…') : (locale === 'ar' ? 'جاري تحميل الصفحة…' : 'Loading page…') }}</span>
             </div>
 
-            <!-- Available Products Scrollable Checklist -->
+            <!-- Available Products 2-Column Responsive Grid -->
             <div
               v-else-if="availableProducts.length > 0"
-              class="max-h-72 overflow-y-auto space-y-1.5 pe-1 border rounded-md p-1.5 bg-slate-50/50 dark:bg-[#0B1520]/50"
-              :style="{ borderColor: 'var(--color-border)' }"
+              class="grid gap-2 sm:grid-cols-2 max-h-[500px] overflow-y-auto pe-1"
             >
               <div
                 v-for="p in availableProducts"
                 :key="p.id"
-                class="flex items-center justify-between gap-3 rounded-md p-2.5 transition-all cursor-pointer border"
+                class="flex items-center justify-between gap-2.5 rounded-lg p-2.5 transition-all cursor-pointer border text-start"
                 :class="isProductSelected(p.id)
-                  ? 'bg-blue-50/70 border-[#2B71AE]/50 dark:bg-blue-950/40 dark:border-blue-700/60'
-                  : 'bg-white border-slate-100 hover:bg-slate-100 dark:bg-[#162032] dark:border-slate-800 dark:hover:bg-slate-800/60'"
+                  ? 'bg-blue-50/70 border-[#2B71AE]/50 dark:bg-blue-950/40 dark:border-blue-700/60 shadow-2xs'
+                  : 'bg-white border-slate-100 hover:bg-slate-50 dark:bg-[#162032] dark:border-slate-800 dark:hover:bg-slate-800/60'"
                 @click="toggleProduct(p)"
               >
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
                   <input
                     type="checkbox"
                     :checked="isProductSelected(p.id)"
                     class="h-4 w-4 rounded accent-[#2B71AE] pointer-events-none shrink-0"
                   />
-                  <div class="h-10 w-10 shrink-0 overflow-hidden rounded border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
+                  <div class="h-9 w-9 shrink-0 overflow-hidden rounded border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
                     <img v-if="p.coverImage" :src="p.coverImage" alt="" class="h-full w-full object-cover" />
                     <div v-else class="flex h-full w-full items-center justify-center text-[10px] text-slate-400">
                       <Package class="h-4 w-4" />
                     </div>
                   </div>
 
-                  <div class="min-w-0 text-xs">
-                    <p class="font-bold text-slate-900 dark:text-slate-100 truncate">
+                  <div class="min-w-0 text-xs flex-1">
+                    <p class="font-bold text-slate-900 dark:text-slate-100 truncate text-[11.5px]" :title="locale === 'ar' ? (p.nameAr || p.nameEn) : (p.nameEn || p.nameAr)">
                       {{ locale === 'ar' ? (p.nameAr || p.nameEn) : (p.nameEn || p.nameAr) }}
                     </p>
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span v-if="p.category" class="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span v-if="p.category" class="rounded bg-slate-100 px-1.5 py-0.2 text-[9.5px] text-slate-600 dark:bg-slate-800 dark:text-slate-400 truncate max-w-[120px]">
                         {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
                       </span>
-                      <span class="font-mono text-slate-500 font-semibold text-[11px]">{{ p.price }} EGP</span>
+                      <span class="font-mono text-slate-700 dark:text-slate-300 font-bold text-[11px] whitespace-nowrap">{{ Number(p.price).toLocaleString() }} EGP</span>
                     </div>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  class="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-all pointer-events-none"
+                  class="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition-all pointer-events-none"
                   :class="isProductSelected(p.id)
                     ? 'bg-emerald-600 text-white'
                     : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'"
@@ -492,6 +574,16 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                   <span>{{ isProductSelected(p.id) ? (locale === 'ar' ? 'مضاف' : 'Added') : (locale === 'ar' ? 'إضافة' : 'Add') }}</span>
                 </button>
               </div>
+
+              <!-- Search Overflow Hint -->
+              <p
+                v-if="isSearching && visibleTotal > availableProducts.length"
+                class="sm:col-span-2 rounded-md bg-amber-50/70 px-2.5 py-2 text-center text-[11px] font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+              >
+                {{ locale === 'ar'
+                  ? `يوجد ${visibleTotal} نتيجة مطابقة — اكتب حروفاً أكثر من اسم المنتج لتضييق النتائج والوصول إليه.`
+                  : `Showing top ${availableProducts.length} of ${visibleTotal} matches — keep typing more of the product name to narrow it down.` }}
+              </p>
             </div>
 
             <!-- Empty Search State -->
@@ -505,6 +597,64 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
               >
                 {{ locale === 'ar' ? 'عرض الكتالوج الأساسي' : 'Reset to default list' }}
               </button>
+            </div>
+
+            <!-- Pagination Bar (Active in Browse Mode) -->
+            <div
+              v-if="!isSearching && browsePages > 1"
+              class="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t pt-3"
+              :style="{ borderColor: 'var(--color-border)' }"
+            >
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {{ locale === 'ar'
+                  ? `صفحة ${browsePage} من ${browsePages} (${catalogTotal} منتج)`
+                  : `Page ${browsePage} of ${browsePages} (${catalogTotal} products)` }}
+              </div>
+
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  :disabled="browsePage <= 1 || browseLoading"
+                  class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-800 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  @click="goToPage(browsePage - 1)"
+                >
+                  <ChevronLeft class="h-3 w-3 rtl:rotate-180" />
+                  <span>{{ locale === 'ar' ? 'السابق' : 'Prev' }}</span>
+                </button>
+
+                <div class="flex items-center gap-1">
+                  <template v-for="(p, idx) in visiblePageNumbers" :key="idx">
+                    <span
+                      v-if="p === '...'"
+                      class="px-1 text-xs text-slate-400 font-mono select-none"
+                    >
+                      …
+                    </span>
+                    <button
+                      v-else
+                      type="button"
+                      :disabled="browseLoading"
+                      class="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md px-1.5 text-[11px] font-mono font-bold transition-all"
+                      :class="p === browsePage
+                        ? 'bg-[#2B71AE] text-white shadow-xs'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800'"
+                      @click="goToPage(p)"
+                    >
+                      {{ p }}
+                    </button>
+                  </template>
+                </div>
+
+                <button
+                  type="button"
+                  :disabled="browsePage >= browsePages || browseLoading"
+                  class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-800 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  @click="goToPage(browsePage + 1)"
+                >
+                  <span>{{ locale === 'ar' ? 'التالي' : 'Next' }}</span>
+                  <ChevronRight class="h-3 w-3 rtl:rotate-180" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -574,18 +724,24 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
 
         <!-- Selected Items Table Card -->
         <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-          <div class="mb-4 flex items-center justify-between border-b pb-3" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="mb-3 flex items-center justify-between border-b pb-2.5" :style="{ borderColor: 'var(--color-border)' }">
             <div class="flex items-center gap-2">
               <FileText class="h-4 w-4 text-[#2B71AE]" />
               <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
                 {{ locale === 'ar' ? 'المنتجات المضافة لعرض السعر' : 'Quote Line Items' }}
               </h2>
             </div>
-            <span class="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <span
+              class="rounded px-2 py-0.5 font-mono text-xs font-bold"
+              :class="selectedItems.length > 0
+                ? 'bg-blue-100 text-[#2B71AE] dark:bg-blue-950 dark:text-blue-300'
+                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'"
+            >
               {{ selectedItems.length }} {{ locale === 'ar' ? 'منتجات' : 'items' }}
             </span>
           </div>
 
+          <!-- When Line Items are Selected -->
           <div v-if="selectedItems.length" class="space-y-3">
             <div class="overflow-x-auto">
               <table class="w-full text-start text-xs">
@@ -735,17 +891,23 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
             </div>
           </div>
 
-          <!-- Empty Line Items State -->
-          <div v-else class="py-8 text-center text-xs text-slate-400">
-            <Package class="h-8 w-8 mx-auto mb-2 opacity-40" />
-            <p>{{ locale === 'ar' ? 'لم يتم اختيار أي منتجات بعد.' : 'No products added to quote yet.' }}</p>
-            <p class="text-[11px] text-slate-400 mt-0.5">{{ locale === 'ar' ? 'اختر منتجات من الكتالوج أو أضف منتجاً مخصصاً أعلاه.' : 'Select catalog products or add a custom item above.' }}</p>
+          <!-- Compact Empty Line Items State (Saves vertical space) -->
+          <div v-else class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+            <div class="flex items-center justify-center gap-2">
+              <Package class="h-4 w-4 text-slate-400 shrink-0" />
+              <span class="font-medium">
+                {{ locale === 'ar' ? 'لم يتم إضافة أي منتجات لعرض السعر حتى الآن.' : 'No products added to quote yet.' }}
+              </span>
+              <span class="text-[11px] text-slate-400 hidden sm:inline">
+                {{ locale === 'ar' ? '— اضغط "إضافة" على أي منتج أعلاه لبدء تجهيز العرض.' : '— click "+ Add" on any product above to start.' }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Customer & Company Details (5 cols) -->
-      <div class="lg:col-span-5 space-y-6">
+      <!-- Right Column: Customer & Company Details (5 cols, sticky on desktop) -->
+      <div class="lg:col-span-5 space-y-5 lg:sticky lg:top-6">
         <div class="rounded-md border bg-white p-5 sm:p-6 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
           <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
             <Building2 class="h-4 w-4 text-[#2B71AE]" />
@@ -754,9 +916,9 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
             </h2>
           </div>
 
-          <form @submit.prevent="submitQuote" class="space-y-4">
+          <form @submit.prevent="submitQuote" class="space-y-3.5">
             <label class="block">
-              <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {{ locale === 'ar' ? 'اسم الشركة أو الجهة الطالبة *' : 'Company Name *' }}
               </span>
               <input
@@ -769,61 +931,99 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
               />
             </label>
 
-            <label class="block">
-              <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {{ locale === 'ar' ? 'اسم الشخص المسؤول *' : 'Contact Person *' }}
-              </span>
-              <input
-                v-model="form.contactName"
-                type="text"
-                required
-                :placeholder="locale === 'ar' ? 'اسم المهندس أو مسؤول المشتريات' : 'Contact name & title'"
-                :class="inputCls"
-                :style="{ borderColor: 'var(--color-border)' }"
-              />
-            </label>
+            <!-- Contact Name & Job Title Side-by-Side -->
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {{ locale === 'ar' ? 'اسم الشخص المسؤول *' : 'Contact Person *' }}
+                </span>
+                <input
+                  v-model="form.contactName"
+                  type="text"
+                  required
+                  :placeholder="locale === 'ar' ? 'اسم المهندس أو المسؤول' : 'Contact person name'"
+                  :class="inputCls"
+                  :style="{ borderColor: 'var(--color-border)' }"
+                />
+              </label>
+
+              <label class="block">
+                <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {{ locale === 'ar' ? 'المسمى الوظيفي (اختياري)' : 'Job Title (Optional)' }}
+                </span>
+                <input
+                  v-model="form.contactTitle"
+                  type="text"
+                  maxlength="120"
+                  :placeholder="locale === 'ar' ? 'مثال: مدير المشتريات' : 'e.g. Purchasing Manager'"
+                  :class="inputCls"
+                  :style="{ borderColor: 'var(--color-border)' }"
+                />
+              </label>
+            </div>
+
+            <!-- Phone & Email Side-by-Side -->
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {{ locale === 'ar' ? 'رقم الهاتف للتواصل *' : 'Phone Number *' }}
+                </span>
+                <input
+                  v-model="form.phone"
+                  type="tel"
+                  required
+                  placeholder="01xxxxxxxxx"
+                  dir="ltr"
+                  :class="inputCls"
+                  :style="{ borderColor: 'var(--color-border)' }"
+                />
+              </label>
+
+              <label class="block">
+                <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {{ locale === 'ar' ? 'البريد الإلكتروني (اختياري)' : 'Email (Optional)' }}
+                </span>
+                <input
+                  v-model="form.email"
+                  type="email"
+                  placeholder="procurement@company.com"
+                  dir="ltr"
+                  :class="inputCls"
+                  :style="{ borderColor: 'var(--color-border)' }"
+                />
+              </label>
+            </div>
 
             <label class="block">
-              <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {{ locale === 'ar' ? 'رقم الهاتف للتواصل *' : 'Phone Number *' }}
-              </span>
-              <input
-                v-model="form.phone"
-                type="tel"
-                required
-                placeholder="01xxxxxxxxx"
-                dir="ltr"
-                :class="inputCls"
-                :style="{ borderColor: 'var(--color-border)' }"
-              />
-            </label>
-
-            <label class="block">
-              <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {{ locale === 'ar' ? 'البريد الإلكتروني (اختياري)' : 'Email (Optional)' }}
-              </span>
-              <input
-                v-model="form.email"
-                type="email"
-                placeholder="procurement@company.com"
-                dir="ltr"
-                :class="inputCls"
-                :style="{ borderColor: 'var(--color-border)' }"
-              />
-            </label>
-
-            <label class="block">
-              <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {{ locale === 'ar' ? 'ملاحظات وشروط خاصة بالعرض (اختياري)' : 'Special Notes & Terms (Optional)' }}
               </span>
               <textarea
                 v-model="form.notes"
-                rows="3"
+                rows="2"
                 class="w-full rounded-md border bg-white p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-100"
                 :style="{ borderColor: 'var(--color-border)' }"
                 :placeholder="locale === 'ar' ? 'أي متطلبات فنية خاصة أو شروط توريد…' : 'Any specific delivery or technical requirements…'"
               ></textarea>
             </label>
+
+            <!-- Live Quote Summary Box (Always visible next to form) -->
+            <div class="rounded-lg border p-3 bg-slate-50/80 dark:bg-slate-800/40 text-xs space-y-1.5" :style="{ borderColor: 'var(--color-border)' }">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                <span>{{ locale === 'ar' ? 'عدد البنود المختارة:' : 'Selected Line Items:' }}</span>
+                <span class="font-mono font-bold text-slate-800 dark:text-slate-200">{{ selectedItems.length }}</span>
+              </div>
+              <div v-if="discountAmount > 0" class="flex items-center justify-between text-amber-600 dark:text-amber-400 font-medium">
+                <span>{{ locale === 'ar' ? 'الخصم المطبق:' : 'Applied Discount:' }}</span>
+                <span class="font-mono">-{{ discountAmount.toLocaleString() }} EGP</span>
+              </div>
+              <div class="flex items-center justify-between pt-1.5 border-t text-sm font-bold text-slate-900 dark:text-white" :style="{ borderColor: 'var(--color-border)' }">
+                <span>{{ locale === 'ar' ? 'الإجمالي التقديري:' : 'Estimated Total:' }}</span>
+                <span class="font-mono text-base font-black text-[#2B71AE] dark:text-[#F5CC07]">
+                  {{ grandTotal.toLocaleString() }} EGP
+                </span>
+              </div>
+            </div>
 
             <!-- Bilingual Export Note -->
             <div class="rounded-md bg-blue-50/70 p-3 text-[11px] text-[#2B71AE] dark:bg-blue-950/40 dark:text-blue-300 leading-relaxed border border-blue-100 dark:border-blue-900/40">
@@ -831,11 +1031,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                 {{ locale === 'ar' ? '📄 استخراج نسختين منفصلتين (عربي + إنجليزي):' : '📄 Dual Document Generation (AR + EN):' }}
               </span>
               {{ locale === 'ar'
-                ? 'يقوم النظام تلقائياً بتوليد وثيقتي PDF منفصلتين مطابقتين للنموذج المعتمد: وثيقة إنجليزية بنسق LTR وأخرى عربية باتجاه RTL مع تطبيق الخصم واسم المسؤول.'
-                : 'The system automatically compiles two separate PDF files matching the approved template: one English (LTR) and one Arabic (RTL) with localized tables and discount lines.' }}
+                ? 'يقوم النظام تلقائياً بتوليد وثيقتي PDF منفصلتين مطابقتين للنموذج المعتمد: وثيقة إنجليزية بنسق LTR وأخرى عربية باتجاه RTL مع تطبيق الخصم واسم ومسمى المسؤول.'
+                : 'The system automatically compiles two separate PDF files matching the approved template: one English (LTR) and one Arabic (RTL) with localized tables, title, and discount lines.' }}
             </div>
 
-            <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="submit"
                 :disabled="submitting || selectedItems.length === 0"

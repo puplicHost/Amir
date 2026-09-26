@@ -20,6 +20,7 @@ export interface QuotePdfData {
   quoteNumber: string
   companyName: string
   contactName: string
+  contactTitle?: string | null
   phone: string
   email?: string | null
   notes?: string | null
@@ -317,7 +318,13 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<Buffer> {
 
   // Metadata block (Company Name, Contact Person, Phone, Email, Date, Reference Code)
   const companyVal = (data.companyName && data.companyName.trim()) ? data.companyName.trim() : '-'
-  const contactVal = (data.contactName && data.contactName.trim()) ? data.contactName.trim() : '-'
+  const contactNameVal = (data.contactName && data.contactName.trim()) ? data.contactName.trim() : '-'
+  const contactTitleVal = (data.contactTitle && data.contactTitle.trim()) ? data.contactTitle.trim() : ''
+  // Template field is "Contact Person Name and Title" — single combined value.
+  // One text node (no split runs) so pdfmake-rtl bidi stays intact; no dangling separator when empty.
+  const contactVal = contactTitleVal
+    ? (isAr ? `${contactNameVal}، ${contactTitleVal}` : `${contactNameVal}, ${contactTitleVal}`)
+    : contactNameVal
   const phoneVal = (data.phone && data.phone.trim()) ? `"${data.phone.trim()}"` : '-'
   const emailVal = (data.email && data.email.trim()) ? data.email.trim() : '-'
 

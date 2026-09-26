@@ -72,6 +72,7 @@ export default defineEventHandler(async (event) => {
     quoteNumber: quote.quoteNumber,
     companyName: quote.companyName,
     contactName: quote.contactName,
+    contactTitle: quote.contactTitle ?? null,
     phone: quote.phone,
     email: quote.email,
     notes: quote.notes,

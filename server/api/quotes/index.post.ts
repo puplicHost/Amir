@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
 
   const companyName = String(body.companyName || '').trim()
   const contactName = String(body.contactName || '').trim()
+  const contactTitle = body.contactTitle ? String(body.contactTitle).trim().slice(0, 120) : null
   const phone = String(body.phone || '').trim()
   const email = body.email ? String(body.email).trim() : null
   const notes = body.notes ? String(body.notes).trim() : null
@@ -100,6 +101,7 @@ export default defineEventHandler(async (event) => {
       quoteNumber,
       companyName,
       contactName,
+      contactTitle,
       phone,
       email,
       notes,
@@ -120,6 +122,7 @@ export default defineEventHandler(async (event) => {
       quoteNumber: quote.quoteNumber,
       companyName: quote.companyName,
       contactName: quote.contactName,
+      contactTitle: quote.contactTitle,
       phone: quote.phone,
       email: quote.email,
       notes: quote.notes,
@@ -137,6 +140,7 @@ export default defineEventHandler(async (event) => {
       quoteNumber: quote.quoteNumber,
       companyName: quote.companyName,
       contactName: quote.contactName,
+      contactTitle: quote.contactTitle,
       phone: quote.phone,
       email: quote.email,
       notes: quote.notes,

@@ -19,6 +19,8 @@ export default defineEventHandler(async (event) => {
     where.OR = [
       { nameEn: { contains: s, mode: 'insensitive' } },
       { nameAr: { contains: s, mode: 'insensitive' } },
+      { category: { is: { nameEn: { contains: s, mode: 'insensitive' } } } },
+      { category: { is: { nameAr: { contains: s, mode: 'insensitive' } } } },
     ]
   }
   const price: Record<string, number> = {}
