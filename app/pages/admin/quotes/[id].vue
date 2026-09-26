@@ -111,16 +111,26 @@ function formatDate(d: string) {
           <AdminStatusBadge :status="data.quote.status" size="md" />
         </template>
         <template #actions>
-          <a
-            v-if="data.quote.pdfPath"
-            :href="data.quote.pdfPath"
-            target="_blank"
-            download
-            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E] transition-colors"
-          >
-            <Download class="h-4 w-4" />
-            <span>{{ locale === 'ar' ? 'تحميل ملف PDF' : 'Download PDF' }}</span>
-          </a>
+          <div class="flex items-center gap-2">
+            <a
+              :href="`/api/quotes/${data.quote.id}/pdf?locale=en`"
+              target="_blank"
+              download
+              class="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#2B71AE] px-3 text-xs font-semibold text-[#2B71AE] hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:border-blue-400 transition-colors"
+            >
+              <Download class="h-3.5 w-3.5" />
+              <span>PDF (EN)</span>
+            </a>
+            <a
+              :href="`/api/quotes/${data.quote.id}/pdf?locale=ar`"
+              target="_blank"
+              download
+              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-3.5 text-xs font-bold text-white shadow-xs hover:bg-[#285E8E] transition-colors"
+            >
+              <Download class="h-3.5 w-3.5" />
+              <span>تحميل PDF (عربي)</span>
+            </a>
+          </div>
         </template>
       </AdminPageHeader>
 
@@ -150,11 +160,11 @@ function formatDate(d: string) {
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
                   <tr v-for="item in data.quote.items" :key="item.id" class="text-xs">
                     <td class="py-3 text-start">
-                      <div class="flex items-center gap-3">
+                      <div class="flex items-start gap-3">
                         <div class="h-10 w-10 shrink-0 overflow-hidden rounded border bg-slate-50 dark:bg-slate-800">
                           <img 
-                            v-if="item.product?.images?.[0]?.path" 
-                            :src="item.product.images[0].path" 
+                            v-if="item.imagePath || item.product?.images?.[0]?.path" 
+                            :src="item.imagePath || item.product?.images?.[0]?.path" 
                             :alt="item.productNameSnapshot" 
                             class="h-full w-full object-cover" 
                           />
@@ -163,7 +173,15 @@ function formatDate(d: string) {
                           </div>
                         </div>
                         <div>
-                          <p class="font-bold text-slate-900 dark:text-slate-100">{{ item.productNameSnapshot }}</p>
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <p class="font-bold text-slate-900 dark:text-slate-100">{{ item.productNameSnapshot }}</p>
+                            <span v-if="item.isCustom" class="rounded bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 px-1.5 py-0.2 text-[9px] font-bold">
+                              {{ locale === 'ar' ? 'مخصص' : 'Custom' }}
+                            </span>
+                          </div>
+                          <p v-if="item.notes" class="text-[11px] text-slate-500 mt-0.5">
+                            {{ locale === 'ar' ? 'ملاحظة: ' : 'Note: ' }}{{ item.notes }}
+                          </p>
                           <NuxtLink v-if="item.product?.slug" :to="localePath(`/p/${item.product.slug}`)" target="_blank" class="text-[11px] text-[#2B71AE] hover:underline dark:text-blue-400">
                             {{ locale === 'ar' ? 'معاينة المنتج في المتجر' : 'View on Storefront' }}
                           </NuxtLink>
@@ -184,14 +202,29 @@ function formatDate(d: string) {
               </table>
             </div>
 
-            <!-- Grand Total Bar -->
-            <div class="mt-4 flex items-center justify-between border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">
-                {{ locale === 'ar' ? 'الإجمالي الكلي' : 'Grand Total' }}
-              </span>
-              <span class="font-mono text-xl font-black text-[#2B71AE] dark:text-[#F5CC07]">
-                {{ Number(data.quote.totalAmount).toLocaleString() }} EGP
-              </span>
+            <!-- Grand Total & Discount Bar -->
+            <div class="mt-4 space-y-1.5 border-t pt-3 text-xs" :style="{ borderColor: 'var(--color-border)' }">
+              <div v-if="Number(data.quote.discountAmount) > 0" class="flex items-center justify-between text-slate-500">
+                <span>{{ locale === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
+                <span class="font-mono font-semibold">{{ Number(data.quote.subtotalAmount || data.quote.totalAmount).toLocaleString() }} EGP</span>
+              </div>
+
+              <div v-if="Number(data.quote.discountAmount) > 0" class="flex items-center justify-between text-amber-600 dark:text-amber-400 font-semibold">
+                <span>
+                  {{ locale === 'ar' ? 'الخصم المطبق:' : 'Applied Discount:' }}
+                  <span v-if="data.quote.discountType === 'percentage'">({{ Number(data.quote.discountValue) }}%)</span>
+                </span>
+                <span class="font-mono">-{{ Number(data.quote.discountAmount).toLocaleString() }} EGP</span>
+              </div>
+
+              <div class="flex items-center justify-between pt-2 border-t font-heading" :style="{ borderColor: 'var(--color-border)' }">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                  {{ locale === 'ar' ? 'الإجمالي الكلي النهائي:' : 'Final Grand Total:' }}
+                </span>
+                <span class="font-mono text-xl font-black text-[#2B71AE] dark:text-[#F5CC07]">
+                  {{ Number(data.quote.totalAmount).toLocaleString() }} EGP
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -242,6 +275,35 @@ function formatDate(d: string) {
                 <p class="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded text-xs whitespace-pre-wrap">
                   {{ data.quote.notes }}
                 </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Representative Card -->
+          <div
+            v-if="data.quote.accountRepEmail || data.quote.accountRepPhone"
+            class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]"
+            :style="{ borderColor: 'var(--color-border)' }"
+          >
+            <h2 class="mb-3 font-heading text-base font-bold text-slate-900 dark:text-slate-100 border-b pb-2">
+              {{ locale === 'ar' ? 'المسؤول عن العرض' : 'Account Representative' }}
+            </h2>
+
+            <div class="space-y-3 text-xs">
+              <div v-if="data.quote.accountRepEmail" class="flex items-start gap-2.5">
+                <Mail class="h-4 w-4 text-[#2B71AE] shrink-0 mt-0.5" />
+                <div>
+                  <span class="text-slate-400 block">{{ locale === 'ar' ? 'البريد الإلكتروني' : 'Email' }}</span>
+                  <a :href="`mailto:${data.quote.accountRepEmail}`" class="text-slate-800 hover:underline dark:text-slate-200">{{ data.quote.accountRepEmail }}</a>
+                </div>
+              </div>
+
+              <div v-if="data.quote.accountRepPhone" class="flex items-start gap-2.5">
+                <Phone class="h-4 w-4 text-[#2B71AE] shrink-0 mt-0.5" />
+                <div>
+                  <span class="text-slate-400 block">{{ locale === 'ar' ? 'رقم الهاتف' : 'Phone' }}</span>
+                  <a :href="`tel:${data.quote.accountRepPhone}`" dir="ltr" class="font-mono font-semibold text-[#2B71AE] hover:underline dark:text-blue-400">{{ data.quote.accountRepPhone }}</a>
+                </div>
               </div>
             </div>
           </div>

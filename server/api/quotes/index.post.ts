@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     where: { id: { in: productIds }, isActive: true },
     include: {
       category: { select: { nameAr: true, nameEn: true } },
+      images: { where: { isCover: true }, take: 1, select: { path: true } },
     },
   })
 
@@ -43,10 +44,10 @@ export default defineEventHandler(async (event) => {
   const randomSuffix = Math.floor(1000 + Math.random() * 9000)
   const quoteNumber = `QT-${datePrefix}-${randomSuffix}`
 
-  // Match items with real DB prices
   let grandTotal = 0
   const quoteItemsData: any[] = []
-  const pdfItems: any[] = []
+  const pdfItemsEn: any[] = []
+  const pdfItemsAr: any[] = []
 
   for (const raw of rawItems) {
     const product = dbProducts.find(p => p.id === raw.productId)
@@ -56,20 +57,34 @@ export default defineEventHandler(async (event) => {
     const price = Number(product.price)
     const subtotal = price * qty
     grandTotal += subtotal
-
-    const name = locale === 'ar' ? product.nameAr : product.nameEn
-    const categoryName = product.category ? (locale === 'ar' ? product.category.nameAr : product.category.nameEn) : ''
+    const imagePath = product.images?.[0]?.path || null
 
     quoteItemsData.push({
       productId: product.id,
-      productNameSnapshot: name,
+      productNameSnapshot: product.nameEn,
+      productNameEnSnapshot: product.nameEn,
+      productNameArSnapshot: product.nameAr,
       priceSnapshot: price,
       quantity: qty,
+      imagePath,
+      isCustom: false,
     })
 
-    pdfItems.push({
-      name,
-      categoryName,
+    pdfItemsEn.push({
+      name: product.nameEn,
+      nameEn: product.nameEn,
+      nameAr: product.nameAr,
+      imagePath,
+      price,
+      quantity: qty,
+      subtotal,
+    })
+
+    pdfItemsAr.push({
+      name: product.nameAr,
+      nameEn: product.nameEn,
+      nameAr: product.nameAr,
+      imagePath,
       price,
       quantity: qty,
       subtotal,
@@ -88,44 +103,74 @@ export default defineEventHandler(async (event) => {
       phone,
       email,
       notes,
+      subtotalAmount: grandTotal,
       totalAmount: grandTotal,
       status: 'New',
+      accountRepEmail: siteSettings?.contactEmail || 'sales@mango-electronics.com',
+      accountRepPhone: siteSettings?.contactPhone1 || '01000000000',
       items: {
         create: quoteItemsData,
       },
     },
   })
 
-  // Generate PDF buffer
-  const pdfBuffer = await generateQuotePdf({
-    quoteNumber: quote.quoteNumber,
-    companyName: quote.companyName,
-    contactName: quote.contactName,
-    phone: quote.phone,
-    email: quote.email,
-    notes: quote.notes,
-    createdAt: quote.createdAt,
-    items: pdfItems,
-    totalAmount: grandTotal,
-    locale,
-    siteSettings: siteSettings ? {
-      siteNameAr: siteSettings.siteNameAr,
-      siteNameEn: siteSettings.siteNameEn,
-      contactPhone1: siteSettings.contactPhone1,
-      contactEmail: siteSettings.contactEmail,
-      contactAddressAr: siteSettings.contactAddressAr,
-      contactAddressEn: siteSettings.contactAddressEn,
-    } : undefined,
-  })
+  // Generate BOTH English and Arabic PDFs
+  const [pdfBufferEn, pdfBufferAr] = await Promise.all([
+    generateQuotePdf({
+      quoteNumber: quote.quoteNumber,
+      companyName: quote.companyName,
+      contactName: quote.contactName,
+      phone: quote.phone,
+      email: quote.email,
+      notes: quote.notes,
+      createdAt: quote.createdAt,
+      items: pdfItemsEn,
+      subtotalAmount: grandTotal,
+      totalAmount: grandTotal,
+      locale: 'en',
+      termsText: siteSettings?.quoteTermsEn,
+      accountRepEmail: quote.accountRepEmail,
+      accountRepPhone: quote.accountRepPhone,
+      siteSettings: siteSettings || undefined,
+    }),
+    generateQuotePdf({
+      quoteNumber: quote.quoteNumber,
+      companyName: quote.companyName,
+      contactName: quote.contactName,
+      phone: quote.phone,
+      email: quote.email,
+      notes: quote.notes,
+      createdAt: quote.createdAt,
+      items: pdfItemsAr,
+      subtotalAmount: grandTotal,
+      totalAmount: grandTotal,
+      locale: 'ar',
+      termsText: siteSettings?.quoteTermsAr,
+      accountRepEmail: quote.accountRepEmail,
+      accountRepPhone: quote.accountRepPhone,
+      siteSettings: siteSettings || undefined,
+    }),
+  ])
 
-  // Save PDF to storage
-  const filename = `Quotation-${quote.quoteNumber}.pdf`
-  const { relativePath } = await storeFile(pdfBuffer, `quotes/${quote.id}`, filename)
+  // Save both PDFs to storage
+  const filenameEn = `Quotation-${quote.quoteNumber}-EN.pdf`
+  const filenameAr = `Quotation-${quote.quoteNumber}-AR.pdf`
 
-  // Update quote with pdfPath
+  const [storedEn, storedAr] = await Promise.all([
+    storeFile(pdfBufferEn, `quotes/${quote.id}`, filenameEn),
+    storeFile(pdfBufferAr, `quotes/${quote.id}`, filenameAr),
+  ])
+
+  const initialDownload = locale === 'ar' ? storedAr.relativePath : storedEn.relativePath
+
+  // Update quote with pdfPath, pdfPathEn, pdfPathAr
   await prisma.quoteRequest.update({
     where: { id: quote.id },
-    data: { pdfPath: relativePath },
+    data: {
+      pdfPath: initialDownload,
+      pdfPathEn: storedEn.relativePath,
+      pdfPathAr: storedAr.relativePath,
+    },
   })
 
   await notifyAdmins({
@@ -152,7 +197,9 @@ export default defineEventHandler(async (event) => {
   return {
     quoteId: quote.id,
     quoteNumber: quote.quoteNumber,
-    downloadUrl: relativePath,
+    downloadUrl: initialDownload,
+    downloadUrlEn: storedEn.relativePath,
+    downloadUrlAr: storedAr.relativePath,
     totalAmount: grandTotal,
   }
 })

@@ -1,7 +1,20 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import printerModule from 'pdfmake-rtl/js/Printer.js'
+import sharp from 'sharp'
 
 const PdfPrinter = printerModule.default?.default || printerModule.default || printerModule
+
+export interface QuotePdfItem {
+  name: string
+  nameAr?: string
+  nameEn?: string
+  imagePath?: string | null
+  notes?: string | null
+  price: number
+  quantity: number
+  subtotal: number
+}
 
 export interface QuotePdfData {
   quoteNumber: string
@@ -10,23 +23,57 @@ export interface QuotePdfData {
   phone: string
   email?: string | null
   notes?: string | null
-  createdAt: Date
-  items: Array<{
-    name: string
-    categoryName?: string
-    price: number
-    quantity: number
-    subtotal: number
-  }>
+  createdAt: Date | string
+  items: QuotePdfItem[]
+  subtotalAmount?: number
+  discountType?: 'percentage' | 'fixed' | 'none' | string | null
+  discountValue?: number | null
+  discountAmount?: number | null
   totalAmount: number
-  locale?: string
+  locale: 'ar' | 'en'
+  termsText?: string | null
+  accountRepEmail?: string | null
+  accountRepPhone?: string | null
   siteSettings?: {
     siteNameAr?: string
     siteNameEn?: string
+    taglineAr?: string
+    taglineEn?: string
     contactPhone1?: string
     contactEmail?: string
-    contactAddressAr?: string
-    contactAddressEn?: string
+  }
+}
+
+const DEFAULT_TERMS_EN = [
+  'Standard terms and conditions (Editable/Modifiable as needed).',
+  'All components and industrial modules are 100% genuine with verified technical datasheets.',
+  'Prices are quoted in Egyptian Pounds (EGP) and valid for 30 calendar days from issue date.',
+  'Standard technical warranty and preventative maintenance terms apply per manufacturer specs.',
+]
+
+const DEFAULT_TERMS_AR = [
+  'الشروط والأحكام القياسية المعتمدة (قابلة للتعديل حسب متطلبات المشروع).',
+  'جميع المكونات والوحدات الصناعية أصلية 100% ومرفق معها كتيبات المواصفات الفنية المعتمدة.',
+  'الأسعار الموضحة بالجنيه المصري وسارية لمدة 30 يوماً تقويمياً من تاريخ إصدار هذا العرض.',
+  'تطبق شروط الضمان الفني والصيانة الدورية المعتمدة وفقاً لمعايير الشركات المصنعة.',
+]
+
+let cachedLogoDataUri: string | null = null
+
+async function getLogoDataUri(): Promise<string | null> {
+  if (cachedLogoDataUri) return cachedLogoDataUri
+  try {
+    const logoPath = path.resolve(process.cwd(), 'public/logo.png')
+    if (!fs.existsSync(logoPath)) return null
+    const buffer = await sharp(logoPath)
+      .resize({ width: 240, height: 140, fit: 'inside' })
+      .png()
+      .toBuffer()
+    cachedLogoDataUri = `data:image/png;base64,${buffer.toString('base64')}`
+    return cachedLogoDataUri
+  }
+  catch {
+    return null
   }
 }
 
@@ -43,188 +90,446 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<Buffer> {
   }
 
   const printer = new PdfPrinter(fonts)
+  const isAr = data.locale === 'ar'
 
-  const isAr = data.locale === 'ar' || !data.locale
-  const dateFormatted = new Date(data.createdAt).toLocaleDateString(isAr ? 'ar-EG' : 'en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // Date formatting: [Day], [DD/MM/YYYY]
+  const d = new Date(data.createdAt)
+  const dayName = d.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long' })
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  const dateFormatted = `${dayName}, ${day}/${month}/${year}`
 
+  // Calculate Subtotal & Discount amounts
+  const subtotal = Number(data.subtotalAmount || data.items.reduce((s, i) => s + i.subtotal, 0))
+  const discountType = data.discountType || 'none'
+  const discountVal = Number(data.discountValue || 0)
+  let discountAmount = Number(data.discountAmount || 0)
+
+  if (discountType === 'percentage' && discountVal > 0 && !discountAmount) {
+    discountAmount = Math.round(((subtotal * discountVal) / 100) * 100) / 100
+  }
+  else if (discountType === 'fixed' && discountVal > 0 && !discountAmount) {
+    discountAmount = Math.min(subtotal, discountVal)
+  }
+
+  const finalTotal = Number(data.totalAmount || Math.max(0, subtotal - discountAmount))
+
+  // Pre-load logo image
+  const logoDataUri = await getLogoDataUri()
+
+  // Construct Table of Quote Details
   const tableBody: any[] = [
     [
-      { text: isAr ? '#' : '#', style: 'tableHeader', alignment: 'center' },
-      { text: isAr ? 'المنتج والمواصفات' : 'Product & Description', style: 'tableHeader' },
-      { text: isAr ? 'الكمية' : 'Qty', style: 'tableHeader', alignment: 'center' },
+      { text: '#', style: 'tableHeader', alignment: 'center' },
+      { text: isAr ? 'وصف المنتج والمواصفات' : 'Product Description', style: 'tableHeader', alignment: isAr ? 'right' : 'left' },
+      { text: isAr ? 'الكمية' : 'Quantity', style: 'tableHeader', alignment: 'center' },
       { text: isAr ? 'سعر الوحدة' : 'Unit Price', style: 'tableHeader', alignment: 'center' },
-      { text: isAr ? 'الإجمالي' : 'Subtotal', style: 'tableHeader', alignment: 'center' },
+      { text: isAr ? 'الإجمالي' : 'Line Total', style: 'tableHeader', alignment: 'center' },
     ],
   ]
 
   data.items.forEach((item, index) => {
+    const localizedName = isAr
+      ? (item.nameAr || item.name)
+      : (item.nameEn || item.name)
+
+    const descCell: any = {
+      stack: [
+        { text: localizedName, bold: true, fontSize: 9.5, alignment: isAr ? 'right' : 'left' },
+        ...(item.notes
+          ? [{
+              text: isAr ? `ملاحظات: ${item.notes}` : `Notes: ${item.notes}`,
+              fontSize: 8,
+              color: '#64748B',
+              margin: [0, 2, 0, 0],
+              alignment: isAr ? 'right' : 'left',
+            }]
+          : []),
+      ],
+      margin: [0, 4, 0, 4],
+    }
+
     tableBody.push([
-      { text: String(index + 1), alignment: 'center', margin: [0, 5, 0, 5] },
-      {
-        stack: [
-          { text: item.name, bold: true },
-          ...(item.categoryName ? [{ text: item.categoryName, fontSize: 9, color: '#64748b' }] : []),
-        ],
-        margin: [0, 5, 0, 5],
-      },
-      { text: String(item.quantity), alignment: 'center', margin: [0, 5, 0, 5], bold: true },
-      { text: `${item.price.toLocaleString()} EGP`, alignment: 'center', margin: [0, 5, 0, 5] },
-      { text: `${item.subtotal.toLocaleString()} EGP`, alignment: 'center', margin: [0, 5, 0, 5], bold: true, color: '#2B71AE' },
+      { text: String(index + 1), alignment: 'center', margin: [0, 6, 0, 6], bold: true, fontSize: 9 },
+      descCell,
+      { text: String(item.quantity), alignment: 'center', margin: [0, 6, 0, 6], bold: true, fontSize: 9 },
+      { text: `${item.price.toLocaleString()} EGP`, alignment: 'center', margin: [0, 6, 0, 6], fontSize: 9 },
+      { text: `${item.subtotal.toLocaleString()} EGP`, alignment: 'center', margin: [0, 6, 0, 6], bold: true, fontSize: 9 },
     ])
   })
 
-  // Grand Total Row
+  // Discount Row (colSpan 3 across columns 2, 3, 4 matching Image 1)
+  const discountLabel = discountType === 'percentage'
+    ? `${discountVal}%`
+    : `${discountVal.toLocaleString()} EGP`
+
   tableBody.push([
-    { text: isAr ? 'الإجمالي الكلي' : 'Grand Total', colSpan: 4, bold: true, alignment: 'right', margin: [0, 6, 10, 6] },
+    {
+      text: isAr ? 'الخصم' : 'Discount',
+      bold: true,
+      alignment: 'center',
+      margin: [0, 5, 0, 5],
+      fontSize: 9,
+    },
+    {
+      text: isAr
+        ? (discountAmount > 0 ? `خصم مطبق (${discountLabel})` : 'إذا كان مطبقاً - نسبة مئوية أو مبلغ ثابت')
+        : (discountAmount > 0 ? `Applied discount (${discountLabel})` : '[If applicable - select discount percentage or fixed amount]'),
+      colSpan: 3,
+      margin: [0, 5, 0, 5],
+      color: '#64748B',
+      fontSize: 8.5,
+      alignment: isAr ? 'right' : 'left',
+    },
     {},
     {},
-    {},
-    { text: `${data.totalAmount.toLocaleString()} EGP`, bold: true, alignment: 'center', margin: [0, 6, 0, 6], color: '#2B71AE', fontSize: 11 },
+    {
+      text: discountAmount > 0 ? `-${discountAmount.toLocaleString()} EGP` : '-',
+      bold: true,
+      alignment: 'center',
+      margin: [0, 5, 0, 5],
+      color: discountAmount > 0 ? '#D97706' : '#64748B',
+      fontSize: 9,
+    },
   ])
 
-  const docDefinition: any = {
-    pageSize: 'A4',
-    pageMargins: [36, 40, 36, 40],
-    defaultStyle: {
-      font: 'Cairo',
-      fontSize: 10,
-      color: '#0f172a',
+  // Grand Total Row (colSpan 3 across columns 2, 3, 4 matching Image 1)
+  tableBody.push([
+    {
+      text: isAr ? 'الإجمالي الكلي' : 'Grand Total',
+      bold: true,
+      alignment: 'center',
+      margin: [0, 6, 0, 6],
+      fontSize: 9.5,
+      color: '#1F4E79',
     },
-    content: [
-      // Top Header with Branding
-      {
-        columns: [
+    {
+      text: isAr ? 'إجمالي جميع البنود بعد تطبيق الخصم' : 'Overall total of all items after applying discount',
+      bold: true,
+      colSpan: 3,
+      margin: [0, 6, 0, 6],
+      fontSize: 9,
+      color: '#1F4E79',
+      alignment: isAr ? 'right' : 'left',
+    },
+    {},
+    {},
+    {
+      text: `${finalTotal.toLocaleString()} EGP`,
+      bold: true,
+      alignment: 'center',
+      margin: [0, 6, 0, 6],
+      color: '#1F4E79',
+      fontSize: 10,
+    },
+  ])
+
+  // Terms & Conditions resolution
+  let termsLines: string[] = []
+  if (data.termsText && data.termsText.trim()) {
+    termsLines = data.termsText.split('\n').filter(l => l.trim().length > 0)
+  }
+  if (!termsLines.length) {
+    termsLines = isAr ? DEFAULT_TERMS_AR : DEFAULT_TERMS_EN
+  }
+
+  // Account Representative contact info
+  const repEmail = data.accountRepEmail || data.siteSettings?.contactEmail || 'admin@mango-electronics.com'
+  const repPhone = data.accountRepPhone || data.siteSettings?.contactPhone1 || '+201206692076'
+
+  // Top header: Contact Box (left in EN, right in AR)
+  const contactBox: any = {
+    table: {
+      widths: [175],
+      body: [
+        [
           {
             stack: [
-              { text: isAr ? 'مانجو إلكترونيكس' : 'Mango Electronics', fontSize: 18, bold: true, color: '#2B71AE' },
-              { text: isAr ? 'اعملها صح، اعملها بذكاء' : 'Do It Right, Do It Smart', fontSize: 10, color: '#64748b', margin: [0, 2, 0, 0] },
-              { text: isAr ? 'حلول هندسية متكاملة وتوريد مكونات صناعية' : 'Integrated Industrial Engineering & Electronics', fontSize: 9, color: '#94a3b8' },
+              {
+                text: [
+                  { text: isAr ? 'مانجو ' : 'MANGO ', color: '#F5A623', bold: true, fontSize: 10 },
+                  { text: isAr ? 'إلكترونيكس' : 'ELECTRONICS', color: '#2B71AE', bold: true, fontSize: 10 },
+                ],
+                alignment: 'center',
+              },
+              {
+                text: isAr ? 'مصر - الإسماعيلية' : 'Egypt - Ismailia',
+                fontSize: 8.5,
+                color: '#334155',
+                alignment: 'center',
+                decoration: 'underline',
+                margin: [0, 1.5, 0, 1.5],
+              },
+              {
+                text: '+201206692076 - +201145471933',
+                fontSize: 8,
+                color: '#475569',
+                alignment: 'center',
+              },
             ],
-          },
-          {
-            stack: [
-              { text: isAr ? 'عرض أسعار رسمي' : 'Official Price Quotation', fontSize: 16, bold: true, alignment: 'right', color: '#0f172a' },
-              { text: `${isAr ? 'رقم العرض:' : 'Quote #:'} ${data.quoteNumber}`, fontSize: 11, bold: true, color: '#2B71AE', alignment: 'right', margin: [0, 2, 0, 0] },
-              { text: `${isAr ? 'التاريخ:' : 'Date:'} ${dateFormatted}`, fontSize: 9, color: '#64748b', alignment: 'right' },
-              { text: `${isAr ? 'الصلاحية: 30 يوماً من تاريخ الإصدار' : 'Validity: 30 Days from issue'}`, fontSize: 9, color: '#F59E0B', alignment: 'right', bold: true },
-            ],
+            margin: [4, 4, 4, 4],
           },
         ],
-        margin: [0, 0, 0, 20],
-      },
+      ],
+    },
+    layout: {
+      hLineWidth: () => 1,
+      vLineWidth: () => 1,
+      hLineColor: () => '#8FAADC',
+      vLineColor: () => '#8FAADC',
+    },
+  }
 
-      // Divider Line
-      {
-        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 1.5, lineColor: '#2B71AE' }],
-        margin: [0, 0, 0, 16],
-      },
+  // Top header: Logo Block (right in EN, left in AR)
+  const logoBlock: any = logoDataUri
+    ? {
+        image: logoDataUri,
+        width: 105,
+        alignment: isAr ? 'left' : 'right',
+      }
+    : {
+        stack: [
+          { text: 'MANGO ELECTRONICS', fontSize: 13, bold: true, color: '#2B71AE' },
+          { text: 'DO IT RIGHT, DO IT SMART', fontSize: 8, color: '#64748B' },
+        ],
+        alignment: isAr ? 'left' : 'right',
+      }
 
-      // Client / Company Information Box
+  // Top header row
+  const topHeaderRow = isAr
+    ? {
+        columns: [
+          logoBlock,
+          { text: '', width: '*' },
+          contactBox,
+        ],
+        margin: [0, 0, 0, 10],
+      }
+    : {
+        columns: [
+          contactBox,
+          { text: '', width: '*' },
+          logoBlock,
+        ],
+        margin: [0, 0, 0, 10],
+      }
+
+  // Metadata block (Company Name, Contact Person, Phone, Email, Date, Reference Code)
+  const companyVal = (data.companyName && data.companyName.trim()) ? data.companyName.trim() : '-'
+  const contactVal = (data.contactName && data.contactName.trim()) ? data.contactName.trim() : '-'
+  const phoneVal = (data.phone && data.phone.trim()) ? `"${data.phone.trim()}"` : '-'
+  const emailVal = (data.email && data.email.trim()) ? data.email.trim() : '-'
+
+  const metadataBlock = {
+    stack: [
       {
-        style: 'infoBox',
         table: {
-          widths: ['*'],
+          rtl: isAr,
+          widths: ['*', '*'],
           body: [
             [
               {
-                stack: [
-                  { text: isAr ? 'بيانات العميل والجهة الطالبة:' : 'Quotation Issued To:', fontSize: 11, bold: true, color: '#2B71AE', margin: [0, 0, 0, 6] },
-                  {
-                    columns: [
-                      {
-                        stack: [
-                          { text: `${isAr ? 'الشركة / المنشأة:' : 'Company:'} ${data.companyName}`, bold: true },
-                          { text: `${isAr ? 'المسؤول:' : 'Contact Person:'} ${data.contactName}`, margin: [0, 2, 0, 0] },
-                        ],
-                      },
-                      {
-                        stack: [
-                          { text: `${isAr ? 'الهاتف:' : 'Phone:'} ${data.phone}`, bold: true },
-                          ...(data.email ? [{ text: `${isAr ? 'البريد:' : 'Email:'} ${data.email}`, margin: [0, 2, 0, 0] }] : []),
-                        ],
-                      },
-                    ],
-                  },
-                  ...(data.notes ? [
-                    { text: `${isAr ? 'ملاحظات:' : 'Notes:'} ${data.notes}`, fontSize: 9, color: '#475569', margin: [0, 6, 0, 0] },
-                  ] : []),
+                text: [
+                  { text: isAr ? 'اسم الشركة: ' : 'Company Name: ', bold: true, color: '#1F4E79' },
+                  { text: companyVal, color: '#0F172A' },
                 ],
-                fillColor: '#F8FAFC',
-                margin: [10, 8, 10, 8],
+                alignment: isAr ? 'right' : 'left',
+              },
+              {
+                text: [
+                  { text: isAr ? 'الشخص المسؤول: ' : 'Contact Person: ', bold: true, color: '#1F4E79' },
+                  { text: contactVal, color: '#0F172A' },
+                ],
+                alignment: isAr ? 'right' : 'left',
+              },
+            ],
+            [
+              {
+                text: [
+                  { text: isAr ? 'رقم الهاتف: ' : 'Phone number: ', bold: true, color: '#1F4E79' },
+                  { text: phoneVal, color: '#0F172A' },
+                ],
+                alignment: isAr ? 'right' : 'left',
+              },
+              {
+                text: [
+                  { text: isAr ? 'البريد: ' : 'Email: ', bold: true, color: '#1F4E79' },
+                  { text: emailVal, color: '#0F172A' },
+                ],
+                alignment: isAr ? 'right' : 'left',
               },
             ],
           ],
         },
         layout: {
-          hLineWidth: () => 1,
-          vLineWidth: () => 1,
-          hLineColor: () => '#E2E8F0',
-          vLineColor: () => '#E2E8F0',
+          hLineWidth: () => 0,
+          vLineWidth: () => 0,
+          paddingLeft: (i: number) => (i === 0 ? 0 : 12),
+          paddingRight: (i: number) => (i === 0 ? 12 : 0),
+          paddingTop: () => 3,
+          paddingBottom: () => 3,
         },
-        margin: [0, 0, 0, 20],
+        margin: [0, 0, 0, 2],
+      },
+      {
+        text: [
+          { text: isAr ? 'التاريخ: ' : 'Date: ', bold: true, color: '#1F4E79' },
+          { text: `${dateFormatted} ` },
+          { text: isAr ? '(توليد تلقائي من النظام)' : '(Auto-generated by system)', italics: true, color: '#64748B', fontSize: 8.5 },
+        ],
+        margin: [0, 3, 0, 0],
+        alignment: isAr ? 'right' : 'left',
+      },
+      {
+        text: [
+          { text: isAr ? 'الرمز المرجعي للعرض: ' : 'Quote Reference Code: ', bold: true, color: '#1F4E79' },
+          { text: data.quoteNumber, bold: true, color: '#2B71AE' },
+        ],
+        margin: [0, 3, 0, 12],
+        alignment: isAr ? 'right' : 'left',
+      },
+    ],
+    fontSize: 9.5,
+  }
+
+  const docDefinition: any = {
+    pageSize: 'A4',
+    pageMargins: [36, 28, 36, 28],
+    defaultStyle: {
+      font: 'Cairo',
+      fontSize: 9.5,
+      color: '#0F172A',
+    },
+    content: [
+      // 1. Top Header Row: Contact Box & Logo
+      topHeaderRow,
+
+      // 2. Main Title: PRICE QUOTE / عرض سعر
+      {
+        text: isAr ? 'عرض سعر' : 'PRICE QUOTE',
+        fontSize: 18,
+        bold: true,
+        color: '#1F4E79',
+        alignment: 'center',
+        margin: [0, 0, 0, 10],
       },
 
-      // Table of Products
+      // 3. Metadata Lines
+      metadataBlock,
+
+      // 4. Quote Details Table (styled exactly per template)
       {
         table: {
           headerRows: 1,
-          widths: [24, '*', 45, 80, 85],
+          widths: [20, '*', 50, 75, 80],
           body: tableBody,
         },
         layout: {
-          hLineWidth: (i: number, node: any) => (i === 0 || i === 1 || i === node.table.body.length ? 1.5 : 0.5),
-          vLineWidth: () => 0,
-          hLineColor: (i: number, node: any) => (i === 0 || i === 1 ? '#2B71AE' : '#E2E8F0'),
+          hLineWidth: () => 0.8,
+          vLineWidth: () => 0.8,
+          hLineColor: () => '#8FAADC',
+          vLineColor: () => '#8FAADC',
           fillColor: (i: number) => {
-            if (i === 0) return '#2B71AE'
-            return i % 2 === 0 ? '#F8FAFC' : null
+            if (i === 0) return '#D9E1F2' // pastel blue matching template
+            return null
           },
         },
-        margin: [0, 0, 0, 24],
-      },
-
-      // Terms & Guarantee Note
-      {
-        stack: [
-          { text: isAr ? 'الشروط والضمان الفني:' : 'Terms & Technical Guarantee:', fontSize: 10, bold: true, color: '#0f172a', margin: [0, 0, 0, 4] },
-          { text: isAr ? '• جميع المكونات والأجهزة أصلية 100% ومرفقة معها كتيبات المواصفات الفنية المعتمدة.' : '• All components and modules are 100% genuine with verified technical datasheets.', fontSize: 8.5, color: '#64748b' },
-          { text: isAr ? '• الأسعار الموضحة بالجنيه المصري وسارية لمدة 30 يوماً من تاريخ هذا العرض.' : '• Prices are in Egyptian Pounds (EGP) and valid for 30 calendar days from issue date.', fontSize: 8.5, color: '#64748b' },
-          { text: isAr ? '• التوريد متاح لجميع المحافظات مع إمكانية الفحص الفني عند الاستلام.' : '• Nationwide delivery across Egypt with on-delivery inspection support.', fontSize: 8.5, color: '#64748b' },
-        ],
-        margin: [0, 0, 0, 24],
-      },
-
-      // Official Footer
-      {
-        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.8, lineColor: '#E2E8F0' }],
         margin: [0, 0, 0, 10],
       },
+
+      // 5. Section Titles: Quote Details & Terms & Conditions
       {
-        columns: [
+        text: isAr ? 'تفاصيل عرض السعر' : 'Quote Details',
+        fontSize: 10.5,
+        bold: true,
+        color: '#1F4E79',
+        margin: [0, 4, 0, 2],
+        alignment: isAr ? 'right' : 'left',
+      },
+      {
+        text: isAr ? 'الشروط والأحكام' : 'Terms & Conditions',
+        fontSize: 10.5,
+        bold: true,
+        color: '#1F4E79',
+        margin: [0, 2, 0, 4],
+        alignment: isAr ? 'right' : 'left',
+      },
+
+      // 6. Bulleted Terms List
+      {
+        stack: termsLines.map((line: string) => ({
+          text: `• ${line.trim().replace(/^[•\-\*]\s*/, '')}`,
+          fontSize: 8.5,
+          color: '#334155',
+          margin: [0, 1, 0, 1],
+          alignment: isAr ? 'right' : 'left',
+        })),
+        margin: [0, 0, 0, 10],
+      },
+
+      // 7. Closing Thank You Line (Centered, matching Image 1)
+      {
+        text: isAr
+          ? 'نشكركم على ثقتكم وتعاملكم معنا، ونتطلع للعمل معكم دائماً.'
+          : 'Thank you for your trust and business. We look forward to working with you.',
+        fontSize: 9.5,
+        bold: true,
+        color: '#1F4E79',
+        alignment: 'center',
+        margin: [0, 6, 0, 10],
+      },
+
+      // 8. Brand Signature (Centered, matching Image 1)
+      {
+        stack: [
           {
-            text: `${data.siteSettings?.siteNameAr || 'مانجو إلكترونيكس'} - ${data.siteSettings?.contactPhone1 || '01000000000'}`,
-            fontSize: 8.5,
-            color: '#64748b',
+            text: [
+              { text: isAr ? 'مانجو ' : 'MANGO ', color: '#F5A623', bold: true, fontSize: 11 },
+              { text: isAr ? 'إلكترونيكس' : 'ELECTRONICS', color: '#2B71AE', bold: true, fontSize: 11 },
+            ],
+            alignment: 'center',
           },
           {
-            text: `${data.siteSettings?.contactEmail || 'info@mango-electronics.com'} | www.mango-electronics.com`,
+            text: isAr ? 'اعملها صح، اعملها بذكاء.' : 'Do it right, do it smart.',
+            italics: true,
+            color: '#2B71AE',
             fontSize: 8.5,
-            color: '#64748b',
-            alignment: 'right',
+            alignment: 'center',
+            margin: [0, 1, 0, 6],
+          },
+        ],
+      },
+
+      // 9. Account Representative Info
+      {
+        stack: [
+          {
+            text: [
+              { text: isAr ? 'المسؤول عن الحساب: ' : 'Account Representative: ', bold: true, color: '#1F4E79' },
+              { text: repEmail, color: '#0F172A' },
+            ],
+            fontSize: 9,
+            alignment: isAr ? 'right' : 'left',
+          },
+          {
+            text: [
+              { text: isAr ? 'رقم الهاتف: ' : 'Phone Number: ', bold: true, color: '#1F4E79' },
+              { text: repPhone, color: '#0F172A' },
+            ],
+            fontSize: 9,
+            margin: [0, 2, 0, 0],
+            alignment: isAr ? 'right' : 'left',
           },
         ],
       },
     ],
     styles: {
       tableHeader: {
-        fontSize: 10,
+        fontSize: 9.5,
         bold: true,
-        color: '#FFFFFF',
-        margin: [0, 5, 0, 5],
+        color: '#1F4E79',
+        margin: [0, 4, 0, 4],
       },
     },
   }

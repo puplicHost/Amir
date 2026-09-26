@@ -34,7 +34,13 @@ const form = reactive({
 
 const loading = ref(false)
 const error = ref('')
-const generatedQuote = ref<{ quoteNumber: string, downloadUrl: string, quoteId: string } | null>(null)
+const generatedQuote = ref<{
+  quoteNumber: string
+  downloadUrl: string
+  downloadUrlEn?: string
+  downloadUrlAr?: string
+  quoteId: string
+} | null>(null)
 
 function updateQty(productId: string, qty: number) {
   quoteStore.updateQuantity(productId, qty)
@@ -64,7 +70,7 @@ async function submitQuote() {
 
   loading.value = true
   try {
-    const res = await $fetch<{ quoteNumber: string, downloadUrl: string, quoteId: string }>('/api/quotes', {
+    const res = await $fetch<{ quoteNumber: string, downloadUrl: string, downloadUrlEn?: string, downloadUrlAr?: string, quoteId: string }>('/api/quotes', {
       method: 'POST',
       body: {
         companyName: form.companyName.trim(),
@@ -80,11 +86,12 @@ async function submitQuote() {
     generatedQuote.value = res
     quoteStore.clearQuote()
 
-    // Automatically trigger PDF download
-    if (res.downloadUrl && typeof window !== 'undefined') {
+    // Automatically trigger PDF download in active language
+    const autoDownloadUrl = locale.value === 'ar' ? (res.downloadUrlAr || res.downloadUrl) : (res.downloadUrlEn || res.downloadUrl)
+    if (autoDownloadUrl && typeof window !== 'undefined') {
       const a = document.createElement('a')
-      a.href = res.downloadUrl
-      a.download = `Quotation-${res.quoteNumber}.pdf`
+      a.href = autoDownloadUrl
+      a.download = `Quotation-${res.quoteNumber}-${locale.value.toUpperCase()}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -171,13 +178,23 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            :href="generatedQuote.downloadUrl"
+            :href="`/api/quotes/${generatedQuote.quoteId}/pdf?locale=ar`"
             target="_blank"
             download
-            class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#2B71AE] px-8 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-[#285E8E] active:scale-95 transition-all"
+            class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#2B71AE] px-6 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-[#285E8E] active:scale-95 transition-all"
           >
             <Download class="h-4 w-4" />
-            <span>{{ locale === 'ar' ? 'تحميل ملف PDF مجدداً' : 'Download PDF Again' }}</span>
+            <span>تحميل PDF (عربي)</span>
+          </a>
+
+          <a
+            :href="`/api/quotes/${generatedQuote.quoteId}/pdf?locale=en`"
+            target="_blank"
+            download
+            class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all"
+          >
+            <Download class="h-4 w-4" />
+            <span>Download PDF (English)</span>
           </a>
 
           <NuxtLink
