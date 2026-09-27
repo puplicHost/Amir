@@ -152,15 +152,6 @@ const standardServices = computed(() => {
   return displayServices.value.filter(s => s.id !== flagshipService.value?.id)
 })
 
-const phoneContact = computed(() => {
-  return contact.value?.contactPhone1 || '01000000000'
-})
-
-const whatsappContact = computed(() => {
-  const raw = contact.value?.contactWhatsapp || contact.value?.contactPhone1 || '01000000000'
-  return whatsappLink(raw)
-})
-
 const siteSeo = await useSiteSeo()
 
 useHead(() => {

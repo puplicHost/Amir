@@ -11,7 +11,7 @@ const productsOpen = ref(false)
 const links = computed(() => [
   { label: t('nav.home'), to: localePath('/'), exact: true },
   { label: t('nav.services'), to: localePath('/services') },
-  { label: t('nav.contact'), to: localePath('/contact') },
+  { label: t('nav.about'), to: localePath('/about') },
 ])
 const productsHref = computed(() => localePath('/products'))
 const cartStore = useCartStore()
@@ -175,13 +175,13 @@ const isProductsActive = computed(() => {
         <!-- Contact Link -->
         <li>
           <NuxtLink 
-            :to="localePath('/contact')" 
+            :to="localePath('/about')" 
             class="inline-flex items-center rounded-lg px-3.5 py-2 text-sm font-semibold transition-all"
-            :class="isActiveRoute(localePath('/contact')) 
+            :class="isActiveRoute(localePath('/about')) 
               ? 'bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#F5CC07]/15 dark:text-[#F5CC07]' 
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'"
           >
-            {{ t('nav.contact') }}
+            {{ t('nav.about') }}
           </NuxtLink>
         </li>
       </ul>
@@ -305,12 +305,12 @@ const isProductsActive = computed(() => {
         </li>
         <li>
           <NuxtLink
-            :to="localePath('/contact')"
+            :to="localePath('/about')"
             class="block rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors"
-            :class="isActiveRoute(localePath('/contact')) ? 'bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#F5CC07]/15 dark:text-[#F5CC07]' : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'"
+            :class="isActiveRoute(localePath('/about')) ? 'bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#F5CC07]/15 dark:text-[#F5CC07]' : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'"
             @click="mobileOpen = false"
           >
-            {{ t('nav.contact') }}
+            {{ t('nav.about') }}
           </NuxtLink>
         </li>
       </ul>

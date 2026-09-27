@@ -3,11 +3,11 @@ import {
   Facebook,
   Instagram,
   Linkedin,
-  MessageCircle,
   Music2,
   Twitter,
   Youtube,
 } from 'lucide-vue-next'
+import IconWhatsApp from './IconWhatsApp.vue'
 
 const props = withDefaults(defineProps<{
   /** Visual style: footer (dark icon buttons) or card (light tiles). */
@@ -49,7 +49,7 @@ const links = computed<SocialLink[]>(() => {
       key: 'whatsapp',
       label: 'WhatsApp',
       href: `https://wa.me/${num}`,
-      icon: MessageCircle,
+      icon: IconWhatsApp,
       hover: 'hover:border-emerald-500 hover:bg-emerald-600 hover:text-white',
     })
   }
@@ -70,8 +70,8 @@ const links = computed<SocialLink[]>(() => {
       class="flex items-center justify-center transition-all active:scale-95"
       :class="[
         variant === 'footer'
-          ? 'h-9 w-9 rounded-lg border border-slate-800 bg-slate-900/90 text-slate-300'
-          : 'h-10 w-10 rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+          ? 'h-9 w-9 rounded-xl border border-slate-700/60 bg-white/5 text-slate-300 hover:-translate-y-0.5 hover:shadow-md'
+          : 'h-10 w-10 rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:-translate-y-0.5 hover:shadow-sm',
         l.hover,
       ]"
     >

@@ -6,7 +6,6 @@ import {
   Cpu, 
   Download, 
   FileText, 
-  MessageCircle, 
   Minus, 
   Play, 
   Plus, 
@@ -320,7 +319,7 @@ function getEmbedUrl(url: string, type?: string): string {
                 rel="noopener" 
                 class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:border-emerald-500 hover:text-emerald-600 dark:border-slate-800 dark:bg-[#162032] dark:text-slate-300 dark:hover:border-emerald-500 dark:hover:text-emerald-400 transition-colors"
               >
-                <MessageCircle class="h-3.5 w-3.5 text-emerald-500" />
+                <IconWhatsApp class="h-3.5 w-3.5 text-emerald-500" />
                 <span>{{ t('products.shareWhatsApp') }}</span>
               </a>
 
