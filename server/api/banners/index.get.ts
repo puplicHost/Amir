@@ -1,8 +1,7 @@
-import { defineCachedEventHandler } from 'nitropack/runtime'
 import { prisma } from '../../utils/prisma'
 
 // Public feed: active homepage banners (sorted) + announcement ticker.
-export default defineCachedEventHandler(async () => {
+export default defineEventHandler(async () => {
   const [banners, settings] = await Promise.all([
     prisma.banner.findMany({
       where: { isActive: true },
@@ -19,4 +18,4 @@ export default defineCachedEventHandler(async () => {
       speed: settings?.tickerSpeed ?? 30,
     },
   }
-}, { maxAge: 60 })
+})

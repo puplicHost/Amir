@@ -43,7 +43,7 @@ const links = computed<SocialLink[]>(() => {
   push('linkedin', 'LinkedIn', c.socialLinkedin, Linkedin, 'hover:border-[#0A66C2] hover:bg-[#0A66C2] hover:text-white')
   push('x', 'X (Twitter)', c.socialX, Twitter, 'hover:border-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-950')
   // WhatsApp click-to-chat reuses the existing chat number (not a social field).
-  const num = (c.contactWhatsapp || c.contactPhone1 || '').replace(/[^0-9]/g, '')
+  const num = toWhatsAppIntl(c.contactWhatsapp || c.contactPhone1 || '')
   if (num) {
     out.push({
       key: 'whatsapp',

@@ -17,8 +17,49 @@ const text = computed(() => {
     : (ticker.value.textEn || ticker.value.textAr || '')
 })
 
+const isRtl = computed(() => locale.value === 'ar')
 const visible = computed(() => !!ticker.value?.active && !!text.value && !dismissed.value)
 const duration = computed(() => `${Math.min(120, Math.max(5, ticker.value?.speed || 30))}s`)
+
+// Seamless infinite marquee: the track holds an EVEN number of identical
+// copies and the animation translates exactly -50% (one full half), so the
+// reset point is pixel-identical to the start — no pause, jump, or blank gap.
+// Copy count is measured so the track always covers ≥2× the viewport width
+// (short strings get more copies, long strings stay at the minimum).
+const MIN_COPIES = 4
+const viewportRef = ref<HTMLElement | null>(null)
+const probeRef = ref<HTMLElement | null>(null)
+const repeatCount = ref(MIN_COPIES)
+
+function calcRepeatCount() {
+  const vpWidth = viewportRef.value?.clientWidth || 0
+  const chunkWidth = probeRef.value?.scrollWidth || 0
+  if (!vpWidth || !chunkWidth) {
+    repeatCount.value = MIN_COPIES
+    return
+  }
+  let n = Math.ceil((vpWidth * 2) / chunkWidth) + 1
+  n = Math.max(MIN_COPIES, n)
+  if (n % 2 === 1) n += 1 // halves must stay identical for the -50% loop
+  // No upper cap: spans are cheap text nodes, and capping would reintroduce
+  // blank gaps for very short strings on wide screens.
+  repeatCount.value = n
+}
+
+function handleResize() {
+  calcRepeatCount()
+}
+
+onMounted(() => {
+  calcRepeatCount()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+watch([text, isRtl], () => nextTick(() => calcRepeatCount()))
 </script>
 
 <template>
@@ -32,10 +73,23 @@ const duration = computed(() => `${Math.min(120, Math.max(5, ticker.value?.speed
     <div class="flex shrink-0 items-center gap-1.5 px-3 py-2">
       <Megaphone class="h-3.5 w-3.5 text-[#F5CC07] dark:text-slate-950" aria-hidden="true" />
     </div>
-    <div class="relative flex-1 overflow-hidden">
-      <div class="ticker-track flex w-max items-center whitespace-nowrap py-2 text-xs font-semibold sm:text-sm" :style="{ animationDuration: duration }">
-        <span class="pe-16">{{ text }}</span>
-        <span class="pe-16" aria-hidden="true">{{ text }}</span>
+    <div ref="viewportRef" class="relative flex-1 overflow-hidden">
+      <!-- Hidden probe (same chunk styling) used to measure one copy's width -->
+      <span ref="probeRef" class="ticker-chunk invisible absolute whitespace-nowrap text-xs font-semibold sm:text-sm" aria-hidden="true">{{ text }}</span>
+      <!-- dir="ltr" keeps flex layout identical in both locales; direction is
+           driven purely by the animation (mirrored keyframes for RTL). -->
+      <div
+        class="ticker-track flex w-max items-center whitespace-nowrap py-2 text-xs font-semibold sm:text-sm"
+        dir="ltr"
+        :class="{ rtl: isRtl }"
+        :style="{ animationDuration: duration }"
+      >
+        <span
+          v-for="i in repeatCount"
+          :key="i"
+          class="ticker-chunk"
+          :aria-hidden="i === 1 ? undefined : 'true'"
+        >{{ text }}</span>
       </div>
     </div>
     <button
@@ -50,22 +104,27 @@ const duration = computed(() => `${Math.min(120, Math.max(5, ticker.value?.speed
 </template>
 
 <style scoped>
+.ticker-chunk {
+  /* Small, fixed, consistent gap between back-to-back copies */
+  padding-inline-end: 2rem;
+}
 .ticker-track {
   animation-name: ticker-scroll;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  will-change: transform;
 }
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
-/* RTL: mirror the scroll direction */
-:dir(rtl) .ticker-track {
+/* RTL: mirrored — start shifted by half and glide back to 0, same seamless loop */
+.ticker-track.rtl {
   animation-name: ticker-scroll-rtl;
 }
 @keyframes ticker-scroll-rtl {
-  from { transform: translateX(0); }
-  to { transform: translateX(50%); }
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }

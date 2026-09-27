@@ -174,9 +174,9 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<Buffer> {
       fontSize: 9,
     },
     {
-      text: isAr
-        ? (discountAmount > 0 ? `خصم مطبق (${discountLabel})` : 'إذا كان مطبقاً - نسبة مئوية أو مبلغ ثابت')
-        : (discountAmount > 0 ? `Applied discount (${discountLabel})` : '[If applicable - select discount percentage or fixed amount]'),
+      text: discountAmount > 0
+        ? (isAr ? `خصم مطبق (${discountLabel})` : `Applied discount (${discountLabel})`)
+        : (isAr ? 'لا يوجد' : '—'),
       colSpan: 3,
       margin: [0, 5, 0, 5],
       color: '#64748B',
@@ -206,8 +206,7 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<Buffer> {
       color: '#1F4E79',
     },
     {
-      text: isAr ? 'إجمالي جميع البنود بعد تطبيق الخصم' : 'Overall total of all items after applying discount',
-      bold: true,
+      text: '',
       colSpan: 3,
       margin: [0, 6, 0, 6],
       fontSize: 9,

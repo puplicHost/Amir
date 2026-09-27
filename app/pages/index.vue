@@ -1,24 +1,21 @@
 <script setup lang="ts">
-import { 
-  Activity,
-  ArrowRight, 
-  Boxes, 
-  Building2, 
+import {
+  ArrowRight,
+  Boxes,
+  Building2,
   Check,
-  CheckCircle2, 
   Clock,
-  Cpu, 
-  Flame, 
-  Gauge, 
+  Cpu,
+  Flame,
+  Gauge,
   MessageCircle,
   Phone,
-  Radio, 
-  Search, 
-  ShieldCheck, 
+  Radio,
+  Search,
   ShoppingCart,
-  Sparkles, 
-  Wrench, 
-  Zap 
+  Sparkles,
+  Wrench,
+  Zap
 } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
@@ -183,12 +180,15 @@ const phoneContact = computed(() => {
 
 const whatsappContact = computed(() => {
   const raw = contact.value?.contactWhatsapp || contact.value?.contactPhone1 || '01000000000'
-  return `https://wa.me/${raw.replace(/[^0-9]/g, '')}`
+  return whatsappLink(raw)
 })
+
+const siteSeo = await useSiteSeo()
 
 useHead(() => {
   const siteName = general.value ? (locale.value === 'ar' ? general.value.siteNameAr : general.value.siteNameEn) : t('brand.name')
   const tagline = (locale.value === 'ar' ? general.value?.taglineAr : general.value?.taglineEn) || t('brand.tagline')
+  const geoDescription = (siteSeo.value?.geoDescription || '').trim()
   return {
     title: `${siteName}${tagline ? ` - ${tagline}` : ''}`,
     script: [
@@ -200,6 +200,7 @@ useHead(() => {
           "name": siteName,
           "url": "https://mango-electronics.com",
           "logo": general.value?.logoPath || "",
+          ...(geoDescription ? { description: geoDescription } : {}),
           "contactPoint": {
             "@type": "ContactPoint",
             "telephone": contact.value?.contactPhone1 || "",
@@ -215,9 +216,9 @@ useHead(() => {
 <template>
   <div class="space-y-0 selection:bg-[#F5CC07] selection:text-slate-950">
 
-    <!-- 1. Hero Section (Controlled Viewport Height, Max 4 Elements, Zero Em-Dashes) -->
-    <section 
-      class="relative flex min-h-[580px] lg:min-h-[640px] flex-col justify-center overflow-hidden bg-[#0B1520] bg-cover bg-center px-4 pt-16 pb-16 text-center sm:pt-20 sm:pb-20"
+    <!-- 1. Hero Section (Full Viewport Height minus sticky navbar, Max 4 Elements, Zero Em-Dashes) -->
+    <section
+      class="relative flex min-h-[calc(100vh-4rem)] supports-[height:100svh]:min-h-[calc(100svh-4rem)] flex-col justify-center overflow-hidden bg-[#0B1520] bg-cover bg-center px-4 pt-16 pb-16 text-center sm:pt-20 sm:pb-20"
       :style="general?.heroImagePath ? `background-image: url('${general.heroImagePath}')` : ''"
     >
       <!-- Technical Grid & Ambient Lighting -->
@@ -268,53 +269,6 @@ useHead(() => {
 
     <!-- Dynamic promo banners: below_hero slot (managed in /admin/banners) -->
     <AppHomeBanners placement="below_hero" />
-
-    <!-- 2. Proof & Trust Authority Bar (Dedicated section UNDER the hero) -->
-    <section class="border-y border-slate-800 bg-[#0F1D2E] text-white py-6 sm:py-8 px-4">
-      <div class="mx-auto max-w-7xl">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div class="flex items-start gap-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-            <div class="h-10 w-10 shrink-0 rounded-lg bg-[#2B71AE]/20 border border-[#2B71AE]/30 flex items-center justify-center text-[#F5CC07]">
-              <CheckCircle2 class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 class="text-sm font-bold text-white">{{ t('home.trust1Title') }}</h2>
-              <p class="text-xs text-slate-400 leading-normal mt-0.5 line-clamp-2">{{ t('home.trust1Desc') }}</p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-            <div class="h-10 w-10 shrink-0 rounded-lg bg-[#2B71AE]/20 border border-[#2B71AE]/30 flex items-center justify-center text-[#F5CC07]">
-              <Cpu class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 class="text-sm font-bold text-white">{{ t('home.trust2Title') }}</h2>
-              <p class="text-xs text-slate-400 leading-normal mt-0.5 line-clamp-2">{{ t('home.trust2Desc') }}</p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-            <div class="h-10 w-10 shrink-0 rounded-lg bg-[#2B71AE]/20 border border-[#2B71AE]/30 flex items-center justify-center text-[#F5CC07]">
-              <Activity class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 class="text-sm font-bold text-white">{{ t('home.trust3Title') }}</h2>
-              <p class="text-xs text-slate-400 leading-normal mt-0.5 line-clamp-2">{{ t('home.trust3Desc') }}</p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-            <div class="h-10 w-10 shrink-0 rounded-lg bg-[#2B71AE]/20 border border-[#2B71AE]/30 flex items-center justify-center text-[#F5CC07]">
-              <ShieldCheck class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 class="text-sm font-bold text-white">{{ t('home.trust4Title') }}</h2>
-              <p class="text-xs text-slate-400 leading-normal mt-0.5 line-clamp-2">{{ t('home.trust4Desc') }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- 3. Engineering Solutions (Bento Grid with Asymmetric Rhythm & Background Diversity) -->
     <section class="py-16 sm:py-24 px-4 bg-white dark:bg-[#0B1520] transition-colors">

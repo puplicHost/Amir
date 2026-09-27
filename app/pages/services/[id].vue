@@ -27,9 +27,23 @@ if (error.value || !service.value) {
 const serviceName = computed(() => locale.value === 'ar' ? service.value.nameAr : service.value.nameEn)
 const serviceDesc = computed(() => locale.value === 'ar' ? service.value.descriptionAr : service.value.descriptionEn)
 
-useHead(() => ({
-  title: `${locale.value === 'ar' ? 'طلب خدمة' : 'Request'} ${serviceName.value} | ${t('brand.name')}`
-}))
+const siteSeo = await useSiteSeo()
+
+// Service-specific data wins; site-wide description is the fallback.
+useHead(() => {
+  const title = `${locale.value === 'ar' ? 'طلب خدمة' : 'Request'} ${serviceName.value} | ${t('brand.name')}`
+  const description = serviceDesc.value
+    || (locale.value === 'ar' ? siteSeo.value?.descriptionAr : siteSeo.value?.descriptionEn)
+    || undefined
+  return {
+    title,
+    meta: [
+      ...(description ? [{ name: 'description', content: description }] : []),
+      { property: 'og:title', content: title },
+      ...(description ? [{ property: 'og:description', content: description }] : []),
+    ],
+  }
+})
 
 const formData = reactive<Record<string, string | File[]>>({})
 const formError = ref('')

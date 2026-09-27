@@ -17,9 +17,26 @@ import {
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 
-useHead(() => ({ 
-  title: `${locale.value === 'ar' ? 'الخدمات الهندسية' : 'Engineering Services'} | ${t('brand.name')}` 
-}))
+const siteSeo = await useSiteSeo()
+
+// No page-specific SEO exists for the Services list → site-wide fallback applies.
+useHead(() => {
+  const pageName = locale.value === 'ar' ? 'الخدمات الهندسية' : 'Engineering Services'
+  const title = applySeoTitle(
+    locale.value === 'ar' ? siteSeo.value?.titleTemplateAr : siteSeo.value?.titleTemplateEn,
+    pageName,
+    `${pageName} | ${t('brand.name')}`,
+  )
+  const description = (locale.value === 'ar' ? siteSeo.value?.descriptionAr : siteSeo.value?.descriptionEn) || undefined
+  return {
+    title,
+    meta: [
+      ...(description ? [{ name: 'description', content: description }] : []),
+      { property: 'og:title', content: title },
+      ...(description ? [{ property: 'og:description', content: description }] : []),
+    ],
+  }
+})
 
 const { data: services, pending } = await useAsyncData('services-list', () =>
   $fetch<any[]>('/api/services')

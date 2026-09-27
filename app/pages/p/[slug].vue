@@ -83,9 +83,15 @@ useHead(() => ({
 
 // NOTE: Title/meta use useHead (not useSeoMeta) — useSeoMeta silently emitted
 // no <title>/meta during SSR on this page. Same useHead pattern as products/[slug].vue.
+const siteSeo = await useSiteSeo()
+
 useHead(() => {
   const title = name.value ? `${name.value} | ${t('brand.name')}` : t('brand.name')
-  const description = desc.value || data.value?.product.seo?.metaDescriptionEn || undefined
+  // Product-specific data first, site-wide description as fallback.
+  const description = desc.value
+    || data.value?.product.seo?.metaDescriptionEn
+    || (locale.value === 'ar' ? siteSeo.value?.descriptionAr : siteSeo.value?.descriptionEn)
+    || undefined
   const image = cover.value || undefined
   return {
     title,

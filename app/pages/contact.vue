@@ -13,15 +13,33 @@ import {
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 
-useHead(() => ({ 
-  title: `${locale === 'ar' ? 'اتصل بنا' : 'Contact Us'} | ${t('brand.name')}` 
-}))
-
 const { data: contact } = await useAsyncData('contact-page', () => $fetch<any>('/api/settings/contact'))
+const siteSeo = await useSiteSeo()
+
+// No page-specific SEO exists for Contact → site-wide templates/descriptions apply.
+useHead(() => {
+  const pageName = locale.value === 'ar' ? 'اتصل بنا' : 'Contact Us'
+  const fallbackTitle = `${pageName} | ${t('brand.name')}`
+  const title = applySeoTitle(
+    locale.value === 'ar' ? siteSeo.value?.titleTemplateAr : siteSeo.value?.titleTemplateEn,
+    pageName,
+    fallbackTitle,
+  )
+  const description = (locale.value === 'ar' ? siteSeo.value?.descriptionAr : siteSeo.value?.descriptionEn) || undefined
+  return {
+    title,
+    meta: [
+      ...(description ? [{ name: 'description', content: description }] : []),
+      { property: 'og:title', content: title },
+      ...(description ? [{ property: 'og:description', content: description }] : []),
+      ...(siteSeo.value?.keywords ? [{ name: 'keywords', content: siteSeo.value.keywords }] : []),
+    ],
+  }
+})
 
 const whatsappUrl = computed(() => {
   const num = contact.value?.contactWhatsapp || contact.value?.contactPhone1 || '01000000000'
-  return `https://wa.me/${num.replace(/[^0-9]/g, '')}`
+  return whatsappLink(num)
 })
 </script>
 
