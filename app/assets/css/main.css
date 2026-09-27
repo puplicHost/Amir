@@ -33,6 +33,66 @@
   --color-text-muted: #475569;
 }
 
+@layer components {
+  /* ── Homepage entrance motion (subtle polish, transform/opacity only) ── */
+
+  /* Scroll-triggered reveal: hidden until the IO plugin swaps in
+     .reveal-visible, then cleaned up to plain .revealed so hover
+     transitions/utilities keep working untouched. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    will-change: opacity, transform;
+  }
+  .reveal-visible {
+    animation: reveal-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms) both;
+  }
+  .reveal.revealed {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    will-change: auto;
+  }
+  @keyframes reveal-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Fade-only variant (large elements like banners): no slide. */
+  .reveal-fade {
+    transform: none;
+  }
+  .reveal-fade.reveal-visible {
+    animation-name: reveal-fade-in;
+  }
+  @keyframes reveal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Hero load stagger: plays once on page load via animation-delay. */
+  .hero-anim {
+    opacity: 0;
+    animation: hero-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  @keyframes hero-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .reveal.revealed,
+    .hero-anim {
+      opacity: 1 !important;
+      transform: none !important;
+      animation: none !important;
+      transition: none !important;
+      will-change: auto !important;
+    }
+  }
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

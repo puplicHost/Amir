@@ -80,6 +80,17 @@ export default defineEventHandler(async (event) => {
     values: Array.from(g.valuesMap.values()).sort((a, b) => b.count - a.count),
   }))
 
+  // Priority ordering: Voltage and Brand facets (the two most-used filters
+  // for electrical/industrial components) surface first, in both languages.
+  // Remaining groups keep their natural order (stable sort).
+  function facetPriority(keyEn: string, keyAr: string): number {
+    const k = `${keyEn} ${keyAr}`
+    if (/volt|فولت|جهد/i.test(k)) return 0
+    if (/brand|manufacturer|العلامة|الماركة|الشركة المصنعة/i.test(k)) return 1
+    return 2
+  }
+  attributes.sort((a, b) => facetPriority(a.keyEn, a.keyAr) - facetPriority(b.keyEn, b.keyAr))
+
   const minPrice = priceAgg._min.price ? Math.floor(Number(priceAgg._min.price)) : 0
   const maxPrice = priceAgg._max.price ? Math.ceil(Number(priceAgg._max.price)) : 0
 

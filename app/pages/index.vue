@@ -8,7 +8,6 @@ import {
   Cpu,
   Flame,
   Gauge,
-  MessageCircle,
   Phone,
   Radio,
   Search,
@@ -153,27 +152,6 @@ const standardServices = computed(() => {
   return displayServices.value.filter(s => s.id !== flagshipService.value?.id)
 })
 
-const bannerTitle = computed(() => {
-  const dbText = locale.value === 'ar' ? general.value?.bannerTextAr : general.value?.bannerTextEn
-  if (!dbText || dbText === '20% off all maintenance services' || dbText === 'خصم 20% على جميع خدمات الصيانة') {
-    return t('home.bannerTitle')
-  }
-  return dbText
-})
-
-const bannerSubtitle = computed(() => {
-  return t('home.bannerSubtitle')
-})
-
-const bannerButtonText = computed(() => {
-  const dbBtn = locale.value === 'ar' ? general.value?.bannerButtonTextAr : general.value?.bannerButtonTextEn
-  return dbBtn || t('home.bannerCta')
-})
-
-const bannerButtonUrl = computed(() => {
-  return general.value?.bannerButtonUrl || '/services'
-})
-
 const phoneContact = computed(() => {
   return contact.value?.contactPhone1 || '01000000000'
 })
@@ -230,25 +208,26 @@ useHead(() => {
       <div class="pointer-events-none absolute top-0 left-1/2 h-[380px] w-[600px] -translate-x-1/2 rounded-full bg-[#2B71AE]/20 blur-[130px]"></div>
       <div class="pointer-events-none absolute -bottom-24 right-1/4 h-[300px] w-[450px] rounded-full bg-[#285E8E]/25 blur-[120px]"></div>
 
-      <div class="relative z-10 mx-auto max-w-4xl">
+      <div class="relative z-10 mx-auto max-w-5xl">
         <!-- Element 1: Eyebrow Badge (Rationed, Max 1 per 3 sections) -->
-        <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-[#F5CC07]/30 bg-[#F5CC07]/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#F5CC07] shadow-sm backdrop-blur-md">
+        <div class="hero-anim mb-5 inline-flex items-center gap-2 rounded-full border border-[#F5CC07]/30 bg-[#F5CC07]/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#F5CC07] shadow-sm backdrop-blur-md" style="animation-delay: 0ms">
           <Zap class="h-3.5 w-3.5 fill-current" />
           <span>{{ t('home.heroEyebrow') }}</span>
         </div>
 
         <!-- Element 2: Hero Headline (Max 2 lines desktop, leading-tight) -->
-        <h1 class="font-heading text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl mb-5 leading-tight">
-          {{ t('home.heroTitle') }}
+        <h1 class="hero-anim font-heading text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-[3.5rem] mb-5 leading-tight" style="animation-delay: 100ms">
+          <span class="block">{{ t('home.heroTitleLine1') }}</span>
+          <span class="block">{{ t('home.heroTitleLine2') }}</span>
         </h1>
 
         <!-- Element 3: Subtext (Max 20 words, strictly zero em-dashes) -->
-        <p class="mb-8 text-base text-slate-300 sm:text-lg max-w-2xl mx-auto leading-relaxed">
+        <p class="hero-anim mb-8 text-base text-slate-300 sm:text-lg max-w-2xl mx-auto leading-relaxed" style="animation-delay: 200ms">
           {{ t('home.heroSubtitle') }}
         </p>
 
         <!-- Element 4: Action CTAs (No wrap, WCAG AA min contrast, active push feedback) -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div class="hero-anim flex flex-col sm:flex-row items-center justify-center gap-4" style="animation-delay: 300ms">
           <NuxtLink 
             :to="localePath('/products')" 
             class="h-12 sm:h-13 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-lg bg-[#F5CC07] px-8 text-base font-bold text-slate-950 shadow-lg shadow-yellow-500/20 hover:bg-yellow-400 active:scale-[0.98] transition-all"
@@ -274,7 +253,7 @@ useHead(() => {
     <section class="py-16 sm:py-24 px-4 bg-white dark:bg-[#0B1520] transition-colors">
       <div class="mx-auto max-w-7xl">
         <!-- Section Header (Vertical Stack, No Split-Header) -->
-        <div class="mb-12 text-center max-w-3xl mx-auto">
+        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
           <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
             {{ t('home.servicesTitle') }}
           </h2>
@@ -288,9 +267,9 @@ useHead(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           
           <!-- Bento Cell 1: Flagship Featured Service Card (Span 2 on desktop with technical accents) -->
-          <div 
+          <div
             v-if="flagshipService"
-            class="lg:col-span-2 group relative overflow-hidden rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#0B1520] via-[#16253B] to-[#1E3A5F] p-6 sm:p-8 text-white shadow-lg transition-all duration-300 hover:border-[#2B71AE] hover:shadow-2xl"
+            class="reveal lg:col-span-2 group relative overflow-hidden rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#0B1520] via-[#16253B] to-[#1E3A5F] p-6 sm:p-8 text-white shadow-lg transition-all duration-300 hover:border-[#2B71AE] hover:shadow-2xl hover:-translate-y-1"
           >
             <!-- Circuit watermark -->
             <div 
@@ -359,11 +338,12 @@ useHead(() => {
           </div>
 
           <!-- Bento Cells 2-7: Standard Specialized Engineering Services -->
-          <NuxtLink 
-            v-for="srv in standardServices" 
-            :key="srv.id" 
+          <NuxtLink
+            v-for="(srv, i) in standardServices"
+            :key="srv.id"
             :to="localePath(`/services/${srv.id}`)"
-            class="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#162032] p-5 sm:p-6 shadow-sm hover:border-[#2B71AE] hover:shadow-lg dark:hover:border-[#2B71AE] transition-all duration-300"
+            class="reveal group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#162032] p-5 sm:p-6 shadow-sm hover:border-[#2B71AE] hover:shadow-lg dark:hover:border-[#2B71AE] hover:-translate-y-1 transition-all duration-300"
+            :style="{ '--reveal-delay': `${(i + 1) * 70}ms` }"
           >
             <div>
               <div class="flex items-center justify-between gap-2 mb-3.5">
@@ -401,7 +381,7 @@ useHead(() => {
     <section class="py-16 sm:py-24 px-4 bg-slate-50 dark:bg-[#0E1B2B]/60 border-y border-slate-200/80 dark:border-slate-800/80">
       <div class="mx-auto max-w-7xl">
         <!-- Section Header -->
-        <div class="mb-12 text-center max-w-3xl mx-auto">
+        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
           <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
             {{ t('home.categoriesTitle') }}
           </h2>
@@ -416,11 +396,12 @@ useHead(() => {
           v-if="categories?.length" 
           class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
         >
-          <NuxtLink 
-            v-for="cat in categories" 
-            :key="cat.id" 
+          <NuxtLink
+            v-for="(cat, i) in categories"
+            :key="cat.id"
             :to="localePath(`/products/${cat.slug}`)"
-            class="group relative h-56 sm:h-72 lg:h-80 overflow-hidden rounded-2xl bg-slate-900 shadow-sm hover:shadow-xl border border-slate-200/60 dark:border-slate-800 transition-all duration-300"
+            class="reveal group relative h-56 sm:h-72 lg:h-80 overflow-hidden rounded-2xl bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-slate-200/60 dark:border-slate-800 transition-all duration-300"
+            :style="{ '--reveal-delay': `${i * 70}ms` }"
           >
             <!-- Category Cover Image -->
             <img 
@@ -479,7 +460,7 @@ useHead(() => {
     <!-- 5. Featured Hardware Products (Live E-Commerce Component Grid) -->
     <section v-if="featuredProducts.length" class="py-16 sm:py-24 px-4 bg-white dark:bg-[#0B1520] transition-colors">
       <div class="mx-auto max-w-7xl">
-        <div class="mb-12 text-center max-w-3xl mx-auto">
+        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
           <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
             {{ t('home.productsTitle') }}
           </h2>
@@ -491,9 +472,11 @@ useHead(() => {
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           <AppProductCard
-            v-for="product in featuredProducts"
+            v-for="(product, i) in featuredProducts"
             :key="product.id"
             :product="product"
+            class="reveal"
+            :style="{ '--reveal-delay': `${i * 70}ms` }"
           />
         </div>
       </div>
@@ -502,7 +485,7 @@ useHead(() => {
     <!-- 6. Precision Engineering Workflow (No Generic 'Step 1' Labels) -->
     <section class="py-16 sm:py-24 px-4 bg-slate-50 dark:bg-[#0E1B2B]/60 border-t border-slate-200/80 dark:border-slate-800/80">
       <div class="mx-auto max-w-7xl">
-        <div class="mb-12 text-center max-w-3xl mx-auto">
+        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
           <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
             {{ t('home.workflowTitle') }}
           </h2>
@@ -513,7 +496,7 @@ useHead(() => {
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div class="reveal relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 0ms">
             <span class="text-3xl font-extrabold font-mono text-[#2B71AE] dark:text-[#F5CC07]">01</span>
             <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">
               {{ t('home.step1Title') }}
@@ -523,7 +506,7 @@ useHead(() => {
             </p>
           </div>
 
-          <div class="relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div class="reveal relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 70ms">
             <span class="text-3xl font-extrabold font-mono text-[#2B71AE] dark:text-[#F5CC07]">02</span>
             <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">
               {{ t('home.step2Title') }}
@@ -533,7 +516,7 @@ useHead(() => {
             </p>
           </div>
 
-          <div class="relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div class="reveal relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 140ms">
             <span class="text-3xl font-extrabold font-mono text-[#2B71AE] dark:text-[#F5CC07]">03</span>
             <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">
               {{ t('home.step3Title') }}
@@ -543,7 +526,7 @@ useHead(() => {
             </p>
           </div>
 
-          <div class="relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div class="reveal relative rounded-2xl bg-white dark:bg-[#162032] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 210ms">
             <span class="text-3xl font-extrabold font-mono text-[#2B71AE] dark:text-[#F5CC07]">04</span>
             <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">
               {{ t('home.step4Title') }}
@@ -551,66 +534,6 @@ useHead(() => {
             <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               {{ t('home.step4Desc') }}
             </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 7. Special Facility Consultation & Maintenance Offer (High-Impact Industrial Callout) -->
-    <section class="py-14 sm:py-20 px-4 bg-white dark:bg-[#0B1520] transition-colors">
-      <div class="mx-auto max-w-7xl">
-        <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#0B1520] via-[#1E3A5F] to-[#285E8E] p-8 sm:p-12 md:p-16 text-center text-white shadow-xl border border-blue-400/20">
-          <!-- Ambient highlights -->
-          <div class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#F5CC07]/15 blur-3xl"></div>
-          <div class="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl"></div>
-
-          <div class="relative z-10 max-w-3xl mx-auto">
-            <div class="inline-flex items-center gap-2 rounded-full bg-[#F5CC07]/20 border border-[#F5CC07]/40 px-3.5 py-1 text-xs sm:text-sm font-bold text-[#F5CC07] uppercase tracking-wider mb-4">
-              <Sparkles class="h-3.5 w-3.5" />
-              <span>{{ t('home.bannerEyebrow') }}</span>
-            </div>
-
-            <h2 class="font-heading text-2xl sm:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight text-white">
-              {{ bannerTitle }}
-            </h2>
-
-            <p class="text-sm sm:text-base md:text-lg text-blue-100 max-w-2xl mx-auto mb-8 leading-relaxed">
-              {{ bannerSubtitle }}
-            </p>
-
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <NuxtLink 
-                :to="localePath(bannerButtonUrl)" 
-                class="inline-flex h-12 sm:h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#F5CC07] px-8 sm:px-10 text-base font-bold text-slate-950 shadow-xl shadow-yellow-500/20 hover:bg-yellow-400 active:scale-[0.98] transition-all"
-              >
-                <span>{{ bannerButtonText }}</span>
-                <ArrowRight class="h-4 w-4 rtl:rotate-180" />
-              </NuxtLink>
-
-              <a 
-                :href="whatsappContact"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex h-12 sm:h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 backdrop-blur px-6 text-sm sm:text-base font-bold text-white hover:bg-white/20 active:scale-[0.98] transition-all"
-              >
-                <MessageCircle class="h-4 w-4 text-[#F5CC07]" />
-                <span>{{ t('home.whatsappChat') }}</span>
-              </a>
-
-              <a
-                v-if="phoneContact"
-                :href="`tel:${phoneContact}`"
-                dir="ltr"
-                class="inline-flex h-12 sm:h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/20 bg-black/20 backdrop-blur px-6 text-sm sm:text-base font-bold text-slate-200 hover:text-white hover:bg-black/30 active:scale-[0.98] transition-all"
-              >
-                <Phone class="h-4 w-4 text-blue-300" />
-                <span>{{ phoneContact }}</span>
-              </a>
-            </div>
-
-            <div class="mt-6 flex justify-center">
-              <AppSocialLinks variant="footer" />
-            </div>
           </div>
         </div>
       </div>

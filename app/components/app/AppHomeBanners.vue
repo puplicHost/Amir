@@ -42,7 +42,7 @@ function isFullWidth(b: any) {
       <!-- Spans edge-to-edge with border-y and 7xl content grid, matching Category & Services sections -->
       <section
         v-if="isFullWidth(b)"
-        class="relative w-full overflow-hidden border-y border-slate-200/80 bg-[#0B1520] text-white dark:border-slate-800"
+        class="reveal reveal-fade relative w-full overflow-hidden border-y border-slate-200/80 bg-[#0B1520] text-white dark:border-slate-800"
       >
         <!-- Background Image (if configured) -->
         <img
@@ -98,7 +98,7 @@ function isFullWidth(b: any) {
       <!-- Centered within the 7xl content flow with intentional rounded card styling -->
       <section
         v-else
-        class="w-full px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+        class="reveal reveal-fade w-full px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
       >
         <div class="mx-auto max-w-7xl">
           <div
