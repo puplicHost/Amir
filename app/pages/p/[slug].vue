@@ -57,6 +57,14 @@ const quantity = ref(1)
 
 const pageUrl = computed(() => `https://mango-electronics.com/p/${p.value.slug}`)
 
+const discountPercent = computed(() => {
+  const price = Number(p.value.price)
+  const compare = Number(p.value.compareAtPrice)
+  if (!compare || !Number.isFinite(price) || !Number.isFinite(compare)) return 0
+  if (!(compare > price)) return 0
+  return Math.round(((compare - price) / compare) * 100)
+})
+
 useHead(() => ({
   script: [
     {
@@ -197,6 +205,13 @@ function getEmbedUrl(url: string, type?: string): string {
             <div v-else class="text-xs text-slate-400">
               {{ t('common.noImage') }}
             </div>
+            <span
+              v-if="discountPercent > 0"
+              class="absolute left-[10px] top-[10px] inline-flex items-center rounded-full bg-[#EF4444] px-[10px] py-[4px] text-[12px] font-bold text-white shadow-xs"
+              style="border-radius: 20px;"
+            >
+              {{ locale === 'ar' ? `خصم ${discountPercent}%` : `${discountPercent}% OFF` }}
+            </span>
           </div>
         </div>
 
@@ -255,7 +270,7 @@ function getEmbedUrl(url: string, type?: string): string {
           </h1>
 
           <!-- Price Display -->
-          <div class="flex items-baseline gap-3 mb-6 pb-6 border-b border-slate-200/80 dark:border-slate-800">
+          <div class="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-slate-200/80 dark:border-slate-800">
             <span class="text-3xl sm:text-4xl font-black text-[#2B71AE] dark:text-[#F5CC07]">
               {{ p.price }} <span class="text-base font-bold">EGP</span>
             </span>
@@ -264,6 +279,13 @@ function getEmbedUrl(url: string, type?: string): string {
               class="text-base sm:text-lg text-slate-400 line-through"
             >
               {{ p.compareAtPrice }} EGP
+            </span>
+            <span
+              v-if="discountPercent > 0"
+              class="inline-flex items-center rounded-full bg-[#EF4444]/10 border border-[#EF4444]/30 px-3 py-1.5 text-sm font-bold text-[#EF4444] dark:text-red-400"
+              style="border-radius: 20px;"
+            >
+              {{ locale === 'ar' ? `وفّر ${discountPercent}%` : `Save ${discountPercent}%` }}
             </span>
           </div>
 

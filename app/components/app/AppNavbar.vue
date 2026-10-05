@@ -78,8 +78,8 @@ const isProductsActive = computed(() => {
           <span class="font-heading text-base sm:text-lg font-bold tracking-tight text-slate-900 transition-colors group-hover:text-[#2B71AE] dark:text-white dark:group-hover:text-[#F5CC07]">
             {{ generalSettings ? (locale === 'ar' ? generalSettings.siteNameAr : generalSettings.siteNameEn) : t('brand.name') }}
           </span>
-          <span class="hidden lg:block text-[10px] font-medium tracking-wider text-slate-500 uppercase dark:text-slate-400">
-            {{ locale === 'ar' ? 'أدوات وحلول هندسية' : 'Engineering & Electronics' }}
+          <span class="hidden lg:block text-[13px] font-medium tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            {{ generalSettings ? (locale === 'ar' ? (generalSettings.taglineAr || t('brand.tagline')) : (generalSettings.taglineEn || t('brand.tagline'))) : t('brand.tagline') }}
           </span>
         </div>
       </NuxtLink>

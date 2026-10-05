@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, FileText, ShoppingCart } from 'lucide-vue-next'
+import { Check, ShoppingCart } from 'lucide-vue-next'
 
 interface Card {
   id?: string
@@ -17,28 +17,17 @@ const props = defineProps<{ product: Card }>()
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const cartStore = useCartStore()
-const quoteStore = useQuoteStore()
 
 const name = (p: Card) => (locale.value === 'ar' ? p.nameAr : p.nameEn)
 const added = ref(false)
 
-const isQuoteSelected = computed(() => {
-  const pid = props.product.id || props.product.slug
-  return quoteStore.isSelected(pid)
+const discountPercent = computed(() => {
+  const price = Number(props.product.price)
+  const compare = Number(props.product.compareAtPrice)
+  if (!compare || !Number.isFinite(price) || !Number.isFinite(compare)) return 0
+  if (!(compare > price)) return 0
+  return Math.round(((compare - price) / compare) * 100)
 })
-
-function onToggleQuote(e: Event) {
-  e.preventDefault()
-  e.stopPropagation()
-  quoteStore.toggleItem({
-    productId: props.product.id || props.product.slug,
-    slug: props.product.slug,
-    nameAr: props.product.nameAr,
-    nameEn: props.product.nameEn,
-    price: Number(props.product.price),
-    coverImage: props.product.coverImage || null,
-  })
-}
 
 function onAddToCart(e: Event) {
   e.preventDefault()
@@ -61,12 +50,7 @@ function onAddToCart(e: Event) {
 
 <template>
   <div
-    class="group flex h-full flex-col justify-between overflow-hidden rounded-xl border bg-white shadow-xs hover:-translate-y-1 hover:shadow-lg transition-all duration-300"
-    :class="[
-      isQuoteSelected
-        ? 'border-[#F5CC07] ring-1 ring-[#F5CC07]/40 dark:border-[#F5CC07] dark:bg-[#162032]'
-        : 'border-slate-200/90 hover:border-[#2B71AE] dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE]'
-    ]"
+    class="group flex h-full flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs hover:-translate-y-1 hover:border-[#2B71AE] hover:shadow-lg transition-all duration-300 dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE]"
   >
     <NuxtLink :to="localePath(`/p/${product.slug}`)" class="block flex-1 flex flex-col">
       <!-- Cover Image with Fixed 1:1 Aspect Ratio and Smooth Zoom -->
@@ -90,20 +74,15 @@ function onAddToCart(e: Event) {
           {{ locale === 'ar' ? product.category.nameAr : product.category.nameEn }}
         </span>
 
-        <!-- Select for Price Quote Toggle (Top End) -->
-        <button
-          type="button"
-          class="absolute end-2 top-2 z-10 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold backdrop-blur-md transition-all active:scale-95 shadow-xs"
-          :class="isQuoteSelected
-            ? 'bg-[#F5CC07] text-slate-950 font-black shadow-md ring-1 ring-yellow-500'
-            : 'bg-white/85 text-slate-700 hover:bg-white hover:text-[#2B71AE] border border-slate-200/80 dark:bg-[#0B1520]/80 dark:text-slate-300 dark:hover:bg-[#0B1520] dark:border-slate-700'"
-          :title="locale === 'ar' ? 'تحديد لإضافته إلى عرض السعر الرسمي' : 'Select for official price quotation'"
-          @click="onToggleQuote"
+        <!-- Discount Badge (Top-Left corner, only when discounted) -->
+        <span
+          v-if="discountPercent > 0"
+          class="absolute left-[10px] top-[10px] z-[5] inline-flex items-center rounded-full bg-[#EF4444] px-[10px] py-[4px] text-[12px] font-bold text-white shadow-xs"
+          style="border-radius: 20px;"
         >
-          <Check v-if="isQuoteSelected" class="h-3 w-3 stroke-[3]" />
-          <FileText v-else class="h-3 w-3" />
-          <span>{{ isQuoteSelected ? (locale === 'ar' ? 'تم التحديد' : 'Selected') : (locale === 'ar' ? 'عرض سعر' : 'Quote') }}</span>
-        </button>
+          {{ locale === 'ar' ? `خصم ${discountPercent}%` : `${discountPercent}% OFF` }}
+        </span>
+
       </div>
 
       <!-- Information & Pricing with Uniform Line Height & Baseline -->

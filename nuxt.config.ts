@@ -3,6 +3,15 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  vite: {
+    server: {
+      // Allow Cloudflare Quick Tunnel hostnames in dev (public demo URLs).
+      // Vite blocks unknown Host headers by default; this wildcard covers
+      // all *.trycloudflare.com tunnels. Dev-server only.
+      allowedHosts: ['.trycloudflare.com'],
+    },
+  },
+
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {

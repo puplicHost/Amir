@@ -201,7 +201,7 @@ useHead(() => {
 
       <div class="relative z-10 mx-auto max-w-5xl">
         <!-- Element 1: Eyebrow Badge (Rationed, Max 1 per 3 sections) -->
-        <div class="hero-anim mb-5 inline-flex items-center gap-2 rounded-full border border-[#F5CC07]/30 bg-[#F5CC07]/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#F5CC07] shadow-sm backdrop-blur-md" style="animation-delay: 0ms">
+        <div class="hero-anim mb-5 inline-flex items-center gap-2 rounded-full border border-[#F5CC07]/30 bg-[#F5CC07]/10 px-5 py-2 text-[22px] font-bold text-[#F5CC07] shadow-sm backdrop-blur-md" style="animation-delay: 0ms">
           <Zap class="h-3.5 w-3.5 fill-current" />
           <span>{{ t('home.heroEyebrow') }}</span>
         </div>

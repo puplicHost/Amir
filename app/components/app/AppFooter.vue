@@ -54,8 +54,12 @@ const tagline = computed(() => {
             </div>
           </NuxtLink>
 
+          <p class="text-[22px] font-bold leading-snug text-[#F5CC07] max-w-sm">
+            {{ tagline }}
+          </p>
+
           <p class="text-sm leading-relaxed text-slate-400 max-w-sm">
-            {{ tagline }}. {{ locale === 'ar' ? 'حلول هندسية متطورة، توريد قطع أصلية معتمدة، وبرمجة وصيانة خطوط الإنتاج والأنظمة الذكية في مصر.' : 'Specialized engineering automation, genuine industrial components, and rapid diagnostic support across Egypt.' }}
+            {{ locale === 'ar' ? 'حلول هندسية متطورة، توريد قطع أصلية معتمدة، وبرمجة وصيانة خطوط الإنتاج والأنظمة الذكية في مصر.' : 'Specialized engineering automation, genuine industrial components, and rapid diagnostic support across Egypt.' }}
           </p>
 
           <!-- Social Links (only configured platforms render; empty = hidden) -->
