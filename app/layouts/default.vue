@@ -15,6 +15,8 @@ const isAdminRoute = computed(() =>
 <template>
   <div class="min-h-screen">
     <AppMetaPixel v-if="!isAdminRoute && metaPublic?.enabled && metaPublic?.pixelId" :pixel-id="metaPublic.pixelId" />
+    <!-- Top Announcement Bar (Change 11 & 12) -->
+    <AppAnnouncementBar v-if="!isAdminRoute" />
     <AppNavbar />
     <AppTicker />
     <main>

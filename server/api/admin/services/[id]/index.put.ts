@@ -12,7 +12,8 @@ export default defineEventHandler(async (event) => {
       descriptionEn: body.descriptionEn,
       iconPath: body.iconPath,
       sortOrder: body.sortOrder,
-      isActive: body.isActive
+      isActive: body.isActive,
+      isFeatured: body.isFeatured !== undefined ? Boolean(body.isFeatured) : undefined,
     }
   })
   return service

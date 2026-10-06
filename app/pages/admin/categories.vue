@@ -81,6 +81,44 @@ const formError = ref('')
 const saving = ref(false)
 const deletingId = ref<string | null>(null)
 
+// Change 10: Automatic locked category and countdown timer setting
+const { data: generalSettings, refresh: refreshGeneral } = await useAsyncData('admin-categories-settings', () =>
+  $fetch<any>('/api/settings/general')
+)
+const offerDateInput = ref('')
+watch(() => generalSettings.value?.offerEndDate, (val) => {
+  if (val) {
+    try {
+      offerDateInput.value = new Date(val).toISOString().slice(0, 16)
+    }
+    catch { /* fallback */ }
+  }
+}, { immediate: true })
+
+const savingOfferDate = ref(false)
+async function saveOfferEndDate() {
+  savingOfferDate.value = true
+  try {
+    await $fetch('/api/admin/settings/general', {
+      method: 'PUT',
+      body: {
+        offerEndDate: offerDateInput.value ? new Date(offerDateInput.value).toISOString() : null,
+      },
+    })
+    await refreshGeneral()
+    toast.success(
+      locale.value === 'ar' ? 'تم حفظ موعد انتهاء العرض' : 'Offer Date Saved',
+      locale.value === 'ar' ? 'تم تحديث العداد التنازلي لصفحة العروض والخصومات.' : 'Offer countdown timer updated.',
+    )
+  }
+  catch (e: any) {
+    toast.error('Failed to save offer date', e?.data?.message || '')
+  }
+  finally {
+    savingOfferDate.value = false
+  }
+}
+
 const pagedCategories = computed(() => data.value?.categories || [])
 const totalCategories = computed(() => data.value?.total ?? pagedCategories.value.length)
 
@@ -293,6 +331,62 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <!-- Locked Automatic Category: عروض وخصومات (Change 10) -->
+            <tr class="bg-amber-50/40 dark:bg-yellow-950/20 border-b-2 border-yellow-200 dark:border-yellow-900/40">
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#F5CC07] text-slate-950 shadow-xs font-black text-base">
+                    🏷️
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-slate-900 dark:text-white">عروض وخصومات</span>
+                      <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-yellow-900/60 dark:text-yellow-200">
+                        🔒 فئة ذكية تلقائية
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {{ locale === 'ar' ? 'هذا القسم يتحدث تلقائياً بناءً على المنتجات التي تحتوي على سعر خصم' : 'Auto-collects products with a discount price set' }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-200">
+                عروض وخصومات
+              </td>
+              <td class="px-4 py-3.5">
+                <span class="rounded bg-[#F5CC07]/20 px-2 py-0.5 font-mono text-xs font-bold text-amber-900 dark:text-yellow-300">
+                  /products/offers
+                </span>
+              </td>
+              <td class="px-4 py-3.5 text-center">
+                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  دائم
+                </span>
+              </td>
+              <td class="px-4 py-3.5 text-center font-mono text-xs text-slate-400">
+                —
+              </td>
+              <td class="px-4 py-3.5 text-end">
+                <div class="flex items-center justify-end gap-2">
+                  <input
+                    v-model="offerDateInput"
+                    type="datetime-local"
+                    class="h-8 rounded border border-slate-300 bg-white px-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-[#0B1520] dark:text-white"
+                    :title="locale === 'ar' ? 'تحديد موعد انتهاء العرض (للعداد التنازلي)' : 'Set offer end date/time'"
+                  />
+                  <button
+                    type="button"
+                    :disabled="savingOfferDate"
+                    class="h-8 rounded bg-[#F5CC07] px-2.5 text-xs font-bold text-slate-950 hover:bg-yellow-400 disabled:opacity-50 transition-colors"
+                    @click="saveOfferEndDate"
+                  >
+                    {{ savingOfferDate ? '…' : (locale === 'ar' ? 'حفظ الموعد' : 'Save Date') }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+
             <tr
               v-for="c in pagedCategories"
               :key="c.id"

@@ -3,8 +3,14 @@ export default defineEventHandler(async (event) => {
   const serviceId = event.context.params?.serviceId
   if (!serviceId) throw createError({ statusCode: 400, message: 'Missing serviceId' })
 
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId, isActive: true },
+  const service = await prisma.service.findFirst({
+    where: { 
+      isActive: true,
+      OR: [
+        { id: serviceId },
+        { slug: serviceId },
+      ]
+    },
     include: { formFields: true }
   })
   if (!service) throw createError({ statusCode: 404, message: 'Service not found or inactive' })
@@ -57,7 +63,7 @@ export default defineEventHandler(async (event) => {
   // Create Request in DB
   const request = await prisma.serviceRequest.create({
     data: {
-      serviceId,
+      serviceId: service.id,
       status: 'New'
     }
   })

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {
+  Check,
+  ExternalLink,
   Eye,
   FileText,
   Filter,
@@ -103,6 +105,7 @@ const serviceForm = reactive({
   iconPath: '',
   sortOrder: 0,
   isActive: true,
+  isFeatured: false,
 })
 
 function openCreateService() {
@@ -200,6 +203,50 @@ async function toggleActive(service: any) {
   }
 }
 
+async function toggleFeatured(service: any) {
+  if (!canConfigServices.value) return
+  try {
+    const nextState = !service.isFeatured
+    await $fetch(`/api/admin/services/${service.id}`, {
+      method: 'PUT',
+      body: { ...service, isFeatured: nextState },
+    })
+    await refreshServices()
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث حالة التمييز' : 'Featured Status Updated',
+      locale.value === 'ar' ? (nextState ? `تم تمييز خدمة "${service.nameAr || service.nameEn}" كإعلان ممول.` : `تم إلغاء تمييز خدمة "${service.nameAr || service.nameEn}".`) : `Service "${service.nameEn}" featured status updated.`,
+    )
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث حالة التمييز' : 'Update Failed',
+      e?.data?.message || 'Error toggling service featured state',
+    )
+  }
+}
+
+// Copy service landing page link for sharing (Change 13)
+const copiedServiceId = ref<string | null>(null)
+async function copyLandingLink(service: any) {
+  if (typeof window === 'undefined') return
+  const identifier = service.slug || service.id
+  const landingUrl = `${window.location.origin}/services/${identifier}`
+  try {
+    await navigator.clipboard.writeText(landingUrl)
+    copiedServiceId.value = service.id
+    toast.success(
+      locale.value === 'ar' ? 'تم نسخ رابط صفحة الهبوط' : 'Landing Page Link Copied',
+      locale.value === 'ar' ? `رابط صفحة الخدمة جاهز للمشاركة: ${landingUrl}` : `Shareable link: ${landingUrl}`,
+    )
+    setTimeout(() => {
+      if (copiedServiceId.value === service.id) copiedServiceId.value = null
+    }, 2500)
+  }
+  catch {
+    toast.error('Failed to copy link')
+  }
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
     year: 'numeric',
@@ -268,6 +315,12 @@ function formatDate(d: string) {
 
     <!-- TAB 1: Services List -->
     <div v-if="activeTab === 'services'">
+      <!-- Settings Note for Featured Services (Change 13) -->
+      <div class="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 dark:border-yellow-900/40 dark:bg-yellow-950/20 dark:text-yellow-200">
+        <Sparkles class="h-4 w-4 text-[#F5CC07] shrink-0" />
+        <span>{{ locale === 'ar' ? 'الخدمات الممولة تظهر في مقدمة القائمة وبإطار مميز على الصفحة الرئيسية وصفحة الخدمات.' : 'Featured services float to the front of the catalog with a distinctive highlighted badge and border.' }}</span>
+      </div>
+
       <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-start text-sm">
@@ -275,6 +328,7 @@ function formatDate(d: string) {
               <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'اسم الخدمة' : 'Service' }}</th>
                 <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
+                <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'إعلان ممول' : 'Sponsored' }}</th>
                 <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'حقول النموذج' : 'Form Fields' }}</th>
                 <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الطلبات' : 'Requests' }}</th>
                 <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
@@ -289,11 +343,22 @@ function formatDate(d: string) {
                 <!-- Service Name -->
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-400">
+                    <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-400">
                       <Wrench class="h-5 w-5" aria-hidden="true" />
+                      <!-- Yellow dot indicator when featured (Change 13) -->
+                      <span
+                        v-if="s.isFeatured"
+                        class="absolute -top-1 -end-1 flex h-3 w-3 items-center justify-center rounded-full bg-[#F5CC07] text-[8px] text-slate-950 font-bold shadow-xs ring-2 ring-white dark:ring-slate-900"
+                        title="خدمة مميزة"
+                      >
+                        ★
+                      </span>
                     </div>
                     <div>
-                      <p class="font-semibold text-slate-900 dark:text-slate-100">{{ s.nameEn }}</p>
+                      <div class="flex items-center gap-1.5">
+                        <p class="font-semibold text-slate-900 dark:text-slate-100">{{ s.nameEn }}</p>
+                        <span v-if="s.isFeatured" class="h-2 w-2 rounded-full bg-[#F5CC07]" title="إعلان ممول" />
+                      </div>
                       <p class="text-xs text-slate-500 dark:text-slate-400">{{ s.nameAr }}</p>
                     </div>
                   </div>
@@ -322,6 +387,33 @@ function formatDate(d: string) {
                   </button>
                 </td>
 
+                <!-- Featured Toggle & Share Link (Change 13) -->
+                <td class="px-4 py-3 text-center">
+                  <div class="flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all active:scale-95"
+                      :class="s.isFeatured ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-yellow-950/60 dark:text-yellow-300 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border border-slate-200 hover:border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'"
+                      :title="locale === 'ar' ? 'اضغط لتبديل تمييز الخدمة (إعلان ممول)' : 'Toggle featured status'"
+                      @click="toggleFeatured(s)"
+                    >
+                      <span>★</span>
+                      <span>{{ s.isFeatured ? (locale === 'ar' ? 'مميز' : 'Featured') : (locale === 'ar' ? 'عادي' : 'Standard') }}</span>
+                    </button>
+
+                    <!-- Share Landing Link Button (↗) -->
+                    <button
+                      type="button"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-[#2B71AE] hover:text-[#2B71AE] dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:border-[#F5CC07] dark:hover:text-[#F5CC07] transition-all active:scale-90"
+                      :title="locale === 'ar' ? 'نسخ رابط صفحة الهبوط الإعلانية (↗)' : 'Copy landing page link (↗)'"
+                      @click="copyLandingLink(s)"
+                    >
+                      <Check v-if="copiedServiceId === s.id" class="h-3.5 w-3.5 text-emerald-500 stroke-[3]" />
+                      <ExternalLink v-else class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
+
                 <!-- Fields Count -->
                 <td class="px-4 py-3 text-center">
                   <span class="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -341,6 +433,18 @@ function formatDate(d: string) {
                 <!-- Actions -->
                 <td class="px-4 py-3 text-end">
                   <div class="flex items-center justify-end gap-1.5">
+                    <!-- Share Landing Link in Actions -->
+                    <button
+                      type="button"
+                      class="inline-flex h-8 items-center gap-1 rounded border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 hover:border-[#2B71AE] hover:text-[#2B71AE] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#F5CC07] dark:hover:text-[#F5CC07] transition-colors"
+                      :title="locale === 'ar' ? 'نسخ رابط صفحة الهبوط الإعلانية' : 'Copy landing page link'"
+                      @click="copyLandingLink(s)"
+                    >
+                      <Check v-if="copiedServiceId === s.id" class="h-3.5 w-3.5 text-emerald-500 stroke-[3]" />
+                      <ExternalLink v-else class="h-3.5 w-3.5" />
+                      <span class="hidden sm:inline">{{ locale === 'ar' ? 'شير' : 'Share' }}</span>
+                    </button>
+
                     <NuxtLink
                       v-if="canConfigServices"
                       :to="localePath(`/admin/services/${s.id}/form`)"
@@ -594,10 +698,17 @@ function formatDate(d: string) {
           </label>
 
           <div class="flex flex-wrap items-center justify-between gap-4 border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
-            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
-              <input v-model="serviceForm.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
-              <span>{{ locale === 'ar' ? 'خدمة نشطة وظاهرة للعملاء' : 'Active and visible to clients' }}</span>
-            </label>
+            <div class="space-y-2">
+              <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                <input v-model="serviceForm.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
+                <span>{{ locale === 'ar' ? 'خدمة نشطة وظاهرة للعملاء' : 'Active and visible to clients' }}</span>
+              </label>
+
+              <label class="flex cursor-pointer items-center gap-2 text-xs font-bold text-amber-800 dark:text-yellow-300">
+                <input v-model="serviceForm.isFeatured" type="checkbox" class="h-4 w-4 rounded accent-[#F5CC07]" />
+                <span>★ {{ locale === 'ar' ? 'تمييز الخدمة (إعلان ممول)' : 'Feature service (Sponsored)' }}</span>
+              </label>
+            </div>
 
             <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
               <span>{{ locale === 'ar' ? 'الترتيب:' : 'Sort order:' }}</span>

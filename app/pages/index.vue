@@ -140,6 +140,7 @@ const displayServices = computed(() => {
       key,
       tag: locale.value === 'ar' ? fallback.tagAr : fallback.tagEn,
       isFlagship: fallback.key === 'plcSystems',
+      isFeatured: Boolean(srv.isFeatured),
     }
   })
 })
@@ -149,7 +150,15 @@ const flagshipService = computed(() => {
 })
 
 const standardServices = computed(() => {
-  return displayServices.value.filter(s => s.id !== flagshipService.value?.id)
+  const list = displayServices.value.filter(s => s.id !== flagshipService.value?.id)
+  let sponsoredSlots = 0
+  return list
+    .map(s => {
+      const showSponsored = s.isFeatured && sponsoredSlots < 2
+      if (showSponsored) sponsoredSlots++
+      return { ...s, showSponsored }
+    })
+    .sort((a, b) => (b.showSponsored ? 1 : 0) - (a.showSponsored ? 1 : 0))
 })
 
 const siteSeo = await useSiteSeo()
@@ -333,9 +342,22 @@ useHead(() => {
             v-for="(srv, i) in standardServices"
             :key="srv.id"
             :to="localePath(`/services/${srv.id}`)"
-            class="reveal group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#162032] p-5 sm:p-6 shadow-sm hover:border-[#2B71AE] hover:shadow-lg dark:hover:border-[#2B71AE] hover:-translate-y-1 transition-all duration-300"
+            class="reveal group relative flex flex-col justify-between rounded-2xl border p-5 sm:p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+            :class="[
+              srv.showSponsored
+                ? 'border-[#F5CC07] bg-[#FFFBEB] dark:bg-[#1f1d13] dark:border-[#F5CC07]'
+                : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#162032] hover:border-[#2B71AE] dark:hover:border-[#2B71AE]'
+            ]"
             :style="{ '--reveal-delay': `${(i + 1) * 70}ms` }"
           >
+            <!-- Sponsored Badge (Change 13) -->
+            <span
+              v-if="srv.showSponsored"
+              class="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-[#F5CC07] px-2 py-0.5 text-[11px] font-bold text-slate-950 shadow-xs"
+            >
+              ★ مميز
+            </span>
+
             <div>
               <div class="flex items-center justify-between gap-2 mb-3.5">
                 <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/25 dark:text-blue-300 group-hover:bg-[#2B71AE] group-hover:text-white transition-colors">

@@ -289,10 +289,12 @@ function getEmbedUrl(url: string, type?: string): string {
             </span>
           </div>
 
-          <!-- Description -->
-          <p v-if="desc" class="text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300 mb-8 max-w-2xl">
-            {{ desc }}
-          </p>
+          <!-- Description (Change 9: Rich content rendering) -->
+          <div
+            v-if="desc"
+            class="flow-root text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300 mb-8 max-w-2xl prose prose-slate dark:prose-invert [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_figure]:my-4 [&_figcaption]:text-xs [&_figcaption]:text-slate-400 [&_figcaption]:italic [&_figcaption]:text-center"
+            v-html="desc"
+          />
 
           <!-- Purchasing Actions -->
           <div class="space-y-4 mb-8">

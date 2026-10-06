@@ -16,7 +16,7 @@ const route = useRoute()
 const router = useRouter()
 const settingsDirty = useSettingsDirtyFlag()
 
-const VALID_TABS = ['general', 'contact', 'seo', 'store', 'payment', 'meta', 'quotes'] as const
+const VALID_TABS = ['general', 'announcements', 'contact', 'seo', 'store', 'payment', 'meta', 'quotes'] as const
 
 const activeTab = ref(
   VALID_TABS.includes(route.query.tab as any) ? String(route.query.tab) : 'general',
@@ -31,6 +31,7 @@ watch(() => route.query.tab, (tab) => {
 
 const tabs = computed(() => [
   { id: 'general', label: locale.value === 'ar' ? 'عام والهوية' : 'General & Brand', icon: Sliders },
+  { id: 'announcements', label: locale.value === 'ar' ? 'الإشعارات والبنرات' : 'Announcements & Banners', icon: Megaphone },
   { id: 'contact', label: locale.value === 'ar' ? 'التواصل والموقع' : 'Contact & Social', icon: Phone },
   { id: 'seo', label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI Discovery', icon: Globe },
   { id: 'store', label: locale.value === 'ar' ? 'تهيئة المتجر' : 'Store Config', icon: Store },
@@ -102,6 +103,9 @@ async function switchTab(id: string) {
     <div class="max-w-5xl">
       <div v-if="activeTab === 'general'" role="tabpanel">
         <AdminSettingsGeneral />
+      </div>
+      <div v-else-if="activeTab === 'announcements'" role="tabpanel">
+        <AdminSettingsAnnouncements />
       </div>
       <div v-else-if="activeTab === 'contact'" role="tabpanel">
         <AdminSettingsContact />

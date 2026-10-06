@@ -20,8 +20,8 @@ const router = useRouter()
 const toast = useAdminToast()
 const fetch = useRequestFetch()
 
-const activeTab = ref<'banners' | 'ticker'>((route.query.tab as 'banners' | 'ticker') || 'banners')
-function switchTab(tab: 'banners' | 'ticker') {
+const activeTab = ref<'banners' | 'announcements' | 'ticker'>((route.query.tab as any) || 'banners')
+function switchTab(tab: 'banners' | 'announcements' | 'ticker') {
   activeTab.value = tab
   router.replace({ query: { tab } })
 }
@@ -33,20 +33,36 @@ const { data: bannersData, refresh: refreshBanners } = await useAsyncData('admin
 const banners = computed(() => bannersData.value?.banners || [])
 const deleting = ref('')
 
-// ── Live link-target options (static routes + live categories/services) ──
+// ── Live link-target options (products, categories, services, static) ──
 const { data: catsData } = await useAsyncData('banner-form-categories', () =>
   fetch<{ categories: { slug: string, nameAr: string, nameEn: string }[] }>('/api/categories'),
 )
 const { data: servicesData } = await useAsyncData('banner-form-services', () =>
   fetch<any[]>('/api/services'),
 )
+const { data: productsData } = await useAsyncData('banner-form-products', () =>
+  fetch<{ products: { id: string, slug: string, nameAr: string, nameEn: string }[] }>('/api/products?limit=100'),
+)
+
 const linkOptions = computed(() => [
   ...BANNER_STATIC_LINKS.map(l => ({ ...l })),
+  {
+    type: 'static',
+    value: '/products/offers',
+    labelEn: 'Deals & Offers Page',
+    labelAr: 'صفحة العروض والخصومات',
+  },
   ...(catsData.value?.categories || []).map(c => ({
     type: 'category',
     value: `/products/${c.slug}`,
     labelEn: `Category: ${c.nameEn}`,
     labelAr: `فئة: ${c.nameAr}`,
+  })),
+  ...(productsData.value?.products || []).map(p => ({
+    type: 'product',
+    value: `/p/${p.slug}`,
+    labelEn: `Product: ${p.nameEn}`,
+    labelAr: `منتج: ${p.nameAr}`,
   })),
   ...(servicesData.value || []).map((s: any) => ({
     type: 'service',
@@ -71,6 +87,8 @@ const form = reactive({
   buttonTextAr: '',
   buttonTextEn: '',
   buttonLinkValue: '',
+  backgroundColor: '#0B1520',
+  textColor: '#FFFFFF',
   placement: 'below_services' as string,
   widthPercent: 100,
   sortOrder: 0,
@@ -88,6 +106,8 @@ function openCreate() {
     buttonTextAr: '',
     buttonTextEn: '',
     buttonLinkValue: '',
+    backgroundColor: '#0B1520',
+    textColor: '#FFFFFF',
     placement: 'below_services',
     widthPercent: 100,
     sortOrder: (banners.value.length || 0) + 1,
@@ -108,6 +128,8 @@ function openEdit(b: any) {
     buttonTextAr: b.buttonTextAr || '',
     buttonTextEn: b.buttonTextEn || '',
     buttonLinkValue: b.buttonLinkValue || '',
+    backgroundColor: b.backgroundColor || '#0B1520',
+    textColor: b.textColor || '#FFFFFF',
     placement: b.placement || 'below_services',
     widthPercent: b.widthPercent || 100,
     sortOrder: b.sortOrder ?? 0,
@@ -158,6 +180,8 @@ async function saveBanner() {
       buttonTextEn: form.buttonTextEn.trim() || undefined,
       buttonLinkType: link ? link.type : undefined,
       buttonLinkValue: form.buttonLinkValue || undefined,
+      backgroundColor: form.backgroundColor || undefined,
+      textColor: form.textColor || undefined,
       placement: form.placement,
       widthPercent: form.widthPercent,
       sortOrder: form.sortOrder,
@@ -283,9 +307,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         @click="switchTab('banners')"
       >
         <ImageIcon class="h-4 w-4" aria-hidden="true" />
-        <span>{{ locale === 'ar' ? 'البنرات' : 'Banners' }}</span>
+        <span>{{ locale === 'ar' ? 'البنرات الترويجية' : 'Banners' }}</span>
         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ banners.length }}</span>
       </button>
+
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors"
+        :class="activeTab === 'announcements' ? 'border-[#2B71AE] text-[#2B71AE] dark:border-[#F5CC07] dark:text-[#F5CC07]' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+        @click="switchTab('announcements')"
+      >
+        <Megaphone class="h-4 w-4" aria-hidden="true" />
+        <span>{{ locale === 'ar' ? 'شريط الإشعارات المتتابعة (العلوي)' : 'Top Announcement Bar' }}</span>
+      </button>
+
       <button
         type="button"
         class="inline-flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors"
@@ -293,7 +328,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         @click="switchTab('ticker')"
       >
         <Megaphone class="h-4 w-4" aria-hidden="true" />
-        <span>{{ locale === 'ar' ? 'الشريط الإعلاني' : 'Announcement Ticker' }}</span>
+        <span>{{ locale === 'ar' ? 'الشريط الإعلاني المتحرك' : 'Announcement Ticker' }}</span>
       </button>
     </div>
 
@@ -360,8 +395,13 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       </div>
     </div>
 
-    <!-- Ticker sub-tab -->
-    <div v-else>
+    <!-- Tab 2: Top Announcement Bar Carousel (Change 11 & 12) -->
+    <div v-else-if="activeTab === 'announcements'">
+      <AdminSettingsAnnouncements />
+    </div>
+
+    <!-- Tab 3: Ticker sub-tab -->
+    <div v-else-if="activeTab === 'ticker'">
       <form class="max-w-2xl space-y-4 rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }" @submit.prevent="saveTicker">
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
@@ -457,6 +497,22 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               </option>
             </select>
           </label>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'لون خلفية البانر (اختياري)' : 'Banner Background Color' }}</span>
+              <div class="flex items-center gap-2">
+                <input v-model="form.backgroundColor" type="color" class="h-9 w-9 cursor-pointer rounded border border-slate-300 p-0.5" />
+                <input v-model="form.backgroundColor" type="text" placeholder="#0B1520" dir="ltr" :class="inputCls" />
+              </div>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'لون نصوص البانر (اختياري)' : 'Banner Text Color' }}</span>
+              <div class="flex items-center gap-2">
+                <input v-model="form.textColor" type="color" class="h-9 w-9 cursor-pointer rounded border border-slate-300 p-0.5" />
+                <input v-model="form.textColor" type="text" placeholder="#FFFFFF" dir="ltr" :class="inputCls" />
+              </div>
+            </label>
+          </div>
           <div class="grid gap-3 sm:grid-cols-3">
             <label class="block">
               <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'موضع العرض' : 'Placement' }}</span>

@@ -22,6 +22,8 @@ import {
   Video,
 } from 'lucide-vue-next'
 
+import AdminRichEditor from './AdminRichEditor.vue'
+
 interface Category {
   id: string
   nameAr: string
@@ -108,6 +110,40 @@ const form = reactive({
   keywords: props.existing?.seo?.keywords || '',
   geoContent: props.existing?.seo?.geoContent || '',
 })
+
+// Change 7: Tag input state for keywords
+const keywordInput = ref('')
+const keywordTags = ref<string[]>(
+  props.existing?.seo?.keywords
+    ? props.existing.seo.keywords.split(',').map(s => s.trim()).filter(Boolean)
+    : []
+)
+
+function addKeyword() {
+  const val = keywordInput.value.replace(/,/g, '').trim()
+  if (!val) return
+  if (keywordTags.value.length >= 20) return
+  if (!keywordTags.value.includes(val)) {
+    keywordTags.value.push(val)
+    form.keywords = keywordTags.value.join(', ')
+  }
+  keywordInput.value = ''
+}
+
+function handleKeywordKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault()
+    addKeyword()
+  }
+  else if (e.key === 'Backspace' && !keywordInput.value && keywordTags.value.length > 0) {
+    removeKeyword(keywordTags.value.length - 1)
+  }
+}
+
+function removeKeyword(index: number) {
+  keywordTags.value.splice(index, 1)
+  form.keywords = keywordTags.value.join(', ')
+}
 
 // Local state for media (purely client-collected until single final save)
 const localImages = ref<ProductImage[]>([
@@ -601,15 +637,81 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           </label>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Description (EN)</span>
-            <textarea v-model="form.descriptionEn" rows="4" class="w-full rounded-md border bg-white p-3 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" placeholder="Detailed English description..." />
-          </label>
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Description (AR)</span>
-            <textarea v-model="form.descriptionAr" rows="4" dir="rtl" class="w-full rounded-md border bg-white p-3 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" placeholder="الوصف التفصيلي بالعربية..." />
-          </label>
+        <!-- Rich Text Editor for Descriptions (Change 9) -->
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {{ locale === 'ar' ? 'الوصف الكامل للمنتج (بالعربية) *' : 'Full Product Description (Arabic) *' }}
+            </label>
+            <AdminRichEditor
+              v-model="form.descriptionAr"
+              dir="rtl"
+              placeholder="اكتب وصفاً تفصيلياً للمنتج... يمكنك إضافة صور توضيحية وتنسيق العناوين"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {{ locale === 'ar' ? 'الوصف الكامل للمنتج (بالإنجليزية)' : 'Full Product Description (English)' }}
+            </label>
+            <AdminRichEditor
+              v-model="form.descriptionEn"
+              dir="ltr"
+              placeholder="Write a detailed product description... you can add illustrative images"
+            />
+          </div>
+        </div>
+
+        <!-- Tag Input for Keywords (Change 7) -->
+        <div class="rounded-lg border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+          <div class="mb-2 flex items-center justify-between">
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <span>{{ locale === 'ar' ? 'الكلمات التعريفية للبحث' : 'Search Keywords' }}</span>
+              <span 
+                class="inline-flex cursor-help items-center justify-center text-slate-400 hover:text-[#2B71AE]"
+                :title="locale === 'ar' ? 'هذه الكلمات تساعد العملاء في إيجاد المنتج عند البحث في الموقع' : 'These keywords help customers find the product when searching on the site'"
+              >
+                ⓘ
+              </span>
+            </label>
+            <span class="font-mono text-[11px] text-slate-500">
+              {{ keywordTags.length }} / 20 {{ locale === 'ar' ? 'كلمة' : 'tags' }}
+            </span>
+          </div>
+
+          <!-- Tags display + Inline text input -->
+          <div 
+            class="flex min-h-[46px] flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-2 focus-within:border-[#2B71AE] focus-within:ring-2 focus-within:ring-[#2B71AE]/20 dark:border-slate-700 dark:bg-[#0B1520]"
+          >
+            <span
+              v-for="(tag, i) in keywordTags"
+              :key="tag"
+              class="inline-flex items-center gap-1.5 rounded-full bg-[#EFF6FF] px-3 py-1 text-[13px] font-medium text-[#2B71AE] dark:bg-[#1e3a5f] dark:text-[#9ccaff]"
+            >
+              <span>{{ tag }}</span>
+              <button
+                type="button"
+                class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-slate-400 hover:bg-[#2B71AE]/20 hover:text-[#2B71AE] dark:hover:text-white"
+                @click="removeKeyword(i)"
+              >
+                ×
+              </button>
+            </span>
+
+            <input
+              v-if="keywordTags.length < 20"
+              v-model="keywordInput"
+              type="text"
+              :placeholder="keywordTags.length ? '' : (locale === 'ar' ? 'اكتب كلمة ثم اضغط Enter أو فاصلة...' : 'Type a keyword and press Enter...')"
+              class="min-w-[150px] flex-1 bg-transparent px-1.5 py-0.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none dark:text-white"
+              @keydown="handleKeywordKeydown"
+              @blur="addKeyword"
+            />
+          </div>
+
+          <p class="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
+            {{ locale === 'ar' ? 'مثال: مولتيميتر، جهاز قياس، فلوك، multimeter، Fluke 87V' : 'Example: multimeter, measuring device, fluke, multimeter, Fluke 87V' }}
+          </p>
         </div>
 
         <div class="pt-2">

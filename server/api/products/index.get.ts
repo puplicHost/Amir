@@ -19,9 +19,15 @@ export default defineEventHandler(async (event) => {
     where.OR = [
       { nameEn: { contains: s, mode: 'insensitive' } },
       { nameAr: { contains: s, mode: 'insensitive' } },
+      { slug: { contains: s, mode: 'insensitive' } },
       { category: { is: { nameEn: { contains: s, mode: 'insensitive' } } } },
       { category: { is: { nameAr: { contains: s, mode: 'insensitive' } } } },
+      { seo: { is: { keywords: { contains: s, mode: 'insensitive' } } } },
     ]
+  }
+
+  if (q.offers === 'true' || q.discounted === 'true') {
+    where.compareAtPrice = { not: null, gt: 0 }
   }
   const price: Record<string, number> = {}
   if (q.minPrice !== undefined && q.minPrice !== '') price.gte = Number(q.minPrice)

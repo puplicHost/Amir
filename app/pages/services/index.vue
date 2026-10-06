@@ -219,7 +219,12 @@ function clearFilters() {
           v-for="srv in filteredServices"
           :key="srv.id"
           :to="localePath(`/services/${srv.id}`)"
-          class="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs hover:-translate-y-1.5 hover:border-[#2B71AE] hover:shadow-xl dark:border-slate-800 dark:bg-[#162032] dark:hover:border-[#2B71AE] transition-all duration-300"
+          class="group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white p-6 sm:p-7 shadow-xs hover:-translate-y-1.5 hover:shadow-xl dark:bg-[#162032] transition-all duration-300"
+          :class="[
+            srv.isFeatured
+              ? 'border-s-4 border-s-[#F5CC07] border-slate-200/90 dark:border-slate-800'
+              : 'border-slate-200/90 hover:border-[#2B71AE] dark:border-slate-800 dark:hover:border-[#2B71AE]'
+          ]"
         >
           <div>
             <!-- Top: Icon Badge + Category Tag -->
@@ -232,6 +237,14 @@ function clearFilters() {
                 {{ srv.tag }}
               </span>
             </div>
+
+            <!-- Sponsored Label (Change 13) -->
+            <span
+              v-if="srv.isFeatured"
+              class="mb-1.5 inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-wider text-[#d4af00] dark:text-[#F5CC07]"
+            >
+              ★ {{ locale === 'ar' ? 'خدمة مميزة' : 'Featured Service' }}
+            </span>
 
             <!-- Service Title -->
             <h3 class="font-heading text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-[#2B71AE] dark:text-white dark:group-hover:text-[#F5CC07] transition-colors leading-snug line-clamp-2 mb-3">

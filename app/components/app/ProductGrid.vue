@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ArrowRight, ChevronDown, ChevronUp, Filter, RotateCcw, Search, SlidersHorizontal, Tag, X } from 'lucide-vue-next'
 
-const props = defineProps<{ categorySlug?: string }>()
+const props = defineProps<{ 
+  categorySlug?: string
+  offersOnly?: boolean
+}>()
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -59,16 +62,17 @@ const limit = computed(() => storeSettings.value?.productsPerPage || 16)
 
 // Dynamic Facets Endpoint: provides real minPrice, maxPrice, and category-scoped attributes with counts
 const { data: facetsData } = await useAsyncData(
-  () => `catalog-facets-${props.categorySlug || 'all'}-${search.value.trim()}`,
+  () => `catalog-facets-${props.offersOnly ? 'offers' : (props.categorySlug || 'all')}-${search.value.trim()}`,
   () => $fetch<{
     minPrice: number
     maxPrice: number
     attributes: { keyEn: string, keyAr: string, values: { valueEn: string, valueAr: string, count: number }[] }[]
   }>(`/api/products/facets?${new URLSearchParams({
     ...(props.categorySlug ? { category: props.categorySlug } : {}),
+    ...(props.offersOnly ? { offers: 'true' } : {}),
     ...(search.value.trim() ? { search: search.value.trim() } : {}),
   })}`),
-  { watch: [() => props.categorySlug] },
+  { watch: [() => props.categorySlug, () => props.offersOnly] },
 )
 
 const attributesParam = computed(() => {
@@ -91,6 +95,7 @@ const query = computed(() => {
     maxPrice: maxPrice.value,
   }
   if (props.categorySlug) q.category = props.categorySlug
+  if (props.offersOnly) q.offers = 'true'
   if (attributesParam.value) q.attributes = attributesParam.value
 
   const clean: Record<string, string> = {}

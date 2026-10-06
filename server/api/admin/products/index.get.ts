@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
     where.OR = [
       { nameEn: { contains: s, mode: 'insensitive' } },
       { nameAr: { contains: s, mode: 'insensitive' } },
+      { slug: { contains: s, mode: 'insensitive' } },
+      { seo: { is: { keywords: { contains: s, mode: 'insensitive' } } } },
     ]
   }
   if (typeof q.categoryId === 'string' && q.categoryId) where.categoryId = q.categoryId
@@ -26,6 +28,7 @@ export default defineEventHandler(async (event) => {
       include: {
         category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
         images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+        seo: { select: { keywords: true } },
       },
     }),
   ])

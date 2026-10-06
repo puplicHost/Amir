@@ -22,6 +22,10 @@ export default defineEventHandler(async (event) => {
     ]
   }
 
+  if (q.offers === 'true' || q.discounted === 'true') {
+    where.compareAtPrice = { not: null, gt: 0 }
+  }
+
   const [priceAgg, rawAttributes] = await Promise.all([
     prisma.product.aggregate({
       where,

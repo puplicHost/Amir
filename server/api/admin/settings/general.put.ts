@@ -36,6 +36,9 @@ export default defineEventHandler(async (event) => {
       bannerButtonTextAr: body.bannerButtonTextAr,
       bannerButtonTextEn: body.bannerButtonTextEn,
       bannerButtonUrl: body.bannerButtonUrl,
+      offerEndDate: body.offerEndDate ? new Date(body.offerEndDate) : null,
+      announcementActive: body.announcementActive !== undefined ? Boolean(body.announcementActive) : undefined,
+      announcementBgColor: body.announcementBgColor,
       ...colorUpdate,
     },
     create: {

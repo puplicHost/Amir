@@ -1,7 +1,13 @@
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
-  const product = await prisma.product.findUnique({
-    where: { slug: slug || '' },
+  const product = await prisma.product.findFirst({
+    where: {
+      isActive: true,
+      OR: [
+        { slug: slug || '' },
+        { id: slug || '' },
+      ],
+    },
     include: {
       category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
       images: { orderBy: { sortOrder: 'asc' } },

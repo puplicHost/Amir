@@ -24,6 +24,8 @@ export default defineEventHandler(async (event) => {
   }
   if ('buttonLinkType' in body) data.buttonLinkType = typeof body.buttonLinkType === 'string' && body.buttonLinkType ? body.buttonLinkType : null
   if ('buttonLinkValue' in body) data.buttonLinkValue = typeof body.buttonLinkValue === 'string' && body.buttonLinkValue ? body.buttonLinkValue : null
+  if ('backgroundColor' in body) data.backgroundColor = typeof body.backgroundColor === 'string' && body.backgroundColor.trim() ? body.backgroundColor.trim() : null
+  if ('textColor' in body) data.textColor = typeof body.textColor === 'string' && body.textColor.trim() ? body.textColor.trim() : null
   if ('placement' in body) {
     if (typeof body.placement !== 'string' || !VALID_PLACEMENTS.has(body.placement as never)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid placement' })

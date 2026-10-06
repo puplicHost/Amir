@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Trash2 } from 'lucide-vue-next'
+import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.view' })
 
@@ -13,6 +13,7 @@ interface Row {
   isActive: boolean
   category: { id: string, slug: string, nameAr: string, nameEn: string }
   images: { path: string }[]
+  seo?: { keywords: string | null } | null
 }
 
 const { t, locale } = useI18n()
@@ -24,6 +25,7 @@ const toast = useAdminToast()
 const search = ref(String(route.query.search || ''))
 const categoryId = ref(String(route.query.categoryId || ''))
 const status = ref(String(route.query.status || ''))
+const showKeywordsColumn = ref(false)
 const page = ref(Number(route.query.page) || 1)
 const limit = 20
 const deletingId = ref<string | null>(null)
@@ -201,6 +203,17 @@ async function shareProduct(p: Row) {
           <span>{{ locale === 'ar' ? 'تصفية' : 'Filter' }}</span>
         </button>
 
+        <!-- Toggle Keywords Column Button (Change 7) -->
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors"
+          :class="showKeywordsColumn ? 'border-[#2B71AE] bg-[#2B71AE]/10 text-[#2B71AE] dark:border-[#F5CC07] dark:text-[#F5CC07]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+          @click="showKeywordsColumn = !showKeywordsColumn"
+        >
+          <Tag class="h-3.5 w-3.5" />
+          <span>{{ locale === 'ar' ? 'كلمات البحث' : 'Keywords' }}</span>
+        </button>
+
         <!-- Reset Button -->
         <button
           v-if="hasFilters"
@@ -222,6 +235,7 @@ async function shareProduct(p: Row) {
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الفئة' : 'Category' }}</th>
+              <th v-if="showKeywordsColumn" scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'كلمات البحث' : 'Keywords' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'السعر' : 'Price' }}</th>
               <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
               <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
@@ -260,6 +274,23 @@ async function shareProduct(p: Row) {
                 <span class="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   {{ locale === 'ar' ? (p.category.nameAr || p.category.nameEn) : p.category.nameEn }}
                 </span>
+              </td>
+
+              <!-- Keywords Column (Change 7) -->
+              <td v-if="showKeywordsColumn" class="px-4 py-3">
+                <div v-if="p.seo?.keywords" class="flex flex-wrap gap-1 max-w-[220px]">
+                  <span
+                    v-for="k in p.seo.keywords.split(',').slice(0, 3)"
+                    :key="k"
+                    class="inline-block rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-medium text-[#2B71AE] dark:bg-[#1e3a5f] dark:text-[#9ccaff]"
+                  >
+                    {{ k.trim() }}
+                  </span>
+                  <span v-if="p.seo.keywords.split(',').length > 3" class="text-[10px] text-slate-400">
+                    +{{ p.seo.keywords.split(',').length - 3 }}
+                  </span>
+                </div>
+                <span v-else class="text-xs text-slate-400">—</span>
               </td>
 
               <!-- Price -->

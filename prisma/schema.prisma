@@ -260,12 +260,14 @@ model QuoteRequestItem {
 
 model Service {
   id            String   @id @default(cuid())
+  slug          String?  @unique
   nameAr        String
   nameEn        String
   descriptionAr String?  @db.Text
   descriptionEn String?  @db.Text
   iconPath      String?
   isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -274,6 +276,7 @@ model Service {
   requests   ServiceRequest[]
 
   @@index([isActive])
+  @@index([isFeatured])
 }
 
 model ServiceFormField {
@@ -376,11 +379,30 @@ model Banner {
   buttonLinkValue     String?
   placement           String   @default("below_services")
   widthPercent        Int      @default(100)
+  backgroundColor     String?
+  textColor           String?
   isActive            Boolean  @default(true)
   sortOrder           Int      @default(0)
   createdAt           DateTime @default(now())
 
   @@index([placement, isActive, sortOrder])
+}
+
+// ─── Top announcement carousel items ───────────────────────────
+
+model AnnouncementItem {
+  id        String   @id @default(cuid())
+  textAr    String
+  textEn    String?
+  type      String   @default("general") // 'product' | 'service' | 'general'
+  linkType  String   @default("none") // 'product' | 'service' | 'url' | 'none'
+  linkValue String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
 }
 
 // ─── Site settings (singleton, id = 1) ─────────────────────────
@@ -399,6 +421,10 @@ model SiteSettings {
   primaryDarkColor String @default("#285E8E")
   primaryColor     String @default("#2B71AE")
   accentColor      String @default("#F5CC07")
+
+  offerEndDate       DateTime?
+  announcementActive Boolean   @default(true)
+  announcementBgColor String   @default("#2B71AE")
 
   bannerTextAr       String? @db.Text
   bannerTextEn       String? @db.Text

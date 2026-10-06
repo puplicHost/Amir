@@ -32,6 +32,8 @@ export default defineEventHandler(async (event) => {
       buttonLinkValue: typeof body.buttonLinkValue === 'string' && body.buttonLinkValue ? body.buttonLinkValue : null,
       placement,
       widthPercent,
+      backgroundColor: typeof body.backgroundColor === 'string' && body.backgroundColor.trim() ? body.backgroundColor.trim() : null,
+      textColor: typeof body.textColor === 'string' && body.textColor.trim() ? body.textColor.trim() : null,
       isActive: body.isActive !== false,
       sortOrder: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
     },
