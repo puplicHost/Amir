@@ -181,50 +181,50 @@ function formatDate(d: string) {
             <div class="space-y-2">
               <button
                 type="button"
-                :disabled="updating || request.status === 'New'"
+                :disabled="updating || request.status === 'pending'"
                 class="flex w-full items-center justify-between rounded-md border p-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                :class="request.status === 'New' ? 'border-blue-500 bg-blue-50 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
-                :style="{ borderColor: request.status === 'New' ? undefined : 'var(--color-border)' }"
-                @click="updateStatus('New')"
+                :class="request.status === 'pending' ? 'border-blue-500 bg-blue-50 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
+                :style="{ borderColor: request.status === 'pending' ? undefined : 'var(--color-border)' }"
+                @click="updateStatus('pending')"
               >
-                <span>New (جديد)</span>
-                <CheckCircle v-if="request.status === 'New'" class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
+                <span>pending (جديد)</span>
+                <CheckCircle v-if="request.status === 'pending'" class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
               </button>
 
               <button
                 type="button"
-                :disabled="updating || request.status === 'In Review'"
+                :disabled="updating || request.status === 'reviewed'"
                 class="flex w-full items-center justify-between rounded-md border p-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                :class="request.status === 'In Review' ? 'border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
-                :style="{ borderColor: request.status === 'In Review' ? undefined : 'var(--color-border)' }"
-                @click="updateStatus('In Review')"
+                :class="request.status === 'reviewed' ? 'border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
+                :style="{ borderColor: request.status === 'reviewed' ? undefined : 'var(--color-border)' }"
+                @click="updateStatus('reviewed')"
               >
-                <span>In Review (قيد المراجعة الفنية)</span>
-                <CheckCircle v-if="request.status === 'In Review'" class="h-4 w-4 text-amber-600" aria-hidden="true" />
+                <span>reviewed (قيد المراجعة الفنية)</span>
+                <CheckCircle v-if="request.status === 'reviewed'" class="h-4 w-4 text-amber-600" aria-hidden="true" />
               </button>
 
               <button
                 type="button"
-                :disabled="updating || request.status === 'Done'"
+                :disabled="updating || request.status === 'contacted'"
                 class="flex w-full items-center justify-between rounded-md border p-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                :class="request.status === 'Done' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
-                :style="{ borderColor: request.status === 'Done' ? undefined : 'var(--color-border)' }"
-                @click="updateStatus('Done')"
+                :class="request.status === 'contacted' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
+                :style="{ borderColor: request.status === 'contacted' ? undefined : 'var(--color-border)' }"
+                @click="updateStatus('contacted')"
               >
-                <span>Done (تم الإنجاز)</span>
-                <CheckCircle v-if="request.status === 'Done'" class="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                <span>contacted (تم التواصل)</span>
+                <CheckCircle v-if="request.status === 'contacted'" class="h-4 w-4 text-emerald-600" aria-hidden="true" />
               </button>
 
               <button
                 type="button"
-                :disabled="updating || request.status === 'Closed'"
+                :disabled="updating || request.status === 'closed'"
                 class="flex w-full items-center justify-between rounded-md border p-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                :class="request.status === 'Closed' ? 'border-slate-500 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
-                :style="{ borderColor: request.status === 'Closed' ? undefined : 'var(--color-border)' }"
-                @click="updateStatus('Closed')"
+                :class="request.status === 'closed' ? 'border-slate-500 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
+                :style="{ borderColor: request.status === 'closed' ? undefined : 'var(--color-border)' }"
+                @click="updateStatus('closed')"
               >
-                <span>Closed (مغلق)</span>
-                <CheckCircle v-if="request.status === 'Closed'" class="h-4 w-4 text-slate-600" aria-hidden="true" />
+                <span>closed (مغلق)</span>
+                <CheckCircle v-if="request.status === 'closed'" class="h-4 w-4 text-slate-600" aria-hidden="true" />
               </button>
             </div>
 

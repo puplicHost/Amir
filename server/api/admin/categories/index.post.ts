@@ -1,7 +1,8 @@
 import { generateSlug, uniqueSlug } from '../../../../shared/slug'
+import { createdLabel, logAudit } from '../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'categories.manage')
+  const actor = await requirePermission(event, 'categories.manage')
   const body = await readBody(event)
   const nameAr = typeof body.nameAr === 'string' ? body.nameAr.trim() : ''
   const nameEn = typeof body.nameEn === 'string' ? body.nameEn.trim() : ''
@@ -23,6 +24,14 @@ export default defineEventHandler(async (event) => {
       featuredOnHomepage: body.featuredOnHomepage === true,
       sortOrder: Number(body.sortOrder) || 0,
     },
+  })
+  await logAudit({
+    entityType: 'category',
+    entityId: category.id,
+    entityName: `${nameAr} / ${nameEn}`,
+    action: 'created',
+    details: createdLabel('category'),
+    user: actor,
   })
   return { category }
 })

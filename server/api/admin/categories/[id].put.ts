@@ -1,7 +1,8 @@
 import { generateSlug } from '../../../../shared/slug'
+import { logAudit } from '../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'categories.manage')
+  const actor = await requirePermission(event, 'categories.manage')
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
 
@@ -25,5 +26,13 @@ export default defineEventHandler(async (event) => {
   if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder) || 0
 
   const category = await prisma.category.update({ where: { id: existing.id }, data })
+  await logAudit({
+    entityType: 'category',
+    entityId: existing.id,
+    entityName: `${category.nameAr} / ${category.nameEn}`,
+    action: 'updated',
+    details: 'عدّل القسم',
+    user: actor,
+  })
   return { category }
 })

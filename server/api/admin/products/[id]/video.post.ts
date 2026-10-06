@@ -1,7 +1,8 @@
 import { saveProductVideo } from '../../../../utils/storage'
+import { logAudit } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.edit')
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'Missing product id' })
 
@@ -52,5 +53,13 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  await logAudit({
+    entityType: 'product',
+    entityId: id,
+    entityName: `${product.nameAr} / ${product.nameEn}`,
+    action: 'media',
+    details: 'غيّر الفيديو',
+    user: actor,
+  })
   return { video }
 })

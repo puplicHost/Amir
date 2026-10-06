@@ -1,19 +1,12 @@
 import { generateQuotePdf, type QuotePdfItem } from '../../../utils/quote-pdf'
 import { storeFile } from '../../../utils/storage'
+import { nextQuoteNumber, quoteExpiryDate } from '../../../utils/numbering'
+import { parseBody, quoteCreateSchema } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event)
-  const hasAccess = user.isSuper || 
-    user.permissions.includes('quotes.manage') || 
-    user.permissions.includes('quotes.view') || 
-    user.permissions.includes('services.view') || 
-    user.permissions.includes('orders.view')
+  const user = await requireQuotesManage(event)
 
-  if (!hasAccess) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
-  }
-
-  const body = await readBody(event)
+  const body = await parseBody(event, quoteCreateSchema)
 
   const companyName = String(body.companyName || '').trim()
   const contactName = String(body.contactName || '').trim()
@@ -53,10 +46,9 @@ export default defineEventHandler(async (event) => {
 
   const dbProductMap = new Map(dbProducts.map(p => [p.id, p]))
 
-  // Generate unique quote number: QT-YYYYMM-XXXX
-  const datePrefix = new Date().toISOString().slice(0, 7).replace('-', '')
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
-  const quoteNumber = `QT-${datePrefix}-${randomSuffix}`
+  // Sequential quote number: QT-{sequence} (configurable start in quote settings)
+  const quoteNumber = await nextQuoteNumber()
+  const governorate = body.governorate ? String(body.governorate).trim() : null
 
   let subtotalAmount = 0
   const quoteItemsData: any[] = []
@@ -193,6 +185,8 @@ export default defineEventHandler(async (event) => {
       phone,
       email,
       notes,
+      governorate,
+      expiresAt: quoteExpiryDate((siteSettings as any)?.quoteValidityDays ?? 30),
       subtotalAmount,
       discountType,
       discountValue,

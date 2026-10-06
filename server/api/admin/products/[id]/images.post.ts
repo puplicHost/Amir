@@ -1,5 +1,7 @@
+import { logAudit } from '../../../../utils/audit'
+
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.edit')
   const id = getRouterParam(event, 'id')
   const existing = await prisma.product.findUnique({
     where: { id: id || '' },
@@ -22,6 +24,14 @@ export default defineEventHandler(async (event) => {
   const images = await prisma.productImage.findMany({
     where: { productId: existing.id },
     orderBy: { sortOrder: 'asc' },
+  })
+  await logAudit({
+    entityType: 'product',
+    entityId: existing.id,
+    entityName: `${existing.nameAr} / ${existing.nameEn}`,
+    action: 'media',
+    details: 'غيّر الصور',
+    user: actor,
   })
   return { images }
 })

@@ -1,8 +1,9 @@
 import { promises as fs } from 'node:fs'
 import { resolveUploadPath } from '../../../../../utils/storage'
+import { logAudit } from '../../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.edit')
   const id = getRouterParam(event, 'id')
   const docId = getRouterParam(event, 'docId')
   if (!id || !docId) throw createError({ statusCode: 400, message: 'Missing parameters' })
@@ -20,6 +21,18 @@ export default defineEventHandler(async (event) => {
       }
     }
     await prisma.productDocument.delete({ where: { id: doc.id } })
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { nameAr: true, nameEn: true },
+    })
+    await logAudit({
+      entityType: 'product',
+      entityId: id,
+      entityName: product ? `${product.nameAr} / ${product.nameEn}` : id,
+      action: 'media',
+      details: 'غيّر المستندات',
+      user: actor,
+    })
   }
 
   return { ok: true }

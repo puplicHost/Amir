@@ -1,8 +1,12 @@
 
+import { parseBody, serviceFieldCreateSchema } from '../../../../../../utils/validate'
+
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'services.config')
   const serviceId = event.context.params?.id
-  const body = await readBody(event)
+  const body = await parseBody(event, serviceFieldCreateSchema)
+  const service = await prisma.service.findUnique({ where: { id: serviceId } })
+  if (!service) throw createError({ statusCode: 404, statusMessage: 'Service not found' })
   const field = await prisma.serviceFormField.create({
     data: {
       serviceId: serviceId as string,

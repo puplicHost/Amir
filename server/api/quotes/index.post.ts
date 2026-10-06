@@ -1,8 +1,11 @@
 import { generateQuotePdf } from '../../utils/quote-pdf'
 import { storeFile } from '../../utils/storage'
+import { nextQuoteNumber, quoteExpiryDate } from '../../utils/numbering'
+import { parseBody, quoteCreateSchema } from '../../utils/validate'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+  // Rate limited by server/middleware/rate-limit.ts (10 req/min).
+  const body = await parseBody(event, quoteCreateSchema)
 
   const companyName = String(body.companyName || '').trim()
   const contactName = String(body.contactName || '').trim()
@@ -40,10 +43,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Selected products are unavailable or inactive.' })
   }
 
-  // Generate unique quote number: QT-YYYYMM-XXXX
-  const datePrefix = new Date().toISOString().slice(0, 7).replace('-', '')
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
-  const quoteNumber = `QT-${datePrefix}-${randomSuffix}`
+  // Sequential quote number: QT-{sequence} (configurable start in quote settings)
+  const quoteNumber = await nextQuoteNumber()
+  const governorate = body.governorate ? String(body.governorate).trim() : null
 
   let grandTotal = 0
   const quoteItemsData: any[] = []
@@ -105,6 +107,8 @@ export default defineEventHandler(async (event) => {
       phone,
       email,
       notes,
+      governorate,
+      expiresAt: quoteExpiryDate((siteSettings as any)?.quoteValidityDays ?? 30),
       subtotalAmount: grandTotal,
       totalAmount: grandTotal,
       status: 'New',
@@ -198,6 +202,10 @@ export default defineEventHandler(async (event) => {
     currency: 'EGP',
   })
 
+  // Issue a short-lived access token for this quote's PDF/PII reads.
+  const { issueAccessToken } = await import('../../utils/access-tokens')
+  const accessToken = await issueAccessToken('quote', quote.id)
+
   return {
     quoteId: quote.id,
     quoteNumber: quote.quoteNumber,
@@ -205,5 +213,7 @@ export default defineEventHandler(async (event) => {
     downloadUrlEn: storedEn.relativePath,
     downloadUrlAr: storedAr.relativePath,
     totalAmount: grandTotal,
+    accessToken,
+    message: (siteSettings as any)?.quoteAutoMessage || null,
   }
 })

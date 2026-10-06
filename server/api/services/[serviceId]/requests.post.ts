@@ -1,5 +1,6 @@
 
 export default defineEventHandler(async (event) => {
+  // Rate limited by server/middleware/rate-limit.ts (10 req/min).
   const serviceId = event.context.params?.serviceId
   if (!serviceId) throw createError({ statusCode: 400, message: 'Missing serviceId' })
 
@@ -60,6 +61,19 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Abuse caps: bounded field/file counts and value sizes.
+  if (Object.keys(fields).length > 50) {
+    throw createError({ statusCode: 400, message: 'Too many fields submitted' })
+  }
+  for (const [k, v] of Object.entries(fields)) {
+    if (k.length > 100 || v.length > 5000) {
+      throw createError({ statusCode: 400, message: 'Field value too long' })
+    }
+  }
+  if (files.length > 10) {
+    throw createError({ statusCode: 400, message: 'Too many files (max 10)' })
+  }
+
   // Create Request in DB
   const request = await prisma.serviceRequest.create({
     data: {
@@ -68,12 +82,15 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Save values
-  const valuesData = Object.entries(fields).map(([fieldId, value]) => ({
-    requestId: request.id,
-    fieldId,
-    value
-  }))
+  // Save values — only for fieldIds defined on this service (ignore unknown ids).
+  const knownFieldIds = new Set(service.formFields.map(f => f.id))
+  const valuesData = Object.entries(fields)
+    .filter(([fieldId]) => knownFieldIds.has(fieldId))
+    .map(([fieldId, value]) => ({
+      requestId: request.id,
+      fieldId,
+      value
+    }))
   if (valuesData.length > 0) {
     await prisma.serviceRequestValue.createMany({
       data: valuesData

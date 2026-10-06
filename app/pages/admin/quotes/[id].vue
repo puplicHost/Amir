@@ -9,6 +9,7 @@ import {
   Download, 
   FileText, 
   Mail, 
+  MapPin,
   Phone, 
   RotateCcw, 
   ShieldCheck, 
@@ -38,6 +39,13 @@ if (data.value?.quote) {
 }
 
 const { confirm: confirmDialog } = useAdminConfirm()
+
+function formatExpiry(d: string): string {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  })
+}
 
 async function updateStatus() {
   const okStatus = await confirmDialog({
@@ -86,6 +94,36 @@ function formatDate(d: string) {
     minute: '2-digit',
   })
 }
+
+const convertingInvoice = ref(false)
+const invoiceModalId = ref<string | null>(null)
+const invoiceModalLabel = ref<string | null>(null)
+
+async function convertToInvoice() {
+  convertingInvoice.value = true
+  try {
+    // Reuse an existing linked invoice if present, otherwise create one.
+    const linked = await $fetch<{ invoice: { id: string } | null }>(`/api/admin/invoices/by-quote/${id}`)
+    let invoiceId = linked.invoice?.id || null
+    if (!invoiceId) {
+      const created = await $fetch<{ invoice: { id: string } }>(`/api/admin/invoices/from-quote/${id}`, { method: 'POST' })
+      invoiceId = created.invoice.id
+    }
+    invoiceModalLabel.value = locale.value === 'ar'
+      ? `فاتورة — محوّلة من عرض سعر ${data.value?.quote.quoteNumber || ''}`
+      : `Invoice — converted from quote ${data.value?.quote.quoteNumber || ''}`
+    invoiceModalId.value = invoiceId
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'تعذر إنشاء الفاتورة' : 'Failed to create invoice',
+      e?.data?.message || 'Create failed',
+    )
+  }
+  finally {
+    convertingInvoice.value = false
+  }
+}
 </script>
 
 <template>
@@ -111,7 +149,7 @@ function formatDate(d: string) {
           <AdminStatusBadge :status="data.quote.status" size="md" />
         </template>
         <template #actions>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <a
               :href="`/api/quotes/${data.quote.id}/pdf?locale=en`"
               target="_blank"
@@ -130,6 +168,15 @@ function formatDate(d: string) {
               <Download class="h-3.5 w-3.5" />
               <span>تحميل PDF (عربي)</span>
             </a>
+            <button
+              type="button"
+              :disabled="convertingInvoice"
+              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-3.5 text-xs font-bold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 disabled:opacity-50"
+              @click="convertToInvoice"
+            >
+              <FileText class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ convertingInvoice ? (locale === 'ar' ? 'جاري التحويل…' : 'Converting…') : (locale === 'ar' ? 'تحويل لفاتورة' : 'Convert to Invoice') }}</span>
+            </button>
           </div>
         </template>
       </AdminPageHeader>
@@ -271,10 +318,33 @@ function formatDate(d: string) {
                 </div>
               </div>
 
+              <div v-if="data.quote.governorate" class="flex items-start gap-2.5">
+                <MapPin class="h-4 w-4 text-[#2B71AE] shrink-0 mt-0.5" />
+                <div>
+                  <span class="text-slate-400 block">{{ locale === 'ar' ? 'المحافظة' : 'Governorate' }}</span>
+                  <span class="font-semibold text-slate-800 dark:text-slate-200">{{ data.quote.governorate }}</span>
+                </div>
+              </div>
+
+              <div v-if="data.quote.expiresAt" class="flex items-start gap-2.5">
+                <Calendar class="h-4 w-4 text-[#2B71AE] shrink-0 mt-0.5" />
+                <div>
+                  <span class="text-slate-400 block">{{ locale === 'ar' ? 'ينتهي العرض في' : 'Expires' }}</span>
+                  <span class="font-semibold text-slate-800 dark:text-slate-200">{{ formatExpiry(data.quote.expiresAt) }}</span>
+                </div>
+              </div>
+
               <div v-if="data.quote.notes" class="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <span class="text-slate-400 block mb-1">{{ locale === 'ar' ? 'ملاحظات العميل' : 'Client Notes' }}</span>
                 <p class="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded text-xs whitespace-pre-wrap">
                   {{ data.quote.notes }}
+                </p>
+              </div>
+
+              <div v-if="data.quote.adminNotes" class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span class="text-slate-400 block mb-1">{{ locale === 'ar' ? 'ملاحظات الأدمن' : 'Admin Notes' }}</span>
+                <p class="text-slate-700 dark:text-slate-300 leading-relaxed bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded text-xs whitespace-pre-wrap">
+                  {{ data.quote.adminNotes }}
                 </p>
               </div>
             </div>
@@ -330,6 +400,10 @@ function formatDate(d: string) {
               >
                 <option value="New">New (جديد)</option>
                 <option value="Reviewed">Reviewed (تمت المراجعة)</option>
+                <option value="Pending">Pending (معلق)</option>
+                <option value="Accepted">Accepted (مقبول)</option>
+                <option value="Rejected">Rejected (مرفوض)</option>
+                <option value="Expired">Expired (منتهي)</option>
                 <option value="Closed">Closed (مغلق)</option>
               </select>
 
@@ -345,6 +419,14 @@ function formatDate(d: string) {
           </div>
         </div>
       </div>
+
+      <!-- Invoice Preview Modal (converted from this quote) -->
+      <AdminInvoiceModal
+        v-if="invoiceModalId"
+        :invoice-id="invoiceModalId"
+        :context-label="invoiceModalLabel"
+        @close="invoiceModalId = null"
+      />
     </div>
   </div>
 </template>

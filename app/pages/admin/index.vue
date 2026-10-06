@@ -29,6 +29,7 @@ interface DashboardResponse {
     totalCategories: number
     activeServices: number
     totalRevenue: number
+    lowStockCount: number
   }
   recentOrders: Array<{
     id: string
@@ -48,6 +49,16 @@ interface DashboardResponse {
     serviceNameEn: string
     customerName: string
   }>
+  recentActivity: Array<{
+    id: string
+    entityType: string
+    entityId: string
+    entityName: string
+    action: string
+    details: string | null
+    userName: string
+    createdAt: string
+  }>
 }
 
 const fetch = useRequestFetch()
@@ -61,10 +72,44 @@ const canServicesView = useAdminCan('services.view')
 const canCategoriesManage = useAdminCan('categories.manage')
 const canSettingsView = useAdminCan('settings.view')
 const canFinancialsView = useAdminCan('dashboard.financials.view')
+const canFinancialsTab = useAdminCan('financials.view')
+
+// Monthly financial summary widget (current month, totals only — no names exposed).
+const { data: finSummary, pending: finPending } = await useAsyncData(
+  'admin-dashboard-financial-summary',
+  () => {
+    const now = new Date()
+    return fetch<{ revenue: { total: number }, profit: number, margin: number }>(
+      `/api/admin/financials/summary?month=${now.getMonth() + 1}&year=${now.getFullYear()}`,
+    )
+  },
+)
 
 const stats = computed(() => data.value?.stats)
 const recentOrders = computed(() => data.value?.recentOrders || [])
 const recentServiceRequests = computed(() => data.value?.recentServiceRequests || [])
+const recentActivity = computed(() => data.value?.recentActivity || [])
+const lowStockCount = computed(() => stats.value?.lowStockCount || 0)
+
+const canProductsView = useAdminCan('products.view')
+
+function activityIcon(entityType: string) {
+  if (entityType === 'category') return FolderTree
+  if (entityType === 'service') return Wrench
+  return Package
+}
+
+function activityLink(entry: { entityType: string, entityId: string }) {
+  if (entry.entityType === 'category') return '/admin/categories'
+  if (entry.entityType === 'service') return '/admin/services'
+  return `/admin/products/${entry.entityId}/edit`
+}
+
+function activityActionLabel(entry: { action: string, details: string | null }): string {
+  if (entry.action === 'created') return locale.value === 'ar' ? 'أضاف' : 'created'
+  if (entry.action === 'deleted') return locale.value === 'ar' ? 'حذف' : 'deleted'
+  return entry.details || (locale.value === 'ar' ? 'عدّل' : 'updated')
+}
 
 function formatCurrency(amount: number): string {
   const formatted = (amount || 0).toLocaleString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
@@ -230,6 +275,88 @@ const quickActions = computed(() => [
         </NuxtLink>
       </template>
     </AdminPageHeader>
+
+    <!-- Low Stock Warning Banner -->
+    <div
+      v-if="lowStockCount > 0"
+      role="alert"
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 dark:border-rose-900/50 dark:bg-rose-950/40"
+    >
+      <p class="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-300 sm:text-sm">
+        <span aria-hidden="true">⚠️</span>
+        <span>
+          {{ locale === 'ar'
+            ? `${lowStockCount} منتجات وصلت للحد الأدنى من المخزون`
+            : `${lowStockCount} products at or below minimum stock` }}
+        </span>
+      </p>
+      <NuxtLink
+        v-if="canProductsView"
+        :to="localePath('/admin/inventory')"
+        class="inline-flex items-center gap-1 rounded-md bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-rose-700"
+      >
+        <span>{{ locale === 'ar' ? 'عرض المنتجات' : 'View products' }}</span>
+        <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+      </NuxtLink>
+    </div>
+
+    <!-- Monthly Financial Summary Widget -->
+    <section
+      v-if="canFinancialsTab"
+      aria-label="Monthly Financial Summary"
+      class="rounded-xl border bg-white p-5 shadow-xs dark:bg-[#162032]"
+      :style="{ borderColor: 'var(--color-border)' }"
+    >
+      <h2 class="font-heading text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-base">
+        {{ locale === 'ar' ? 'الملخص المالي لهذا الشهر' : 'This Month’s Financial Summary' }}
+      </h2>
+
+      <!-- Skeleton loading (same pattern as KPI cards) -->
+      <div v-if="finPending" class="mt-4 grid gap-4 sm:grid-cols-3">
+        <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      </div>
+
+      <div v-else-if="finSummary && finSummary.revenue.total > 0" class="mt-4 grid gap-4 sm:grid-cols-3">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {{ locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales' }}
+          </p>
+          <p class="mt-1 font-heading text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            {{ formatCurrency(finSummary.revenue.total) }}
+          </p>
+        </div>
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {{ locale === 'ar' ? 'صافي الربح' : 'Net Profit' }}
+          </p>
+          <p
+            class="mt-1 font-heading text-2xl font-extrabold"
+            :class="finSummary.profit >= 0 ? 'text-[#2B71AE] dark:text-[#F5CC07]' : 'text-rose-600 dark:text-rose-400'"
+          >
+            {{ formatCurrency(finSummary.profit) }}
+          </p>
+        </div>
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {{ locale === 'ar' ? 'هامش الربح %' : 'Profit Margin %' }}
+          </p>
+          <p class="mt-1 font-heading text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+            {{ finSummary.margin }}%
+          </p>
+        </div>
+      </div>
+
+      <p v-else class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        {{ locale === 'ar' ? 'لا توجد مبيعات مكتملة هذا الشهر' : 'No completed sales this month' }}
+      </p>
+
+      <p class="mt-4 text-[13px] text-slate-500 dark:text-slate-400">
+        {{ locale === 'ar' ? 'بناءً على الطلبات المكتملة هذا الشهر — ' : 'Based on this month’s completed orders — ' }}
+        <NuxtLink :to="localePath('/admin/financials')" class="font-semibold text-[#2B71AE] hover:underline dark:text-blue-400">
+          {{ locale === 'ar' ? 'عرض التفاصيل ←' : 'View details ←' }}
+        </NuxtLink>
+      </p>
+    </section>
 
     <!-- KPI Metric Cards Grid -->
     <section aria-label="Metrics Overview" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -534,6 +661,69 @@ const quickActions = computed(() => [
             <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" aria-hidden="true" />
           </div>
         </NuxtLink>
+      </div>
+    </section>
+
+    <!-- Latest Activity Widget (Audit Log) -->
+    <section aria-label="Latest Activity">
+      <div
+        class="overflow-hidden rounded-xl border bg-white shadow-xs dark:bg-[#162032]"
+        :style="{ borderColor: 'var(--color-border)' }"
+      >
+        <div class="flex items-center justify-between border-b px-5 py-4" :style="{ borderColor: 'var(--color-border)' }">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <Clock class="h-4 w-4 text-[#2B71AE] dark:text-blue-400" aria-hidden="true" />
+              <h2 class="font-heading text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-base">
+                {{ locale === 'ar' ? 'آخر النشاطات' : 'Latest Activity' }}
+              </h2>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              {{ locale === 'ar' ? 'آخر التعديلات على المنتجات والأقسام والخدمات' : 'Recent edits across products, categories & services' }}
+            </p>
+          </div>
+        </div>
+
+        <ul v-if="recentActivity.length > 0" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <li v-for="entry in recentActivity" :key="entry.id">
+            <NuxtLink
+              :to="localePath(activityLink(entry))"
+              class="group flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2B71AE]/10 text-[#2B71AE] transition-transform group-hover:scale-105 dark:bg-[#2B71AE]/20 dark:text-blue-300">
+                  <component :is="activityIcon(entry.entityType)" class="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
+                    {{ entry.entityName }}
+                    <span class="font-medium text-slate-500 dark:text-slate-400">
+                      · {{ activityActionLabel(entry) }} · {{ entry.userName }}
+                    </span>
+                  </p>
+                  <p class="truncate text-[11px] text-slate-400 dark:text-slate-500">
+                    {{ entry.entityType === 'product' ? (locale === 'ar' ? 'منتج' : 'Product') : entry.entityType === 'category' ? (locale === 'ar' ? 'قسم' : 'Category') : (locale === 'ar' ? 'خدمة' : 'Service') }}
+                  </p>
+                </div>
+              </div>
+              <span class="shrink-0 text-[11px] text-slate-400 dark:text-slate-500">
+                <ClientOnly>
+                  {{ formatRelativeTime(entry.createdAt) }}
+                  <template #fallback>{{ formatDate(entry.createdAt) }}</template>
+                </ClientOnly>
+              </span>
+            </NuxtLink>
+          </li>
+        </ul>
+
+        <div v-else class="flex flex-col items-center justify-center p-8 text-center">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
+            <Clock class="h-5 w-5" />
+          </div>
+          <p class="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {{ locale === 'ar' ? 'لا يوجد نشاط مسجل بعد' : 'No activity recorded yet' }}
+          </p>
+        </div>
       </div>
     </section>
   </div>

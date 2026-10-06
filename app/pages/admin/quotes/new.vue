@@ -543,7 +543,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                     class="h-4 w-4 rounded accent-[#2B71AE] pointer-events-none shrink-0"
                   />
                   <div class="h-9 w-9 shrink-0 overflow-hidden rounded border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
-                    <img v-if="p.coverImage" :src="p.coverImage" alt="" class="h-full w-full object-cover" />
+                    <img v-if="p.coverImage" :src="p.coverImage" alt="" class="h-full w-full object-cover" loading="lazy" />
                     <div v-else class="flex h-full w-full items-center justify-center text-[10px] text-slate-400">
                       <Package class="h-4 w-4" />
                     </div>
@@ -692,7 +692,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                 <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'صورة المنتج' : 'Item Image' }}</span>
                 <div class="flex items-center gap-2">
                   <div class="h-10 w-10 shrink-0 overflow-hidden rounded border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
-                    <img v-if="customItemForm.imagePath" :src="customItemForm.imagePath" alt="" class="h-full w-full object-cover" />
+                    <img v-if="customItemForm.imagePath" :src="customItemForm.imagePath" alt="" class="h-full w-full object-cover" loading="lazy" />
                     <div v-else class="flex h-full w-full items-center justify-center text-slate-400">
                       <Package class="h-4 w-4" />
                     </div>
@@ -759,7 +759,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                     <td class="py-3 text-start">
                       <div class="flex items-start gap-2.5">
                         <div class="h-9 w-9 shrink-0 overflow-hidden rounded border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
-                          <img v-if="item.coverImage" :src="item.coverImage" alt="" class="h-full w-full object-cover" />
+                          <img v-if="item.coverImage" :src="item.coverImage" alt="" class="h-full w-full object-cover" loading="lazy" />
                           <div v-else class="flex h-full w-full items-center justify-center text-slate-400">
                             <Package class="h-4 w-4" />
                           </div>

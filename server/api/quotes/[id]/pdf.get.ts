@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { createReadStream, promises as fsp } from 'node:fs'
 import { generateQuotePdf, type QuotePdfItem } from '../../../utils/quote-pdf'
 import { resolveUploadPath, storeFile } from '../../../utils/storage'
 
@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const locale = query.locale === 'ar' ? 'ar' : 'en'
+  const providedToken = typeof query.token === 'string' ? query.token : ''
 
   const quote = await prisma.quoteRequest.findUnique({
     where: { id },
@@ -29,18 +30,53 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Quote not found' })
   }
 
+  // Ownership check: admins bypass, public callers must present this quote's access token.
+  let isAdmin = false
+  try {
+    const sessionUser = await getSessionUser(event)
+    isAdmin = !!sessionUser && (sessionUser.isSuper
+      || sessionUser.permissions.includes('quotes.view')
+      || sessionUser.permissions.includes('quotes.manage'))
+  }
+  catch {
+    isAdmin = false
+  }
+  if (!isAdmin) {
+    if (!providedToken) {
+      throw createError({ statusCode: 401, message: 'Access token is required' })
+    }
+    const { verifyAccessToken } = await import('../../../utils/access-tokens')
+    if (!(await verifyAccessToken('quote', quote.id, providedToken))) {
+      throw createError({ statusCode: 403, message: 'Invalid or expired access token' })
+    }
+  }
+
+  const streamExistingPdf = async (target: string) => {
+    const parts = target.replace(/^\/uploads\//, '').split('/')
+    const full = resolveUploadPath(parts)
+    if (!full) return null
+    try {
+      const stat = await fsp.stat(full)
+      if (!stat.isFile()) return null
+    }
+    catch {
+      return null
+    }
+    setHeader(event, 'content-type', 'application/pdf')
+    setHeader(event, 'content-disposition', `inline; filename="Quotation-${quote.quoteNumber}-${locale.toUpperCase()}.pdf"`)
+    return sendStream(event, createReadStream(full))
+  }
+
   let targetPath = locale === 'ar' ? quote.pdfPathAr : quote.pdfPathEn
   if (!targetPath && quote.pdfPath) {
     targetPath = quote.pdfPath
   }
 
-  // If path exists and file is present on disk, redirect to it
+  // If PDF already exists on disk, stream it directly (no redirect, so the
+  // uploads gate for quotes/ cannot be bypassed and phone verification holds).
   if (targetPath) {
-    const parts = targetPath.replace(/^\/uploads\//, '').split('/')
-    const full = resolveUploadPath(parts)
-    if (full && fs.existsSync(full)) {
-      return sendRedirect(event, targetPath)
-    }
+    const streamed = await streamExistingPdf(targetPath)
+    if (streamed) return streamed
   }
 
   // Regenerate on the fly if file is missing or new locale requested
@@ -100,5 +136,7 @@ export default defineEventHandler(async (event) => {
       : { pdfPathEn: relativePath, pdfPath: relativePath },
   })
 
-  return sendRedirect(event, relativePath)
+  setHeader(event, 'content-type', 'application/pdf')
+  setHeader(event, 'content-disposition', `inline; filename="${filename}"`)
+  return pdfBuffer
 })

@@ -14,6 +14,28 @@ const MIME: Record<string, string> = {
 export default defineEventHandler(async (event) => {
   const parts = (getRouterParam(event, 'path') || '').split('/').filter(Boolean)
   // Nitro [...path] param arrives joined; split back into segments.
+  const scope = parts[0] || ''
+
+  // Sensitive scopes: quote PDFs contain customer PII; service-request files
+  // may contain customer uploads. Never serve them anonymously.
+  if (scope === 'quotes' || scope === 'service-requests') {
+    let sessionUser = null
+    try {
+      sessionUser = await getSessionUser(event)
+    }
+    catch {
+      sessionUser = null
+    }
+    const need = scope === 'quotes' ? 'quotes.view' : 'services.view'
+    const ok = !!sessionUser && (sessionUser.isSuper
+      || sessionUser.permissions.includes(need)
+      || sessionUser.permissions.includes('quotes.manage')
+      || sessionUser.permissions.includes('services.manage'))
+    if (!ok) {
+      throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+    }
+  }
+
   const full = resolveUploadPath(parts)
   if (!full) throw createError({ statusCode: 400, statusMessage: 'Invalid path' })
   try {

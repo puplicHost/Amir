@@ -1,13 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event)
-  const hasAccess = user.isSuper || 
-    user.permissions.includes('quotes.view') || 
-    user.permissions.includes('services.view') || 
-    user.permissions.includes('orders.view')
-
-  if (!hasAccess) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
-  }
+  await requireQuotesView(event)
 
   const id = event.context.params?.id
   if (!id) throw createError({ statusCode: 400, message: 'Missing quote id' })

@@ -81,44 +81,6 @@ const formError = ref('')
 const saving = ref(false)
 const deletingId = ref<string | null>(null)
 
-// Change 10: Automatic locked category and countdown timer setting
-const { data: generalSettings, refresh: refreshGeneral } = await useAsyncData('admin-categories-settings', () =>
-  $fetch<any>('/api/settings/general')
-)
-const offerDateInput = ref('')
-watch(() => generalSettings.value?.offerEndDate, (val) => {
-  if (val) {
-    try {
-      offerDateInput.value = new Date(val).toISOString().slice(0, 16)
-    }
-    catch { /* fallback */ }
-  }
-}, { immediate: true })
-
-const savingOfferDate = ref(false)
-async function saveOfferEndDate() {
-  savingOfferDate.value = true
-  try {
-    await $fetch('/api/admin/settings/general', {
-      method: 'PUT',
-      body: {
-        offerEndDate: offerDateInput.value ? new Date(offerDateInput.value).toISOString() : null,
-      },
-    })
-    await refreshGeneral()
-    toast.success(
-      locale.value === 'ar' ? 'تم حفظ موعد انتهاء العرض' : 'Offer Date Saved',
-      locale.value === 'ar' ? 'تم تحديث العداد التنازلي لصفحة العروض والخصومات.' : 'Offer countdown timer updated.',
-    )
-  }
-  catch (e: any) {
-    toast.error('Failed to save offer date', e?.data?.message || '')
-  }
-  finally {
-    savingOfferDate.value = false
-  }
-}
-
 const pagedCategories = computed(() => data.value?.categories || [])
 const totalCategories = computed(() => data.value?.total ?? pagedCategories.value.length)
 
@@ -300,98 +262,42 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
 
     <!-- Toolbar: Search & Counters -->
     <form class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" @submit.prevent="applySearch">
-      <div class="relative w-full sm:max-w-xs">
-        <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-        <input
-          v-model="searchQuery"
-          type="search"
-          :placeholder="locale === 'ar' ? 'بحث في الفئات…' : 'Filter categories…'"
-          class="h-9 w-full rounded-md border bg-white ps-9 pe-3 text-xs placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#162032]"
-          :style="{ borderColor: 'var(--color-border)' }"
-          @change="applySearch"
-        />
-      </div>
-      <div class="text-xs text-slate-500">
-        {{ locale === 'ar' ? `إجمالي الفئات: ${totalCategories}` : `Total Categories: ${totalCategories}` }}
-      </div>
-    </form>
+        <div class="relative w-full sm:max-w-xs">
+          <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <input
+            v-model="searchQuery"
+            type="search"
+            :placeholder="locale === 'ar' ? 'بحث في الفئات…' : 'Filter categories…'"
+            class="h-9 w-full rounded-md border bg-white ps-9 pe-3 text-xs placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#162032]"
+            :style="{ borderColor: 'var(--color-border)' }"
+            @change="applySearch"
+          />
+        </div>
+        <div class="text-xs text-slate-500">
+          {{ locale === 'ar' ? `إجمالي الفئات: ${totalCategories}` : `Total Categories: ${totalCategories}` }}
+        </div>
+      </form>
 
-    <!-- Categories Data Table -->
-    <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[760px] text-start text-sm">
-          <thead>
-            <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
-              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الفئة' : 'Category' }}</th>
-              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الاسم بالعربية' : 'Arabic Name' }}</th>
-              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الرابط (Slug)' : 'Slug' }}</th>
-              <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'مميز بالرئيسية' : 'Featured' }}</th>
-              <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الترتيب' : 'Order' }}</th>
-              <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-            <!-- Locked Automatic Category: عروض وخصومات (Change 10) -->
-            <tr class="bg-amber-50/40 dark:bg-yellow-950/20 border-b-2 border-yellow-200 dark:border-yellow-900/40">
-              <td class="px-4 py-3.5">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#F5CC07] text-slate-950 shadow-xs font-black text-base">
-                    🏷️
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <span class="font-bold text-slate-900 dark:text-white">عروض وخصومات</span>
-                      <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-yellow-900/60 dark:text-yellow-200">
-                        🔒 فئة ذكية تلقائية
-                      </span>
-                    </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {{ locale === 'ar' ? 'هذا القسم يتحدث تلقائياً بناءً على المنتجات التي تحتوي على سعر خصم' : 'Auto-collects products with a discount price set' }}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td class="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-200">
-                عروض وخصومات
-              </td>
-              <td class="px-4 py-3.5">
-                <span class="rounded bg-[#F5CC07]/20 px-2 py-0.5 font-mono text-xs font-bold text-amber-900 dark:text-yellow-300">
-                  /products/offers
-                </span>
-              </td>
-              <td class="px-4 py-3.5 text-center">
-                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                  دائم
-                </span>
-              </td>
-              <td class="px-4 py-3.5 text-center font-mono text-xs text-slate-400">
-                —
-              </td>
-              <td class="px-4 py-3.5 text-end">
-                <div class="flex items-center justify-end gap-2">
-                  <input
-                    v-model="offerDateInput"
-                    type="datetime-local"
-                    class="h-8 rounded border border-slate-300 bg-white px-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-[#0B1520] dark:text-white"
-                    :title="locale === 'ar' ? 'تحديد موعد انتهاء العرض (للعداد التنازلي)' : 'Set offer end date/time'"
-                  />
-                  <button
-                    type="button"
-                    :disabled="savingOfferDate"
-                    class="h-8 rounded bg-[#F5CC07] px-2.5 text-xs font-bold text-slate-950 hover:bg-yellow-400 disabled:opacity-50 transition-colors"
-                    @click="saveOfferEndDate"
-                  >
-                    {{ savingOfferDate ? '…' : (locale === 'ar' ? 'حفظ الموعد' : 'Save Date') }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-
-            <tr
-              v-for="c in pagedCategories"
-              :key="c.id"
-              class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
-            >
+      <!-- Categories Data Table -->
+      <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[760px] text-start text-sm">
+            <thead>
+              <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
+                <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الفئة' : 'Category' }}</th>
+                <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الاسم بالعربية' : 'Arabic Name' }}</th>
+                <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الرابط (Slug)' : 'Slug' }}</th>
+                <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'مميز بالرئيسية' : 'Featured' }}</th>
+                <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الترتيب' : 'Order' }}</th>
+                <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <tr
+                v-for="c in pagedCategories"
+                :key="c.id"
+                class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+              >
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
                   <div class="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
@@ -479,27 +385,27 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
         @change="gotoPage"
       />
 
-      <!-- Empty State -->
-      <div v-if="!pagedCategories.length" class="p-8">
-        <AdminEmptyState
-          :title="searchQuery ? (locale === 'ar' ? 'لا توجد فئات مطابقة للبحث' : 'No matching categories found') : (locale === 'ar' ? 'لا توجد فئات حتى الآن' : 'No categories yet')"
-          :description="searchQuery ? (locale === 'ar' ? 'جرب البحث بكلمات أخرى.' : 'Try a different search term.') : (locale === 'ar' ? 'ابدأ بإضافة أول فئة لترتيب منتجاتك.' : 'Create your first category to start organizing products.')"
-          :icon="FolderTree"
-        >
-          <template #action>
-            <button
-              v-if="!searchQuery"
-              type="button"
-              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E]"
-              @click="openCreate"
-            >
-              <Plus class="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{{ locale === 'ar' ? 'إضافة فئة' : 'Add Category' }}</span>
-            </button>
-          </template>
-        </AdminEmptyState>
+        <!-- Empty State -->
+        <div v-if="!pagedCategories.length" class="p-8">
+          <AdminEmptyState
+            :title="searchQuery ? (locale === 'ar' ? 'لا توجد فئات مطابقة للبحث' : 'No matching categories found') : (locale === 'ar' ? 'لا توجد فئات حتى الآن' : 'No categories yet')"
+            :description="searchQuery ? (locale === 'ar' ? 'جرب البحث بكلمات أخرى.' : 'Try a different search term.') : (locale === 'ar' ? 'ابدأ بإضافة أول فئة لترتيب منتجاتك.' : 'Create your first category to start organizing products.')"
+            :icon="FolderTree"
+          >
+            <template #action>
+              <button
+                v-if="!searchQuery"
+                type="button"
+                class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E]"
+                @click="openCreate"
+              >
+                <Plus class="h-3.5 w-3.5" aria-hidden="true" />
+                <span>{{ locale === 'ar' ? 'إضافة فئة' : 'Add Category' }}</span>
+              </button>
+            </template>
+          </AdminEmptyState>
+        </div>
       </div>
-    </div>
 
     <!-- Create / Edit Category Modal Dialog -->
     <div
@@ -582,7 +488,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
             <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Cover Image</span>
             <div class="flex items-start gap-4 rounded-md border p-3" :style="{ borderColor: 'var(--color-border)' }">
               <div class="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100 dark:bg-slate-800">
-                <img v-if="coverPreview" :src="coverPreview" alt="Preview" class="h-full w-full object-cover" />
+                <img v-if="coverPreview" :src="coverPreview" alt="Preview" class="h-full w-full object-cover" loading="lazy" />
                 <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
               </div>
               <div class="flex-1 text-xs">

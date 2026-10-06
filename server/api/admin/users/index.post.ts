@@ -4,6 +4,8 @@ interface CreateUserBody {
   name?: unknown
   email?: unknown
   password?: unknown
+  title?: unknown
+  salary?: unknown
   permissions?: unknown
 }
 
@@ -29,17 +31,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
   }
 
+  const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 60) : null
+  // Salary can only be set by a Super Admin; silently ignored otherwise.
+  const salaryRaw = actor.isSuper ? Number(body.salary) : NaN
+  const salary = Number.isFinite(salaryRaw) && salaryRaw >= 0 ? salaryRaw : null
+
   const user = await prisma.adminUser.create({
     data: {
       name,
       email,
       passwordHash: await hashPassword(password),
+      title,
+      salary,
       permissions: { create: permissions.map(permission => ({ permission })) },
     },
     select: {
       id: true,
       email: true,
       name: true,
+      title: true,
+      salary: true,
       isSuper: true,
       isActive: true,
       lastLoginAt: true,
@@ -57,5 +68,11 @@ export default defineEventHandler(async (event) => {
     bodyAr: `${user.email} · بواسطة ${actor.name}`,
   })
 
-  return { user: { ...user, permissions: user.permissions.map(p => p.permission) } }
+  return {
+    user: {
+      ...user,
+      salary: actor.isSuper && user.salary !== null ? Number(user.salary) : null,
+      permissions: user.permissions.map(p => p.permission),
+    },
+  }
 })

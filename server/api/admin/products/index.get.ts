@@ -32,5 +32,22 @@ export default defineEventHandler(async (event) => {
       },
     }),
   ])
-  return { products, total, page, limit, pages: Math.ceil(total / limit) }
+
+  // Latest audit entry per listed product (for the "آخر تعديل" column).
+  const ids = products.map(p => p.id)
+  const recentLogs = ids.length
+    ? await prisma.auditLog.findMany({
+        where: { entityType: 'product', entityId: { in: ids } },
+        orderBy: { createdAt: 'desc' },
+        take: ids.length * 4,
+        select: { entityId: true, action: true, details: true, userName: true, createdAt: true },
+      })
+    : []
+  const lastAuditById: Record<string, (typeof recentLogs)[number]> = {}
+  for (const log of recentLogs) {
+    if (!lastAuditById[log.entityId]) lastAuditById[log.entityId] = log
+  }
+  const withAudit = products.map(p => ({ ...p, lastAudit: lastAuditById[p.id] || null }))
+
+  return { products: withAudit, total, page, limit, pages: Math.ceil(total / limit) }
 })

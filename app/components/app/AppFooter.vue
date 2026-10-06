@@ -47,7 +47,7 @@ const tagline = computed(() => {
               class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" 
             />
             <div v-else class="flex items-center gap-2.5">
-              <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain shadow-xs" />
+              <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain shadow-xs" loading="lazy" />
               <span class="font-heading text-xl font-bold tracking-tight text-white group-hover:text-[#F5CC07] transition-colors">
                 {{ siteDisplayName }}
               </span>

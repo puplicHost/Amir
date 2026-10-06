@@ -23,12 +23,17 @@ interface AdminUserRow {
   id: string
   email: string
   name: string
+  title: string | null
+  salary: number | null
   isSuper: boolean
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
   permissions: string[]
 }
+
+const { data: session } = useAdminSession()
+const isSuperAdmin = computed(() => !!session.value?.user.isSuper)
 
 const fetch = useRequestFetch()
 const { data, refresh, pending } = await useAsyncData('admin-users', () =>
@@ -37,10 +42,23 @@ const { data, refresh, pending } = await useAsyncData('admin-users', () =>
 
 const showModal = ref(false)
 const editing = ref<AdminUserRow | null>(null)
+const JOB_TITLES = [
+  'Super Admin',
+  'Manager',
+  'Accountant',
+  'Sales',
+  'Social Media',
+  'Warehouse',
+  'Technical',
+  'Other',
+]
+
 const form = reactive({
   name: '',
   email: '',
   password: '',
+  title: '',
+  salary: '' as number | '',
   permissions: [] as string[],
   isActive: true,
 })
@@ -50,7 +68,7 @@ const deletingId = ref<string | null>(null)
 
 function openCreate() {
   editing.value = null
-  Object.assign(form, { name: '', email: '', password: '', permissions: [], isActive: true })
+  Object.assign(form, { name: '', email: '', password: '', title: '', salary: '', permissions: [], isActive: true })
   formError.value = ''
   showModal.value = true
 }
@@ -61,6 +79,8 @@ function openEdit(user: AdminUserRow) {
     name: user.name,
     email: user.email,
     password: '',
+    title: user.title || '',
+    salary: user.salary ?? '',
     permissions: [...user.permissions],
     isActive: user.isActive,
   })
@@ -100,6 +120,12 @@ const RESOURCE_DEFS: ResourceDef[] = [
     ],
   },
   {
+    group: 'categories',
+    actions: [
+      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'categories.manage' },
+    ],
+  },
+  {
     group: 'orders',
     actions: [
       { key: 'view', en: 'View', ar: 'عرض', permission: 'orders.view' },
@@ -115,6 +141,19 @@ const RESOURCE_DEFS: ResourceDef[] = [
     ],
   },
   {
+    group: 'invoices',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'invoices.view' },
+      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'invoices.manage' },
+    ],
+  },
+  {
+    group: 'inventory',
+    actions: [
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'inventory.view' },
+    ],
+  },
+  {
     group: 'services',
     actions: [
       { key: 'view', en: 'View', ar: 'عرض', permission: 'services.view' },
@@ -123,9 +162,10 @@ const RESOURCE_DEFS: ResourceDef[] = [
     ],
   },
   {
-    group: 'categories',
+    group: 'financials',
     actions: [
-      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'categories.manage' },
+      { key: 'view', en: 'View', ar: 'عرض', permission: 'financials.view' },
+      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'financials.manage' },
     ],
   },
   {
@@ -182,7 +222,13 @@ async function save() {
     if (editing.value) {
       await $fetch(`/api/admin/users/${editing.value.id}`, {
         method: 'PUT',
-        body: { name: form.name.trim(), isActive: form.isActive, permissions: form.permissions },
+        body: {
+          name: form.name.trim(),
+          title: form.title || null,
+          ...(isSuperAdmin.value ? { salary: form.salary === '' ? null : Number(form.salary) } : {}),
+          isActive: form.isActive,
+          permissions: form.permissions,
+        },
       })
     }
     else {
@@ -192,6 +238,8 @@ async function save() {
           name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
+          title: form.title || null,
+          ...(isSuperAdmin.value ? { salary: form.salary === '' ? null : Number(form.salary) } : {}),
           permissions: form.permissions,
         },
       })
@@ -261,15 +309,18 @@ function getUserInitials(name: string) {
 }
 
 const groupLabels: Record<string, { en: string, ar: string }> = {
-  dashboard: { en: 'Financial Visibility (Dashboard & Orders)', ar: 'الرؤية المالية (لوحة التحكم والطلبات)' },
+  dashboard: { en: 'Dashboard', ar: 'لوحة التحكم' },
   products: { en: 'Products Management', ar: 'إدارة المنتجات' },
-  orders: { en: 'Orders & Fulfillment', ar: 'الطلبات والشحن' },
-  quotes: { en: 'Price Quotations', ar: 'عروض الأسعار' },
-  services: { en: 'Engineering Services', ar: 'الخدمات الهندسية' },
-  categories: { en: 'Catalog Categories', ar: 'تصنيفات المتجر' },
-  banners: { en: 'Homepage Banners', ar: 'بنرات الصفحة الرئيسية' },
-  settings: { en: 'Platform Settings', ar: 'إعدادات المنصة' },
-  users: { en: 'Staff & Roles', ar: 'الموظفون والأدوار' },
+  categories: { en: 'Catalog Categories', ar: 'إدارة الأقسام' },
+  orders: { en: 'Orders & Fulfillment', ar: 'إدارة الطلبات' },
+  quotes: { en: 'Price Quotations', ar: 'عروض السعر' },
+  invoices: { en: 'Invoices', ar: 'الفواتير' },
+  inventory: { en: 'Inventory', ar: 'المخزون' },
+  services: { en: 'Engineering Services', ar: 'الخدمات' },
+  financials: { en: 'Financial Accounts', ar: 'الحسابات المالية (Financials)' },
+  banners: { en: 'Notifications & Banners', ar: 'الإشعارات والبنرات' },
+  users: { en: 'User Management', ar: 'إدارة المستخدمين' },
+  settings: { en: 'Platform Settings', ar: 'الإعدادات' },
 }
 
 const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
@@ -302,6 +353,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المسؤول' : 'Admin User' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'البريد الإلكتروني' : 'Email' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المسمى الوظيفي' : 'Job Title' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الصلاحيات' : 'Role & Permissions' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'آخر تسجيل دخول' : 'Last Login' }}</th>
               <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
@@ -341,6 +393,14 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               <!-- Email -->
               <td class="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">
                 {{ user.email }}
+              </td>
+
+              <!-- Job Title -->
+              <td class="px-4 py-3">
+                <span v-if="user.title" class="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {{ user.title }}
+                </span>
+                <span v-else class="text-xs text-slate-400">—</span>
               </td>
 
               <!-- Permissions -->
@@ -458,6 +518,34 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           <label v-if="!editing" class="block">
             <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address *</span>
             <input v-model="form.email" type="email" required placeholder="admin@mango-electronics.com" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+
+          <!-- Job Title (right after email) -->
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {{ locale === 'ar' ? 'المسمى الوظيفي' : 'Job Title' }}
+            </span>
+            <select v-model="form.title" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }">
+              <option value="">{{ locale === 'ar' ? 'اختر المسمى…' : 'Select title…' }}</option>
+              <option v-for="jt in JOB_TITLES" :key="jt" :value="jt">{{ jt }}</option>
+            </select>
+            <span class="mt-1 block text-xs text-slate-400">
+              {{ locale === 'ar' ? 'المسمى الوظيفي منفصل عن الصلاحيات — يمكنك تعيين أي صلاحيات بغض النظر عن المسمى' : 'Job title is separate from permissions — any permissions can be assigned regardless of title' }}
+            </span>
+          </label>
+
+          <!-- Monthly Salary (Super Admin only, confidential) -->
+          <label v-if="isSuperAdmin" class="block">
+            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {{ locale === 'ar' ? 'الراتب الشهري' : 'Monthly Salary' }}
+            </span>
+            <div class="relative">
+              <input v-model.number="form.salary" type="number" min="0" step="0.01" placeholder="0 جنيه" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" class="pe-12" />
+              <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">{{ locale === 'ar' ? 'جنيه' : 'EGP' }}</span>
+            </div>
+            <span class="mt-1 block text-xs font-medium text-rose-500 dark:text-rose-400">
+              {{ locale === 'ar' ? '🔒 هذه المعلومة سرية — تظهر فقط لك كـ Super Admin' : '🔒 Confidential — visible only to you as Super Admin' }}
+            </span>
           </label>
 
           <label v-if="!editing" class="block">

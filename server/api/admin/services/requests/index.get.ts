@@ -3,7 +3,8 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'services.view')
   const query = getQuery(event)
   const page = Math.max(1, parseInt(query.page as string || '1'))
-  const limit = Math.max(1, parseInt(query.limit as string || '20'))
+  // Hard cap: never return more than 100 items even without a pagination param.
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit as string || '20')))
   const status = query.status as string | undefined
   const serviceId = query.serviceId as string | undefined
 

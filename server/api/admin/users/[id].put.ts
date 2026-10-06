@@ -2,6 +2,8 @@ import { isKnownPermission } from '../../../../shared/permissions'
 
 interface UpdateUserBody {
   name?: unknown
+  title?: unknown
+  salary?: unknown
   isActive?: unknown
   permissions?: unknown
 }
@@ -21,12 +23,26 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<UpdateUserBody>(event)
-  const data: { name?: string, isActive?: boolean } = {}
+  const data: { name?: string, title?: string | null, salary?: number | null, isActive?: boolean } = {}
 
   if (body.name !== undefined) {
     const name = typeof body.name === 'string' ? body.name.trim() : ''
     if (!name) throw createError({ statusCode: 400, statusMessage: 'Name is required' })
     data.name = name
+  }
+  if (body.title !== undefined) {
+    data.title = typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 60) : null
+  }
+  // Salary is strictly Super-Admin-only; silently ignored for everyone else.
+  if (body.salary !== undefined && actor.isSuper) {
+    if (body.salary === null || body.salary === '') {
+      data.salary = null
+    }
+    else {
+      const salary = Number(body.salary)
+      if (!Number.isFinite(salary) || salary < 0) throw createError({ statusCode: 400, statusMessage: 'Valid salary is required' })
+      data.salary = salary
+    }
   }
   if (body.isActive !== undefined) {
     if (typeof body.isActive !== 'boolean') {
@@ -66,6 +82,8 @@ export default defineEventHandler(async (event) => {
       id: true,
       email: true,
       name: true,
+      title: true,
+      salary: true,
       isSuper: true,
       isActive: true,
       lastLoginAt: true,
@@ -101,5 +119,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return { user: { ...user, permissions: user.permissions.map(p => p.permission) } }
+  return {
+    user: {
+      ...user,
+      salary: actor.isSuper && user.salary !== null ? Number(user.salary) : null,
+      permissions: user.permissions.map(p => p.permission),
+    },
+  }
 })

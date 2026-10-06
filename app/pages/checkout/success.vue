@@ -26,6 +26,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const orderNumber = String(route.query.id || '')
+const accessToken = ref(String(route.query.token || ''))
 
 useHead(() => ({
   title: `${locale.value === 'ar' ? 'تم تأكيد الطلب' : 'Order Confirmed'} | ${t('brand.name')}`
@@ -57,12 +58,12 @@ interface OrderData {
   items?: OrderItem[]
 }
 
-const { data: order } = await useAsyncData(
+const { data: order, error: orderError } = await useAsyncData(
   () => `order-success-${orderNumber}`,
-  () => orderNumber
-    ? $fetch<OrderData>(`/api/orders/${orderNumber}`)
+  () => orderNumber && accessToken.value
+    ? $fetch<OrderData>(`/api/orders/${orderNumber}`, { query: { token: accessToken.value } })
     : Promise.resolve(null),
-  { server: true, lazy: true },
+  { server: false, lazy: true },
 )
 
 const { data: contact } = await useAsyncData('success-contact', () =>
@@ -140,6 +141,18 @@ onMounted(() => {
     <div class="pointer-events-none absolute top-72 end-10 h-80 w-80 rounded-full bg-[#2B71AE]/10 blur-3xl dark:bg-[#2B71AE]/15 print:hidden" />
 
     <div class="relative mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+      <!-- Access gate: order details require the confirmation link (short-lived token) -->
+      <div
+        v-if="!accessToken || orderError"
+        class="mx-auto mb-8 max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xs dark:border-slate-800 dark:bg-[#162032]"
+      >
+        <h2 class="font-heading text-base font-bold text-slate-900 dark:text-white">
+          {{ locale === 'ar' ? 'تعذر عرض تفاصيل الطلب' : 'Could not load order details' }}
+        </h2>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {{ locale === 'ar' ? 'يرجى فتح رابط التأكيد الذي ظهر بعد إتمام الطلب، أو التواصل معنا' : 'Please open the confirmation link shown after checkout, or contact us' }}
+        </p>
+      </div>
       
       <!-- Top Celebratory Hero Banner -->
       <div class="text-center pb-8 sm:pb-10">

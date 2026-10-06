@@ -9,6 +9,9 @@ export const PERMISSION_GROUPS = {
   services: ['services.view', 'services.manage', 'services.config'],
   categories: ['categories.manage'],
   banners: ['banners.manage'],
+  invoices: ['invoices.view', 'invoices.manage'],
+  inventory: ['inventory.view'],
+  financials: ['financials.view', 'financials.manage'],
   settings: ['settings.view', 'settings.manage'],
   users: ['users.manage'],
 } as const

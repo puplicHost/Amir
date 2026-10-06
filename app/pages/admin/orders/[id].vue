@@ -5,12 +5,16 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
+  Download,
+  FileText,
   Mail,
   MapPin,
   Package,
   Phone,
+  Printer,
   ShoppingCart,
   User,
+  X,
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'orders.view' })
@@ -31,34 +35,87 @@ const { data, refresh, error } = await useAsyncData(`admin-order-${id}`, () =>
 const newStatus = ref('')
 const updating = ref(false)
 const updateMessage = ref('')
+const deliverConfirmOpen = ref(false)
+const printingInvoice = ref(false)
+const invoiceModalId = ref<string | null>(null)
+
+async function openInvoicePreview() {
+  printingInvoice.value = true
+  try {
+    let invoiceId = linkedInvoice.value?.invoice?.id || null
+    if (!invoiceId) {
+      const created = await $fetch<{ invoice: { id: string } }>(`/api/admin/invoices/from-order/${id}`, { method: 'POST' })
+      invoiceId = created.invoice.id
+      await refreshInvoice()
+    }
+    invoiceModalId.value = invoiceId
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'تعذر تجهيز الفاتورة' : 'Failed to prepare invoice',
+      e?.data?.message || 'Create failed',
+    )
+  }
+  finally {
+    printingInvoice.value = false
+  }
+}
+const canInvoicesManage = useAdminCan('invoices.manage')
+const creatingInvoice = ref(false)
+
+const { data: linkedInvoice, refresh: refreshInvoice } = await useAsyncData(`admin-order-invoice-${id}`, () =>
+  fetch<{ invoice: { id: string, invoiceNumber: string, status: string, totalAmount: number } | null }>(
+    `/api/admin/invoices/by-order/${id}`,
+  ),
+)
+
+async function createOrderInvoice() {
+  creatingInvoice.value = true
+  try {
+    await $fetch(`/api/admin/invoices/from-order/${id}`, { method: 'POST' })
+    await refreshInvoice()
+    toast.success(
+      locale.value === 'ar' ? 'تم إنشاء الفاتورة' : 'Invoice Created',
+      locale.value === 'ar' ? 'تم إنشاء فاتورة لهذا الطلب بنجاح.' : 'Invoice generated for this order.',
+    )
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل إنشاء الفاتورة' : 'Invoice Failed',
+      e?.data?.message || 'Create failed',
+    )
+  }
+  finally {
+    creatingInvoice.value = false
+  }
+}
 
 if (data.value?.order) {
   newStatus.value = data.value.order.status
 }
 
-async function updateStatus() {
-  const okStatus = await confirmDialog({
-    title: locale.value === 'ar' ? `تغيير حالة الطلب إلى "${newStatus.value}"؟` : `Change order status to "${newStatus.value}"?`,
-    confirmLabel: locale.value === 'ar' ? 'تغيير' : 'Change',
-    danger: false,
-  })
-  if (!okStatus) {
-    newStatus.value = data.value!.order.status
-    return
-  }
+async function persistStatus(status: string) {
   updating.value = true
   updateMessage.value = ''
   try {
-    await $fetch(`/api/admin/orders/${id}/status`, {
+    const res = await $fetch<{ order: any, stockDeducted?: boolean }>(`/api/admin/orders/${id}/status`, {
       method: 'PUT',
-      body: { status: newStatus.value },
+      body: { status },
     })
     updateMessage.value = locale.value === 'ar' ? 'تم تحديث الحالة بنجاح' : 'Status updated successfully'
     await refresh()
-    toast.success(
-      locale.value === 'ar' ? 'تم تحديث حالة الطلب' : 'Status Updated',
-      locale.value === 'ar' ? `تم تغيير حالة الطلب إلى "${newStatus.value}".` : `Order status changed to "${newStatus.value}".`,
-    )
+    if (res.stockDeducted && status === 'Delivered') {
+      toast.success(
+        locale.value === 'ar' ? 'تم تأكيد التسليم وخصم المخزون' : 'Delivery confirmed, stock deducted',
+        locale.value === 'ar' ? 'تم خصم كميات المنتجات من المخزون تلقائياً.' : 'Product quantities deducted from stock automatically.',
+      )
+    }
+    else {
+      toast.success(
+        locale.value === 'ar' ? 'تم تحديث حالة الطلب' : 'Status Updated',
+        locale.value === 'ar' ? `تم تغيير حالة الطلب إلى "${status}".` : `Order status changed to "${status}".`,
+      )
+    }
   }
   catch (e: any) {
     const msg = e?.data?.message || 'Update failed'
@@ -72,6 +129,25 @@ async function updateStatus() {
     updating.value = false
     setTimeout(() => { updateMessage.value = '' }, 3000)
   }
+}
+
+async function updateStatus() {
+  // Delivering for the first time requires explicit stock-deduction consent.
+  if (newStatus.value === 'Delivered' && data.value?.order.status !== 'Delivered' && !data.value?.order.stockDeducted) {
+    deliverConfirmOpen.value = true
+    return
+  }
+  await persistStatus(newStatus.value)
+}
+
+async function confirmDelivery() {
+  deliverConfirmOpen.value = false
+  await persistStatus('Delivered')
+}
+
+function cancelDelivery() {
+  deliverConfirmOpen.value = false
+  newStatus.value = data.value!.order.status
 }
 
 function formatDate(d: string) {
@@ -105,7 +181,27 @@ function formatDate(d: string) {
         :back-label="locale === 'ar' ? 'العودة إلى الطلبات' : 'Back to Orders'"
       >
         <template #badge>
-          <AdminStatusBadge :status="data.order.status" size="md" />
+          <div class="flex flex-wrap items-center gap-2">
+            <AdminStatusBadge :status="data.order.status" size="md" />
+            <span
+              v-if="data.order.stockDeducted"
+              class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+            >
+              <span aria-hidden="true">✓</span>
+              <span>{{ locale === 'ar' ? 'تم خصم المخزون' : 'Stock deducted' }}</span>
+            </span>
+          </div>
+        </template>
+        <template #actions>
+          <button
+            type="button"
+            :disabled="printingInvoice"
+            class="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#2B71AE] bg-transparent px-3.5 text-xs font-bold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 disabled:opacity-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-950/40"
+            @click="openInvoicePreview"
+          >
+            <Printer class="h-4 w-4" aria-hidden="true" />
+            <span>{{ printingInvoice ? (locale === 'ar' ? 'جاري التجهيز…' : 'Preparing…') : (locale === 'ar' ? 'طباعة فاتورة' : 'Print Invoice') }}</span>
+          </button>
         </template>
       </AdminPageHeader>
 
@@ -250,6 +346,47 @@ function formatDate(d: string) {
             </div>
           </div>
 
+          <!-- Invoice Card -->
+          <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <h2 class="mb-3 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+              {{ locale === 'ar' ? 'فاتورة الطلب' : 'Order Invoice' }}
+            </h2>
+            <div v-if="linkedInvoice?.invoice" class="space-y-3">
+              <div class="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2.5 dark:bg-slate-800/60">
+                <div>
+                  <NuxtLink
+                    :to="localePath(`/admin/invoices/${linkedInvoice.invoice.id}`)"
+                    class="font-mono text-xs font-bold text-[#2B71AE] hover:underline dark:text-blue-400"
+                  >
+                    #{{ linkedInvoice.invoice.invoiceNumber }}
+                  </NuxtLink>
+                  <p class="mt-0.5 text-[11px] text-slate-500">{{ linkedInvoice.invoice.status }}</p>
+                </div>
+                <a
+                  :href="`/api/invoices/${linkedInvoice.invoice.id}/pdf`"
+                  target="_blank" download
+                  class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-3.5 text-xs font-bold text-white shadow-xs hover:bg-[#285E8E]"
+                >
+                  <Download class="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>{{ locale === 'ar' ? 'تحميل الفاتورة' : 'Download Invoice' }}</span>
+                </a>
+              </div>
+            </div>
+            <button
+              v-else-if="canInvoicesManage"
+              type="button"
+              :disabled="creatingInvoice"
+              class="flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-bold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 disabled:opacity-50"
+              @click="createOrderInvoice"
+            >
+              <FileText class="h-4 w-4" aria-hidden="true" />
+              <span>{{ creatingInvoice ? (locale === 'ar' ? 'جاري الإنشاء…' : 'Creating…') : (locale === 'ar' ? 'إنشاء فاتورة' : 'Create Invoice') }}</span>
+            </button>
+            <p v-else class="text-xs text-slate-400">
+              {{ locale === 'ar' ? 'لا توجد فاتورة مرتبطة بهذا الطلب.' : 'No invoice linked to this order.' }}
+            </p>
+          </div>
+
           <!-- Payment Info Card -->
           <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
             <h2 class="mb-3 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
@@ -302,6 +439,58 @@ function formatDate(d: string) {
           </AdminPermissionGate>
         </div>
       </div>
+
+      <!-- Delivery Confirmation Modal (stock deduction consent) -->
+      <Teleport to="body">
+        <div
+          v-if="deliverConfirmOpen"
+          class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          @click.self="cancelDelivery"
+        >
+          <div class="w-full max-w-md rounded-xl border bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-[#162032]">
+            <h3 class="font-heading text-base font-bold text-slate-900 dark:text-white">
+              {{ locale === 'ar' ? 'هل تريد تأكيد التسليم؟' : 'Confirm delivery?' }}
+            </h3>
+            <p class="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              {{ locale === 'ar' ? 'سيتم خصم الكميات التالية من المخزون تلقائياً:' : 'The following quantities will be deducted from stock automatically:' }}
+            </p>
+            <ul class="mt-3 max-h-48 space-y-1.5 overflow-y-auto rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/60">
+              <li v-for="item in data.order.items" :key="item.id" class="flex items-center justify-between gap-2">
+                <span class="min-w-0 truncate font-semibold text-slate-800 dark:text-slate-200">{{ item.productNameSnapshot }}</span>
+                <span class="shrink-0 font-mono text-slate-500">
+                  {{ locale === 'ar' ? `خصم ${item.quantity} قطعة` : `−${item.quantity} pcs` }}
+                </span>
+              </li>
+            </ul>
+            <div class="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                class="h-10 rounded-md border px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                @click="cancelDelivery"
+              >
+                {{ locale === 'ar' ? 'إلغاء' : 'Cancel' }}
+              </button>
+              <button
+                type="button"
+                :disabled="updating"
+                class="inline-flex h-10 items-center rounded-md bg-[#F5CC07] px-6 text-xs font-bold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 disabled:opacity-50"
+                @click="confirmDelivery"
+              >
+                {{ updating ? (locale === 'ar' ? 'جاري التأكيد…' : 'Confirming…') : (locale === 'ar' ? 'تأكيد التسليم' : 'Confirm Delivery') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Invoice Preview Modal -->
+      <AdminInvoiceModal
+        v-if="invoiceModalId"
+        :invoice-id="invoiceModalId"
+        @close="invoiceModalId = null"
+      />
     </div>
   </div>
 </template>

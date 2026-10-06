@@ -35,6 +35,7 @@ const form = reactive({
 
 const loading = ref(false)
 const error = ref('')
+const quoteToken = ref('')
 const generatedQuote = ref<{
   quoteNumber: string
   downloadUrl: string
@@ -71,7 +72,7 @@ async function submitQuote() {
 
   loading.value = true
   try {
-    const res = await $fetch<{ quoteNumber: string, downloadUrl: string, downloadUrlEn?: string, downloadUrlAr?: string, quoteId: string }>('/api/quotes', {
+    const res = await $fetch<{ quoteNumber: string, downloadUrl: string, downloadUrlEn?: string, downloadUrlAr?: string, quoteId: string, accessToken: string }>('/api/quotes', {
       method: 'POST',
       body: {
         companyName: form.companyName.trim(),
@@ -86,11 +87,13 @@ async function submitQuote() {
     })
 
     generatedQuote.value = res
+    quoteToken.value = res.accessToken
     quoteStore.clearQuote()
 
-    // Automatically trigger PDF download in active language
-    const autoDownloadUrl = locale.value === 'ar' ? (res.downloadUrlAr || res.downloadUrl) : (res.downloadUrlEn || res.downloadUrl)
-    if (autoDownloadUrl && typeof window !== 'undefined') {
+    // Download via the verified PDF endpoint (per-quote access token), not the
+    // direct static file — direct /uploads/quotes/* now requires an admin session.
+    const autoDownloadUrl = `/api/quotes/${res.quoteId}/pdf?locale=${locale.value}&token=${encodeURIComponent(quoteToken.value)}`
+    if (typeof window !== 'undefined') {
       const a = document.createElement('a')
       a.href = autoDownloadUrl
       a.download = `Quotation-${res.quoteNumber}-${locale.value.toUpperCase()}.pdf`
@@ -180,7 +183,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            :href="`/api/quotes/${generatedQuote.quoteId}/pdf?locale=ar`"
+            :href="`/api/quotes/${generatedQuote.quoteId}/pdf?locale=ar&token=${encodeURIComponent(quoteToken)}`"
             target="_blank"
             download
             class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#2B71AE] px-6 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-[#285E8E] active:scale-95 transition-all"
@@ -190,7 +193,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
           </a>
 
           <a
-            :href="`/api/quotes/${generatedQuote.quoteId}/pdf?locale=en`"
+            :href="`/api/quotes/${generatedQuote.quoteId}/pdf?locale=en&token=${encodeURIComponent(quoteToken)}`"
             target="_blank"
             download
             class="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all"
@@ -235,7 +238,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
             >
               <!-- Thumbnail -->
               <div class="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
-                <img v-if="item.coverImage" :src="item.coverImage" :alt="locale === 'ar' ? item.nameAr : item.nameEn" class="h-full w-full object-cover" />
+                <img v-if="item.coverImage" :src="item.coverImage" :alt="locale === 'ar' ? item.nameAr : item.nameEn" class="h-full w-full object-cover" loading="lazy" />
                 <div v-else class="flex h-full w-full items-center justify-center text-[10px] text-slate-400">{{ t('common.noImage') }}</div>
               </div>
 

@@ -1,14 +1,6 @@
 export default defineEventHandler(async (event) => {
-  // Allow users with quotes.view or services.view or orders.view
-  const user = await requireAuth(event)
-  const hasAccess = user.isSuper || 
-    user.permissions.includes('quotes.view') || 
-    user.permissions.includes('services.view') || 
-    user.permissions.includes('orders.view')
-
-  if (!hasAccess) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
-  }
+  // Quote reads require an explicit quotes permission (view or manage).
+  await requireQuotesView(event)
 
   const q = getQuery(event)
   const page = Math.max(1, Number(q.page) || 1)

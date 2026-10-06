@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto'
+import { orderCreateSchema, parseBody } from '../../utils/validate'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+  // Rate limited by server/middleware/rate-limit.ts (10 req/min).
+  const body = await parseBody(event, orderCreateSchema)
   if (!body.customer || !body.items || !Array.isArray(body.items) || !body.items.length) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid order payload' })
   }
@@ -27,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const productIds = [...new Set(body.items.map((i: any) => String(i.productId)))]
   const dbProducts = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true },
-    select: { id: true, price: true, nameEn: true },
+    select: { id: true, price: true, nameEn: true, costPrice: true },
   })
   
   if (dbProducts.length !== productIds.length) {
@@ -51,6 +53,7 @@ export default defineEventHandler(async (event) => {
       productId: dbP.id,
       productNameSnapshot: dbP.nameEn,
       productPriceSnapshot: dbP.price,
+      productCostSnapshot: (dbP as any).costPrice ?? null,
       quantity: qty,
       subtotal,
     })
@@ -96,5 +99,38 @@ export default defineEventHandler(async (event) => {
     currency: 'EGP',
   })
 
-  return { orderNumber, totalAmount }
+  // Auto-generate invoice for the new order (best-effort, never fails checkout).
+  try {
+    const { createInvoiceFromOrder } = await import('../../utils/invoices')
+    await createInvoiceFromOrder(order.id)
+  }
+  catch {
+    // Invoice auto-creation is best-effort.
+  }
+
+  // Issue a short-lived access token for this order's confirmation/PII reads.
+  const { issueAccessToken } = await import('../../utils/access-tokens')
+  const accessToken = await issueAccessToken('order', order.id)
+
+  // ONLINE payment: redirect the customer to the gateway when one is configured.
+  // Anything missing or failing falls back to COD silently (order stays Pending).
+  if (paymentMethod === 'ONLINE') {
+    try {
+      const { createOnlinePaymentUrl } = await import('../../utils/payments')
+      const paymentUrl = await createOnlinePaymentUrl({
+        id: order.id,
+        orderNumber,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerEmail: order.customerEmail,
+        totalAmount,
+      })
+      if (paymentUrl) return { orderNumber, totalAmount, accessToken, paymentUrl }
+    }
+    catch {
+      // Fall through to COD.
+    }
+  }
+
+  return { orderNumber, totalAmount, accessToken }
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2 } from 'lucide-vue-next'
+import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.view' })
 
@@ -10,10 +10,13 @@ interface Row {
   nameEn: string
   price: string | number
   compareAtPrice: string | number | null
+  stock: number
+  minStock: number
   isActive: boolean
   category: { id: string, slug: string, nameAr: string, nameEn: string }
   images: { path: string }[]
   seo?: { keywords: string | null } | null
+  lastAudit?: { action: string, details: string | null, userName: string, createdAt: string } | null
 }
 
 const { t, locale } = useI18n()
@@ -109,6 +112,17 @@ async function removeProduct(p: Row) {
   finally {
     deletingId.value = null
   }
+}
+
+function formatAuditDate(dateStr: string): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 async function shareProduct(p: Row) {
@@ -230,7 +244,7 @@ async function shareProduct(p: Row) {
     <!-- Products Table Card -->
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[760px] text-start text-sm [&_td]:align-middle [&_th]:align-middle">
+        <table class="w-full min-w-[1020px] text-start text-sm [&_td]:align-middle [&_th]:align-middle">
           <thead>
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
@@ -238,6 +252,8 @@ async function shareProduct(p: Row) {
               <th v-if="showKeywordsColumn" scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'كلمات البحث' : 'Keywords' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'السعر' : 'Price' }}</th>
               <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
+              <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'آخر تعديل' : 'Last Modified' }}</th>
+              <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'المخزون' : 'Stock' }}</th>
               <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
             </tr>
           </thead>
@@ -310,6 +326,44 @@ async function shareProduct(p: Row) {
               <!-- Status Badge -->
               <td class="px-4 py-3 text-center">
                 <AdminStatusBadge :status="p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive')" size="sm" />
+              </td>
+
+              <!-- Last Modification (Audit Log) -->
+              <td class="px-4 py-3">
+                <div v-if="p.lastAudit" class="flex items-start gap-1.5 min-w-[140px]" :title="p.lastAudit.details || ''">
+                  <User class="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] text-slate-500 dark:text-slate-400">
+                      {{ p.lastAudit.action === 'created'
+                        ? (locale === 'ar' ? `أضافه: ${p.lastAudit.userName}` : `Added by ${p.lastAudit.userName}`)
+                        : (locale === 'ar' ? `${p.lastAudit.details || 'عدّله'}: ${p.lastAudit.userName}` : `${p.lastAudit.userName}`) }}
+                    </p>
+                    <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                      {{ formatAuditDate(p.lastAudit.createdAt) }}
+                    </p>
+                  </div>
+                </div>
+                <span v-else class="text-xs text-slate-400">—</span>
+              </td>
+
+              <!-- Stock Level -->
+              <td class="px-4 py-3 text-center">
+                <span
+                  v-if="(p.stock ?? 0) === 0"
+                  class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs"
+                >
+                  {{ locale === 'ar' ? 'نفد المخزون' : 'Out of stock' }}
+                </span>
+                <span
+                  v-else-if="(p.stock ?? 0) <= (p.minStock ?? 0)"
+                  class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400"
+                >
+                  <span aria-hidden="true">⚠️</span>
+                  <span>{{ locale === 'ar' ? `${p.stock} قطع` : `${p.stock} pcs` }}</span>
+                </span>
+                <span v-else class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  {{ locale === 'ar' ? `${p.stock} قطعة` : `${p.stock} pcs` }}
+                </span>
               </td>
 
               <!-- Actions -->

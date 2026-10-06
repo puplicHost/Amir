@@ -13,6 +13,8 @@ export default defineEventHandler(async (event) => {
     revenueAggregate,
     recentOrdersRaw,
     recentRequestsRaw,
+    recentActivity,
+    lowStockProducts,
   ] = await Promise.all([
     prisma.order.count(),
     prisma.order.count({ where: { status: 'Pending' } }),
@@ -66,7 +68,27 @@ export default defineEventHandler(async (event) => {
         values: true,
       },
     }),
+    prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        entityType: true,
+        entityId: true,
+        entityName: true,
+        action: true,
+        details: true,
+        userName: true,
+        createdAt: true,
+      },
+    }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      select: { id: true, stock: true, minStock: true },
+    }),
   ])
+
+  const lowStockCount = lowStockProducts.filter(p => p.stock <= p.minStock).length
 
   // Extract customer name for each service request
   const recentServiceRequests = recentRequestsRaw.map((req) => {
@@ -162,8 +184,10 @@ export default defineEventHandler(async (event) => {
       totalCategories,
       activeServices,
       totalRevenue: canViewFinancials ? Number(revenueAggregate._sum.totalAmount || 0) : null,
+      lowStockCount,
     },
     recentOrders,
     recentServiceRequests,
+    recentActivity,
   }
 })

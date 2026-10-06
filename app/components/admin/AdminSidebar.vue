@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  Boxes,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -11,6 +12,7 @@ import {
   Settings,
   ShoppingCart,
   Users,
+  Wallet,
   Wrench,
   X,
 } from 'lucide-vue-next'
@@ -41,6 +43,8 @@ const canServicesView = useAdminCan('services.view')
 const canUsersManage = useAdminCan('users.manage')
 const canSettingsView = useAdminCan('settings.view')
 const canBannersManage = useAdminCan('banners.manage')
+const canInventoryView = useAdminCan('inventory.view')
+const canFinancialsView = useAdminCan('financials.view')
 
 const canQuotesView = computed(() => canQuotesManage.value || canServicesView.value || canOrdersView.value || data.value?.user.isSuper)
 
@@ -50,6 +54,8 @@ const items = computed(() => [
   { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value },
   { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
   { label: locale.value === 'ar' ? 'عروض الأسعار' : 'Quote Requests', to: '/admin/quotes', icon: FileText, show: canQuotesView.value },
+  { label: locale.value === 'ar' ? 'المالية والمصاريف' : 'Financials', to: '/admin/financials', icon: Wallet, show: canFinancialsView.value },
+  { label: locale.value === 'ar' ? 'المخزون' : 'Inventory', to: '/admin/inventory', icon: Boxes, show: canProductsView.value || canInventoryView.value },
   { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
   { label: locale.value === 'ar' ? 'البنرات' : 'Banners', to: '/admin/banners', icon: Megaphone, show: canBannersManage.value },
   { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },

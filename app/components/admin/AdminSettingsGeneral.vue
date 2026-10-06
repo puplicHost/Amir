@@ -131,8 +131,8 @@ async function deleteLogo() {
           </label>
           <!-- Live navbar preview (AR) -->
           <div class="mt-2 flex h-14 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-[#0B1520]">
-            <img v-if="data?.logoPath" :src="data.logoPath" alt="" class="h-8 w-auto max-w-[80px] rounded object-contain" />
-            <img v-else src="/logo.png" alt="" class="h-8 w-8 rounded object-contain" />
+            <img v-if="data?.logoPath" :src="data.logoPath" alt="" class="h-8 w-auto max-w-[80px] rounded object-contain" loading="lazy" />
+            <img v-else src="/logo.png" alt="" class="h-8 w-8 rounded object-contain" loading="lazy" />
             <div class="leading-tight">
               <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ form.siteNameAr || 'مانجو إلكترونيكس' }}</span>
               <span class="block text-[10px] text-slate-400">{{ form.taglineAr || 'اعملها صح، اعملها بذكاء' }}</span>
@@ -149,8 +149,8 @@ async function deleteLogo() {
           </label>
           <!-- Live navbar preview (EN) -->
           <div class="mt-2 flex h-14 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-[#0B1520]" dir="ltr">
-            <img v-if="data?.logoPath" :src="data.logoPath" alt="" class="h-8 w-auto max-w-[80px] rounded object-contain" />
-            <img v-else src="/logo.png" alt="" class="h-8 w-8 rounded object-contain" />
+            <img v-if="data?.logoPath" :src="data.logoPath" alt="" class="h-8 w-auto max-w-[80px] rounded object-contain" loading="lazy" />
+            <img v-else src="/logo.png" alt="" class="h-8 w-8 rounded object-contain" loading="lazy" />
             <div class="leading-tight">
               <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ form.siteNameEn || 'Mango Electronics' }}</span>
               <span class="block text-[10px] text-slate-400">{{ form.taglineEn || 'Do It Right, Do It Smart' }}</span>
@@ -178,7 +178,7 @@ async function deleteLogo() {
       >
         <div class="flex flex-col items-center">
           <div v-if="data?.logoPath" class="mb-2 flex h-16 items-center justify-center overflow-hidden rounded-md border bg-slate-50 px-4 dark:bg-[#0B1520]">
-            <img :src="data.logoPath" alt="Logo preview" class="max-h-full max-w-[200px] object-contain" />
+            <img :src="data.logoPath" alt="Logo preview" class="max-h-full max-w-[200px] object-contain" loading="lazy" />
           </div>
           <UploadCloud v-else class="h-8 w-8 text-slate-400 transition-colors group-hover:text-[#2B71AE]" aria-hidden="true" />
           <span class="mt-2 block text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -311,7 +311,7 @@ async function deleteLogo() {
           @dragleave="dragOver = null"
           @drop="onDrop('favicon', $event)"
         >
-          <img v-if="data?.faviconPath" :src="data.faviconPath" alt="Favicon preview" class="h-16 w-16 object-contain" style="width: 64px; height: 64px;" />
+          <img v-if="data?.faviconPath" :src="data.faviconPath" alt="Favicon preview" class="h-16 w-16 object-contain" style="width: 64px; height: 64px;" loading="lazy" />
           <ImageIcon v-else class="h-6 w-6 text-slate-400" aria-hidden="true" />
           <input type="file" accept="image/x-icon,image/png" class="hidden" @change="uploadFile('favicon', $event)" />
         </label>
@@ -340,7 +340,7 @@ async function deleteLogo() {
         @drop="onDrop('hero', $event)"
       >
         <div class="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100 dark:bg-[#0B1520]">
-          <img v-if="data?.heroImagePath" :src="data.heroImagePath" alt="" class="h-full w-full object-cover" />
+          <img v-if="data?.heroImagePath" :src="data.heroImagePath" alt="" class="h-full w-full object-cover" loading="lazy" />
           <ImageIcon v-else class="h-5 w-5 text-slate-400" aria-hidden="true" />
         </div>
         <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">

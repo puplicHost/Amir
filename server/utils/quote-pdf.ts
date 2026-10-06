@@ -59,6 +59,26 @@ const DEFAULT_TERMS_AR = [
   'تطبق شروط الضمان الفني والصيانة الدورية المعتمدة وفقاً لمعايير الشركات المصنعة.',
 ]
 
+/**
+ * Convert rich-editor HTML (or plain newline text) into clean PDF lines.
+ * Block closers become line breaks, inline tags are stripped, entities decoded.
+ */
+export function richTextToLines(html: string): string[] {
+  if (!html) return []
+  let text = html
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/(p|div|li|h1|h2|h3|h4|ul|ol|tr)\s*>/gi, '\n')
+    .replace(/<\s*li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+  return text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+}
+
 let cachedLogoDataUri: string | null = null
 
 async function getLogoDataUri(): Promise<string | null> {
@@ -225,10 +245,10 @@ export async function generateQuotePdf(data: QuotePdfData): Promise<Buffer> {
     },
   ])
 
-  // Terms & Conditions resolution
+  // Terms & Conditions resolution (supports rich-editor HTML or plain lines)
   let termsLines: string[] = []
   if (data.termsText && data.termsText.trim()) {
-    termsLines = data.termsText.split('\n').filter(l => l.trim().length > 0)
+    termsLines = richTextToLines(data.termsText)
   }
   if (!termsLines.length) {
     termsLines = isAr ? DEFAULT_TERMS_AR : DEFAULT_TERMS_EN

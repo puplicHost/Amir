@@ -498,10 +498,10 @@ function formatDate(d: string) {
             @change="applyReqFilters"
           >
             <option value="">{{ locale === 'ar' ? 'جميع الحالات' : 'All Request Statuses' }}</option>
-            <option value="New">New (جديد)</option>
-            <option value="In Review">In Review (قيد المراجعة)</option>
-            <option value="Done">Done (تم الإنجاز)</option>
-            <option value="Closed">Closed (مغلق)</option>
+            <option value="pending">pending (جديد)</option>
+            <option value="reviewed">reviewed (قيد المراجعة)</option>
+            <option value="contacted">contacted (تم التواصل)</option>
+            <option value="closed">closed (مغلق)</option>
           </select>
 
           <!-- Service Filter -->

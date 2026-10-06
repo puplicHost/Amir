@@ -406,7 +406,7 @@ async function insertImage() {
       : ''
 
     const figureId = `inline-img-${Date.now()}`
-    const figureHtml = `<figure id="${figureId}" contenteditable="false" draggable="true" class="product-inline-image" style="${styleStr}"><img src="${res.url}" alt="${imageCaption.value || 'Product illustration'}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />${captionHtml}</figure><p><br></p>`
+    const figureHtml = `<figure id="${figureId}" contenteditable="false" draggable="true" class="product-inline-image" style="${styleStr}"><img src="${res.url}" alt="${imageCaption.value || 'Product illustration'}" loading="lazy" style="width: 100%; height: auto; border-radius: 8px; display: block;" />${captionHtml}</figure><p><br></p>`
 
     if (editorRef.value) {
       editorRef.value.focus()
@@ -807,7 +807,7 @@ async function insertImage() {
           @drop="onDrop"
         >
           <div v-if="imagePreviewUrl" class="mx-auto mb-2 max-h-36 max-w-xs overflow-hidden rounded-lg">
-            <img :src="imagePreviewUrl" alt="Preview" class="h-full w-full object-contain" />
+            <img :src="imagePreviewUrl" alt="Preview" class="h-full w-full object-contain" loading="lazy" />
           </div>
           <div v-else class="flex flex-col items-center">
             <UploadCloud class="h-8 w-8 text-slate-400 transition-colors group-hover:text-[#2B71AE]" />

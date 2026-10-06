@@ -1,10 +1,15 @@
 import { unlink } from 'node:fs/promises'
+import { logAudit } from '../../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.edit')
   const imageId = getRouterParam(event, 'imageId')
   const image = await prisma.productImage.findUnique({ where: { id: imageId || '' } })
   if (!image) throw createError({ statusCode: 404, statusMessage: 'Image not found' })
+  const product = await prisma.product.findUnique({
+    where: { id: image.productId },
+    select: { nameAr: true, nameEn: true },
+  })
 
   const remaining = await prisma.productImage.findMany({
     where: { productId: image.productId, id: { not: image.id } },
@@ -30,5 +35,13 @@ export default defineEventHandler(async (event) => {
   }
   catch { /* already gone */ }
 
+  await logAudit({
+    entityType: 'product',
+    entityId: image.productId,
+    entityName: product ? `${product.nameAr} / ${product.nameEn}` : image.productId,
+    action: 'media',
+    details: 'غيّر الصور',
+    user: actor,
+  })
   return { ok: true }
 })

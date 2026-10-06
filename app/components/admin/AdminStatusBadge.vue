@@ -11,19 +11,19 @@ const props = withDefaults(defineProps<{
 const badgeConfig = computed(() => {
   const s = props.status?.toLowerCase() || ''
   
-  if (['active', 'delivered', 'done', 'completed'].includes(s)) {
+  if (['active', 'delivered', 'done', 'completed', 'accepted', 'paid', 'مقبول'].includes(s)) {
     return {
       classes: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50',
       dot: 'bg-emerald-500 dark:bg-emerald-400',
     }
   }
-  if (['pending'].includes(s)) {
+  if (['pending', 'pending approval', 'معلق'].includes(s)) {
     return {
       classes: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50',
       dot: 'bg-amber-500 dark:bg-amber-400',
     }
   }
-  if (['processing', 'new', 'in review', 'in_review'].includes(s)) {
+  if (['processing', 'new', 'in review', 'in_review', 'reviewed', 'contacted', 'جديد', 'تمت المراجعة'].includes(s)) {
     return {
       classes: 'bg-blue-50 text-[#2B71AE] border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50',
       dot: 'bg-[#2B71AE] dark:bg-blue-400',
@@ -35,7 +35,7 @@ const badgeConfig = computed(() => {
       dot: 'bg-purple-500 dark:bg-purple-400',
     }
   }
-  if (['cancelled', 'rejected', 'failed'].includes(s)) {
+  if (['cancelled', 'rejected', 'failed', 'مرفوض'].includes(s)) {
     return {
       classes: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50',
       dot: 'bg-rose-500 dark:bg-rose-400',

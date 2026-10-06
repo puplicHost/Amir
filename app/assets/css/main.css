@@ -116,3 +116,17 @@
     outline-offset: 2px;
   }
 }
+
+/* Invoice modal printing: isolate the A4 preview, hide app chrome + modal chrome. */
+@media print {
+  body.invoice-modal-print > *:not([data-invoice-print-root]) {
+    display: none !important;
+  }
+  body.invoice-modal-print [data-invoice-print-root] {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+}

@@ -46,7 +46,7 @@ const itemName = (item: { nameAr: string, nameEn: string }) => locale.value === 
         >
           <!-- Item Image -->
           <NuxtLink :to="localePath(`/p/${item.slug}`)" class="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800">
-            <img v-if="item.coverImage" :src="item.coverImage" :alt="itemName(item)" class="h-full w-full object-cover" />
+            <img v-if="item.coverImage" :src="item.coverImage" :alt="itemName(item)" class="h-full w-full object-cover" loading="lazy" />
             <div v-else class="flex h-full w-full items-center justify-center text-[10px] text-slate-400">{{ t('common.noImage') }}</div>
           </NuxtLink>
           

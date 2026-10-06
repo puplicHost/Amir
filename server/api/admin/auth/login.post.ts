@@ -6,6 +6,7 @@ interface LoginBody {
 }
 
 export default defineEventHandler(async (event) => {
+  // Rate limited by server/middleware/rate-limit.ts (5 req/min).
   const body = await readBody<LoginBody>(event)
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
   const password = typeof body.password === 'string' ? body.password : ''

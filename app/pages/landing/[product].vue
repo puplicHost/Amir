@@ -56,7 +56,7 @@ async function submitOrder() {
 
   loading.value = true
   try {
-    const res = await $fetch<{ orderNumber: string }>('/api/orders', {
+    const res = await $fetch<{ orderNumber: string, accessToken: string }>('/api/orders', {
       method: 'POST',
       body: {
         customer: {
@@ -72,7 +72,7 @@ async function submitOrder() {
       },
     })
 
-    await navigateTo(localePath({ name: 'checkout-success', query: { id: res.orderNumber } }))
+    await navigateTo(localePath({ name: 'checkout-success', query: { id: res.orderNumber, token: res.accessToken } }))
   }
   catch (e: any) {
     formError.value = e?.data?.message || 'فشل إرسال الطلب، يرجى المحاولة مرة أخرى / Order submission failed'

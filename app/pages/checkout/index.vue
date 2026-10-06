@@ -55,7 +55,7 @@ async function placeOrder() {
 
   loading.value = true
   try {
-    const res = await $fetch<{ orderNumber: string }>('/api/orders', {
+    const res = await $fetch<{ orderNumber: string, accessToken: string, paymentUrl?: string }>('/api/orders', {
       method: 'POST',
       body: {
         customer: { ...form },
@@ -64,7 +64,12 @@ async function placeOrder() {
       },
     })
     cart.clearCart()
-    await navigateTo(localePath({ name: 'checkout-success', query: { id: res.orderNumber } }))
+    // ONLINE gateway checkout: hand off to the payment page instead of success.
+    if (res.paymentUrl && typeof window !== 'undefined') {
+      window.location.href = res.paymentUrl
+      return
+    }
+    await navigateTo(localePath({ name: 'checkout-success', query: { id: res.orderNumber, token: res.accessToken } }))
   }
   catch (e) {
     error.value = (e as { data?: { message?: string } })?.data?.message || 
@@ -116,7 +121,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
               class="flex items-center gap-3"
             >
               <div class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-800">
-                <img v-if="item.coverImage" :src="item.coverImage" :alt="locale === 'ar' ? item.nameAr : item.nameEn" class="h-full w-full object-cover rounded" />
+                <img v-if="item.coverImage" :src="item.coverImage" :alt="locale === 'ar' ? item.nameAr : item.nameEn" class="h-full w-full object-cover rounded" loading="lazy" />
                 <span class="absolute -end-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-[#2B71AE] px-1 text-[10px] font-bold text-white shadow-xs">
                   {{ item.quantity }}
                 </span>

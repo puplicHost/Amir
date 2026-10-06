@@ -1,0 +1,9 @@
+.env
+node_modules
+.git
+.nuxt
+.output
+storage/
+public/uploads/
+Docs/
+*.log

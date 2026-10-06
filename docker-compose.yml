@@ -31,6 +31,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Boot step: the image runs `prisma migrate deploy` explicitly on container
+    # start (see Dockerfile CMD) — migrations never run during image build.
+    # Uploads persist across restarts via named volumes.
+    volumes:
+      - uploads-data:/app/public/uploads
+      - app-storage:/app/storage
 
 volumes:
   pgdata:
+  uploads-data:
+  app-storage:

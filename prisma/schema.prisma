@@ -16,6 +16,8 @@ model AdminUser {
   email        String   @unique
   name         String
   passwordHash String
+  title        String?
+  salary       Decimal? @db.Decimal(10, 2)
   phone        String?
   isSuper      Boolean  @default(false)
   isActive     Boolean  @default(true)
@@ -70,6 +72,9 @@ model Product {
   descriptionEn  String?  @db.Text
   price          Decimal  @db.Decimal(10, 2)
   compareAtPrice Decimal? @db.Decimal(10, 2)
+  costPrice      Decimal? @db.Decimal(10, 2)
+  stock          Int      @default(0)
+  minStock       Int      @default(5)
   categoryId     String
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
@@ -83,10 +88,14 @@ model Product {
   quoteItems QuoteRequestItem[]
   video      ProductVideo?
   documents  ProductDocument[]
+  movements  StockMovement[]
 
   @@index([categoryId])
   @@index([isActive])
   @@index([createdAt])
+  @@index([nameAr])
+  @@index([nameEn])
+  @@index([stock])
 }
 
 model ProductImage {
@@ -167,24 +176,28 @@ model Order {
   totalAmount        Decimal  @db.Decimal(10, 2)
   paymentMethod      String   @default("COD")
   status             String   @default("Pending")
+  stockDeducted      Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
+  invoice       Invoice?
 
   @@index([status])
   @@index([createdAt])
+  @@index([customerPhone])
 }
 
 model OrderItem {
-  id                   String  @id @default(cuid())
+  id                   String   @id @default(cuid())
   orderId              String
   productId            String?
   productNameSnapshot  String
-  productPriceSnapshot Decimal @db.Decimal(10, 2)
+  productPriceSnapshot Decimal  @db.Decimal(10, 2)
+  productCostSnapshot  Decimal? @db.Decimal(10, 2)
   quantity             Int
-  subtotal             Decimal @db.Decimal(10, 2)
+  subtotal             Decimal  @db.Decimal(10, 2)
 
   order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -227,13 +240,21 @@ model QuoteRequest {
   pdfPathAr       String?
   accountRepEmail String?
   accountRepPhone String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  governorate    String?
+  expiresAt      DateTime?
+  customTermsAr  String?  @db.Text
+  customTermsEn  String?  @db.Text
+  useDefaultTerms Boolean @default(true)
+  adminNotes     String? @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  items QuoteRequestItem[]
+  items   QuoteRequestItem[]
+  invoice Invoice?
 
   @@index([status])
   @@index([createdAt])
+  @@index([phone])
 }
 
 model QuoteRequestItem {
@@ -469,8 +490,14 @@ model SiteSettings {
   metaEnabled      Boolean @default(false)
 
   // Configurable Terms & Conditions for Price Quotations
-  quoteTermsAr String? @db.Text
-  quoteTermsEn String? @db.Text
+  quoteTermsAr        String?   @db.Text
+  quoteTermsEn        String?   @db.Text
+  quoteTermsUpdatedAt DateTime?
+  quoteTermsUpdatedBy String?
+  quoteSequenceNext   Int       @default(1000)
+  quoteValidityDays   Int       @default(30)
+  quoteAutoMessage    String?   @db.Text
+  invoiceSequenceNext Int       @default(1)
 
   paymentCodEnabled           Boolean @default(true)
   paymentOnlineEnabled        Boolean @default(false)
@@ -479,4 +506,114 @@ model SiteSettings {
   paymentGatewayCredentials   String? @db.Text // AES-256-GCM encrypted JSON, never returned raw
 
   updatedAt DateTime @updatedAt
+}
+
+// ─── Audit Log (who created / edited products, categories, services) ──
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String // 'product' | 'category' | 'service'
+  entityId   String
+  entityName String
+  action     String // 'created' | 'updated' | 'deleted' | 'media'
+  details    String?  @db.Text
+  userId     String?
+  userName   String
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ─── Invoices ────────────────────────────────────────────────────
+
+model Invoice {
+  id                String   @id @default(cuid())
+  invoiceNumber     String   @unique
+  customerName      String
+  customerPhone     String
+  customerGovernorat String?
+  customerAddress   String?  @db.Text
+  notes             String?  @db.Text
+  paymentMethod     String   @default("COD")
+  status            String   @default("Pending") // Paid | Pending | Cancelled
+  subtotalAmount    Decimal  @default(0) @db.Decimal(10, 2)
+  taxAmount         Decimal  @default(0) @db.Decimal(10, 2)
+  totalAmount       Decimal  @default(0) @db.Decimal(10, 2)
+  type              String   @default("manual") // order | quote | manual
+  orderId           String?  @unique
+  order             Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  quoteId           String?  @unique
+  quoteRequest      QuoteRequest? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  createdById       String?
+  createdByName     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  items InvoiceItem[]
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoiceId String
+  name      String
+  quantity  Int     @default(1)
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+// ─── Inventory stock movements (audit trail for stock additions) ──
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int // +added / −deducted
+  costPrice Decimal? @db.Decimal(10, 2)
+  reason    String   @default("adjustment") // 'initial' | 'adjustment' | 'delivery'
+  userId    String?
+  userName  String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+// ─── Financials: expenses ────────────────────────────────────────
+
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  description String?  @db.Text
+  amount      Decimal  @db.Decimal(10, 2)
+  month       Int
+  year        Int
+  recurring   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([year, month])
+}
+
+// ─── Customer PII access tokens ────────────────────────────────
+// Short-lived, single-resource tokens issued at order/quote creation.
+// A valid token (or an admin session) is required to read order/quote PII.
+
+model CustomerAccessToken {
+  id           String   @id @default(cuid())
+  tokenHash    String   @unique
+  resourceType String   // 'order' | 'quote'
+  resourceId   String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([resourceType, resourceId])
+  @@index([expiresAt])
 }
