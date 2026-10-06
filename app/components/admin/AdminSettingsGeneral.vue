@@ -15,8 +15,8 @@ const {
     siteNameEn: '',
     taglineAr: '',
     taglineEn: '',
-    primaryDarkColor: '#285E8E',
-    primaryColor: '#2B71AE',
+    primaryDarkColor: '#1C2940',
+    primaryColor: '#1C2940',
     accentColor: '#F5CC07',
   },
   saveEndpoint: '/api/admin/settings/general',
@@ -248,7 +248,7 @@ async function deleteLogo() {
             <label class="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-full border border-slate-300 shadow-xs" :style="{ backgroundColor: form.primaryDarkColor }" title="Pick color">
               <input v-model="form.primaryDarkColor" type="color" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
             </label>
-            <input v-model="form.primaryDarkColor" type="text" placeholder="#285E8E" dir="ltr" :class="settingsInputCls" pattern="#[0-9a-fA-F]{6}" maxlength="7" />
+            <input v-model="form.primaryDarkColor" type="text" placeholder="#1C2940" dir="ltr" :class="settingsInputCls" pattern="#[0-9a-fA-F]{6}" maxlength="7" />
           </div>
         </div>
 
@@ -260,7 +260,7 @@ async function deleteLogo() {
             <label class="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-full border border-slate-300 shadow-xs" :style="{ backgroundColor: form.primaryColor }" title="Pick color">
               <input v-model="form.primaryColor" type="color" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
             </label>
-            <input v-model="form.primaryColor" type="text" placeholder="#2B71AE" dir="ltr" :class="settingsInputCls" pattern="#[0-9a-fA-F]{6}" maxlength="7" />
+            <input v-model="form.primaryColor" type="text" placeholder="#1C2940" dir="ltr" :class="settingsInputCls" pattern="#[0-9a-fA-F]{6}" maxlength="7" />
           </div>
         </div>
 

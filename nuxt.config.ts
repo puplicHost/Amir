@@ -41,7 +41,7 @@ export default defineNuxtConfig({
 
   colorMode: {
     classSuffix: '',
-    preference: 'system',
+    preference: 'light',
     fallback: 'light',
     storageKey: 'mango-color-mode',
   },

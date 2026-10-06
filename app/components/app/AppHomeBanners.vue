@@ -42,7 +42,7 @@ function isFullWidth(b: any) {
       <!-- Spans edge-to-edge with border-y and 7xl content grid, matching Category & Services sections -->
       <section
         v-if="isFullWidth(b)"
-        class="relative w-full overflow-hidden border-y border-slate-200/80 bg-[#0B1520] text-white dark:border-slate-800"
+        class="relative w-full overflow-hidden border-y border-white/10 bg-navy text-white"
         :style="{ backgroundColor: b.backgroundColor || undefined, color: b.textColor || undefined }"
       >
         <!-- Background Image (if configured) -->
@@ -57,21 +57,21 @@ function isFullWidth(b: any) {
         <!-- Fallback Ambient Brand Gradient (when no image) -->
         <div
           v-else
-          class="absolute inset-0 bg-gradient-to-r from-[#0B1520] via-[#10243E] to-[#1E3A5F]"
+          class="absolute inset-0 bg-gradient-to-r from-navy via-navy-light to-navy"
         ></div>
 
         <!-- Technical Grid Pattern Overlay (consistent with Hero & Trust bar) -->
         <div
           class="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style="background-image: radial-gradient(#2B71AE 1px, transparent 1px); background-size: 24px 24px;"
+          style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
         ></div>
 
         <!-- High-Contrast Scrim -->
-        <div class="absolute inset-0 bg-gradient-to-t from-[#0B1520] via-[#0B1520]/75 to-[#0B1520]/85"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/75 to-navy/85"></div>
 
         <!-- Section Content: Aligned with standard 7xl grid -->
         <div class="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24 text-center">
-          <div class="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#F5CC07]/30 bg-[#F5CC07]/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#F5CC07] backdrop-blur-xs">
+          <div class="mb-4 inline-flex items-center gap-1.5 rounded-full border border-cream/30 bg-cream/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-cream backdrop-blur-xs">
             <Sparkles class="h-3.5 w-3.5" />
             <span>{{ locale === 'ar' ? 'عرض خاص وتوريدات معتمدة' : 'Featured Industrial Offer' }}</span>
           </div>
@@ -87,7 +87,7 @@ function isFullWidth(b: any) {
           <NuxtLink
             v-if="btnOf(b) && b.buttonLinkValue"
             :to="localePath(b.buttonLinkValue)"
-            class="inline-flex h-12 items-center gap-2 rounded-xl bg-[#F5CC07] px-8 text-sm font-bold text-slate-950 shadow-lg shadow-yellow-500/20 transition-all hover:bg-yellow-400 active:scale-[0.98] sm:text-base"
+            class="inline-flex h-12 items-center gap-2 rounded-xl bg-accent px-8 text-sm font-bold text-on-accent shadow-lg shadow-accent/20 transition-all hover:bg-accent-hover active:scale-[0.98] sm:text-base"
           >
             <span>{{ btnOf(b) }}</span>
             <ArrowRight class="h-4 w-4 rtl:rotate-180" />
@@ -103,7 +103,7 @@ function isFullWidth(b: any) {
       >
         <div class="mx-auto max-w-7xl">
           <div
-            class="relative mx-auto w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-[#0B1520] text-white shadow-xl transition-all sm:max-w-[var(--banner-width)] dark:border-slate-800"
+            class="relative mx-auto w-full overflow-hidden rounded-2xl border border-white/10 bg-navy text-white shadow-xl transition-all sm:max-w-[var(--banner-width)]"
             :style="{ '--banner-width': `${b.widthPercent}%`, backgroundColor: b.backgroundColor || undefined, color: b.textColor || undefined }"
           >
             <!-- Background Image -->
@@ -116,21 +116,21 @@ function isFullWidth(b: any) {
             />
             <div
               v-else
-              class="absolute inset-0 bg-gradient-to-r from-[#0B1520] via-[#10243E] to-[#1E3A5F]"
+              class="absolute inset-0 bg-gradient-to-r from-navy via-navy-light to-navy"
             ></div>
 
             <!-- Technical Grid Pattern Overlay -->
             <div
               class="pointer-events-none absolute inset-0 opacity-[0.06]"
-              style="background-image: radial-gradient(#2B71AE 1px, transparent 1px); background-size: 24px 24px;"
+              style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
             ></div>
 
             <!-- High-Contrast Scrim -->
-            <div class="absolute inset-0 bg-gradient-to-t from-[#0B1520] via-[#0B1520]/75 to-[#0B1520]/85"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/75 to-navy/85"></div>
 
             <!-- Content -->
             <div class="relative z-10 px-6 py-10 text-center sm:px-10 sm:py-14">
-              <div class="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#F5CC07]/30 bg-[#F5CC07]/10 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#F5CC07] backdrop-blur-xs">
+              <div class="mb-3 inline-flex items-center gap-1.5 rounded-full border border-cream/30 bg-cream/10 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-cream backdrop-blur-xs">
                 <Sparkles class="h-3 w-3" />
                 <span>{{ locale === 'ar' ? 'عرض خاص' : 'Featured Offer' }}</span>
               </div>
@@ -146,7 +146,7 @@ function isFullWidth(b: any) {
               <NuxtLink
                 v-if="btnOf(b) && b.buttonLinkValue"
                 :to="localePath(b.buttonLinkValue)"
-                class="inline-flex h-11 items-center gap-2 rounded-xl bg-[#F5CC07] px-7 text-xs font-bold text-slate-950 shadow-md transition-all hover:bg-yellow-400 active:scale-[0.98] sm:text-sm"
+                class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-7 text-xs font-bold text-on-accent shadow-md transition-all hover:bg-accent-hover active:scale-[0.98] sm:text-sm"
               >
                 <span>{{ btnOf(b) }}</span>
                 <ArrowRight class="h-4 w-4 rtl:rotate-180" />

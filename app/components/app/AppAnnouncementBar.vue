@@ -114,8 +114,9 @@ function onTouchEnd(e: TouchEvent) {
 <template>
   <div
     v-if="isBarVisible"
+    data-site-announce
     class="relative z-50 flex h-10 w-full items-center justify-between px-3 text-xs font-semibold text-white transition-colors print:hidden"
-    :style="{ backgroundColor: data?.bgColor || '#2B71AE' }"
+    :style="{ backgroundColor: data?.bgColor || 'rgb(var(--primary) / 1)' }"
     @mouseenter="stopTimer"
     @mouseleave="startTimer"
     @touchstart="onTouchStart"

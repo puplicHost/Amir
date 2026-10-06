@@ -439,13 +439,13 @@ model SiteSettings {
   faviconPath String?
   heroImagePath String?
 
-  primaryDarkColor String @default("#285E8E")
-  primaryColor     String @default("#2B71AE")
+  primaryDarkColor String @default("#1C2940")
+  primaryColor     String @default("#1C2940")
   accentColor      String @default("#F5CC07")
 
   offerEndDate       DateTime?
   announcementActive Boolean   @default(true)
-  announcementBgColor String   @default("#2B71AE")
+  announcementBgColor String   @default("#1C2940")
 
   bannerTextAr       String? @db.Text
   bannerTextEn       String? @db.Text

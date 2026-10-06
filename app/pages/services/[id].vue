@@ -77,17 +77,17 @@ async function submitRequest() {
       
       <!-- Bilingual Page Title Directly Above Card -->
       <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+        <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-text leading-tight">
           {{ service.nameAr }}
         </h1>
-        <p class="font-mono text-sm sm:text-base font-semibold text-[#2B71AE] dark:text-[#F5CC07] mt-1" dir="ltr">
+        <p class="font-mono text-sm sm:text-base font-semibold text-primary mt-1" dir="ltr">
           {{ service.nameEn }}
         </p>
       </div>
 
       <!-- Centered Card with Form (max-width 600px) -->
       <div 
-        class="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-[#162032] transition-colors"
+        class="rounded-2xl border border-border bg-bg p-6 sm:p-8 shadow-sm transition-colors"
         :style="{ borderColor: 'var(--color-border)' }"
         dir="rtl"
       >
@@ -95,7 +95,7 @@ async function submitRequest() {
         <div 
           v-if="formError" 
           role="alert" 
-          class="mb-6 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs sm:text-sm font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+          class="mb-6 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs sm:text-sm font-medium text-rose-700"
         >
           <AlertCircle class="h-4 w-4 shrink-0" />
           <span>{{ formError }}</span>
@@ -116,7 +116,7 @@ async function submitRequest() {
             <button 
               type="submit" 
               :disabled="loading" 
-              class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#F5CC07] px-6 text-sm font-bold text-slate-950 shadow-md shadow-yellow-500/20 hover:bg-yellow-400 active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
+              class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-on-accent shadow-md shadow-accent/20 hover:bg-accent-hover active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
             >
               <Send class="h-4 w-4" />
               <span>{{ loading ? 'جاري الإرسال… / Submitting…' : 'إرسال الطلب / Submit Request' }}</span>

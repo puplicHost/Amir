@@ -5,32 +5,76 @@
 @tailwind utilities;
 
 :root {
-  /* Mango Electronics design tokens: light mode */
-  --color-primary-dark: #285e8e;
-  --color-primary: #2b71ae;
-  --color-accent: #f5cc07;
+  /* ── Layer 1: raw palette (RGB channels, never mode-dependent) ── */
+  --palette-navy:      28 41 64;     /* #1C2940 */
+  --palette-yellow:    245 204 7;    /* #F5CC07 — logo yellow */
+  --palette-silver:    196 196 196;  /* #C4C4C4 */
+  --palette-cream:     245 240 232;  /* #F5F0E8 */
+  --palette-white:     255 255 255;  /* #FFFFFF */
+  --palette-dark-text: 26 26 26;     /* #1A1A1A */
 
-  --color-bg: #ffffff;
-  --color-surface: #f8f9fa;
-  --color-border: #e2e8f0;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  /* ── Layer 2: semantic tokens (light mode) — components use these only ── */
+  --bg:           245 240 232;
+  --surface:      255 255 255;
+  --text:         26 26 26;
+  --text-muted:  90 100 120;
+  --border:       196 196 196;
+  --primary:      28 41 64;
+  --on-primary:   255 255 255;
+  --accent:       245 204 7;
+  --accent-hover: 217 180 6;
+  --on-accent:    28 41 64;
+
+  /* Legacy --color-* aliases (kept so untouched files keep working) */
+  --color-navy: #1C2940;
+  --color-yellow: #F5CC07;
+  --color-silver: #C4C4C4;
+  --color-cream: #F5F0E8;
+  --color-white: #FFFFFF;
+  --color-dark-text: #1A1A1A;
+
+  /* Mango Electronics design tokens: light mode */
+  --color-primary-dark: #141E30;
+  --color-primary: #1C2940;
+  --color-accent: #F5CC07;
+
+  --color-bg: #F5F0E8;
+  --color-surface: #FFFFFF;
+  --color-border: #DCD6CD;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #525252;
+  --color-text-muted: #8E8E8E;
 
   --color-success: #22c55e;
-  --color-warning: #f5cc07;
+  --color-warning: #F59E0B;
   --color-error: #ef4444;
-  --color-info: #2b71ae;
+  --color-info: #1C2940;
 }
 
 .dark {
+  /* ── Layer 2: semantic tokens (dark mode) ── */
+  --bg:           28 41 64;
+  --surface:      36 52 82;
+  --text:         255 255 255;
+  --text-muted:   196 196 196;
+  --border:       58 74 102;
+  --primary:      245 240 232;
+  --on-primary:   28 41 64;
+  --accent:       245 204 7;
+  --accent-hover: 255 217 51;
+  --on-accent:    28 41 64;
+
   /* Mango Electronics design tokens: dark mode */
-  --color-bg: #0b1520;
-  --color-surface: #162032;
-  --color-border: #1e3048;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #475569;
+  --color-bg: #1C2940;
+  --color-surface: #243550;
+  --color-border: #334668;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #C4C4C4;
+  --color-text-muted: #8E9BAE;
+
+  --color-primary-dark: #121C2D;
+  --color-primary: #1C2940;
+  --color-accent: #F5CC07;
 }
 
 @layer components {

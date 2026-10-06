@@ -27,7 +27,7 @@ function goto(p: number) {
   <nav v-if="pages > 1" class="mt-8 flex flex-wrap items-center justify-center gap-1.5" :aria-label="locale === 'ar' ? 'ترقيم الصفحات' : 'Pagination'">
     <button
       type="button"
-      class="inline-flex h-10 min-w-10 items-center justify-center gap-1 rounded-md border px-3 text-sm font-medium transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+      class="inline-flex h-10 min-w-10 items-center justify-center gap-1 rounded-md border border-border px-3 text-sm font-medium text-muted transition-colors hover:bg-border/40 disabled:cursor-not-allowed disabled:opacity-40"
       :style="{ borderColor: 'var(--color-border)' }"
       :disabled="page <= 1"
       :aria-label="locale === 'ar' ? 'الصفحة السابقة' : 'Previous page'"
@@ -43,8 +43,8 @@ function goto(p: number) {
         type="button"
         class="h-10 min-w-10 rounded-md border px-3 text-sm font-semibold transition-colors"
         :class="p === page
-          ? 'bg-[#2B71AE] text-white dark:bg-[#F5CC07] dark:text-slate-950'
-          : 'hover:bg-slate-100 dark:hover:bg-slate-800'"
+          ? 'bg-accent text-on-accent'
+          : 'hover:bg-border/40'"
         :style="p === page ? { borderColor: 'transparent' } : { borderColor: 'var(--color-border)' }"
         :aria-current="p === page ? 'page' : undefined"
         @click="goto(p)"
@@ -55,7 +55,7 @@ function goto(p: number) {
 
     <button
       type="button"
-      class="inline-flex h-10 min-w-10 items-center justify-center gap-1 rounded-md border px-3 text-sm font-medium transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+      class="inline-flex h-10 min-w-10 items-center justify-center gap-1 rounded-md border border-border px-3 text-sm font-medium text-muted transition-colors hover:bg-border/40 disabled:cursor-not-allowed disabled:opacity-40"
       :style="{ borderColor: 'var(--color-border)' }"
       :disabled="page >= pages"
       :aria-label="locale === 'ar' ? 'الصفحة التالية' : 'Next page'"

@@ -82,7 +82,7 @@ async function submitOrder() {
   }
 }
 
-const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2B71AE] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-100 dark:focus:bg-[#0B1520] transition-colors'
+const inputCls = 'h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors'
 </script>
 
 <template>
@@ -91,21 +91,21 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
       
       <!-- Bilingual Page Title Directly Above Card -->
       <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+        <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-text leading-tight">
           {{ p.nameAr }}
         </h1>
-        <p class="font-mono text-sm sm:text-base font-semibold text-[#2B71AE] dark:text-[#F5CC07] mt-1" dir="ltr">
+        <p class="font-mono text-sm sm:text-base font-semibold text-primary mt-1" dir="ltr">
           {{ p.nameEn }}
         </p>
-        <div class="mt-2 inline-flex items-baseline gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1">
-          <span class="text-xs font-semibold text-slate-500">{{ locale === 'ar' ? 'السعر:' : 'Price:' }}</span>
-          <span class="font-mono font-black text-slate-900 dark:text-white">{{ p.price }} EGP</span>
+        <div class="mt-2 inline-flex items-baseline gap-1.5 rounded-full bg-border/40 px-3 py-1">
+          <span class="text-xs font-semibold text-muted">{{ locale === 'ar' ? 'السعر:' : 'Price:' }}</span>
+          <span class="font-mono font-black text-text">{{ p.price }} EGP</span>
         </div>
       </div>
 
       <!-- Centered Card with Form (max-width 600px) -->
       <div 
-        class="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-[#162032] transition-colors"
+        class="rounded-2xl border border-border bg-bg p-6 sm:p-8 shadow-sm transition-colors"
         :style="{ borderColor: 'var(--color-border)' }"
         dir="rtl"
       >
@@ -113,7 +113,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
         <div 
           v-if="formError" 
           role="alert" 
-          class="mb-6 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs sm:text-sm font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+          class="mb-6 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs sm:text-sm font-medium text-rose-700"
         >
           <AlertCircle class="h-4 w-4 shrink-0" />
           <span>{{ formError }}</span>
@@ -122,7 +122,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
         <form @submit.prevent="submitOrder" class="space-y-4">
           <!-- Full Name -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1.5 block text-xs font-semibold text-muted">
               الاسم بالكامل (Full Name) *
             </span>
             <input
@@ -137,7 +137,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
 
           <!-- Phone Number -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1.5 block text-xs font-semibold text-muted">
               رقم الهاتف للتواصل (Phone Number) *
             </span>
             <input
@@ -153,7 +153,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
 
           <!-- Governorate -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1.5 block text-xs font-semibold text-muted">
               المحافظة (Governorate) *
             </span>
             <select
@@ -171,38 +171,38 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
 
           <!-- Detailed Address -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1.5 block text-xs font-semibold text-muted">
               العنوان بالتفصيل (Detailed Address)
             </span>
             <textarea
               v-model="form.address"
               rows="2"
               placeholder="Street name, building, apartment, landmark..."
-              class="w-full rounded-xl border bg-slate-50 p-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2B71AE] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-100 transition-colors"
+                class="w-full rounded-xl border border-border bg-surface p-3 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
               :style="{ borderColor: 'var(--color-border)' }"
             ></textarea>
           </label>
 
           <!-- Quantity Stepper -->
           <div>
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1.5 block text-xs font-semibold text-muted">
               الكمية المطلوبة (Quantity)
             </span>
-            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-[#0B1520]">
+            <div class="flex items-center justify-between rounded-xl border border-border bg-surface p-2">
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-700 shadow-xs hover:bg-slate-100 dark:bg-slate-800 dark:text-white"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-muted shadow-xs hover:bg-border/40"
                   @click="updateQty(-1)"
                 >
                   <Minus class="h-4 w-4" />
                 </button>
-                <span class="w-10 text-center font-mono font-bold text-slate-900 dark:text-white">
+                <span class="w-10 text-center font-mono font-bold text-text">
                   {{ quantity }}
                 </span>
                 <button
                   type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-700 shadow-xs hover:bg-slate-100 dark:bg-slate-800 dark:text-white"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-muted shadow-xs hover:bg-border/40"
                   @click="updateQty(1)"
                 >
                   <Plus class="h-4 w-4" />
@@ -212,14 +212,14 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
               <!-- Live Total Indicator -->
               <div class="text-end ps-4 font-mono text-xs">
                 <span class="text-slate-400 block text-[10px]">الإجمالي / Total</span>
-                <span class="font-bold text-[#2B71AE] dark:text-[#F5CC07] text-sm sm:text-base">{{ totalPrice }} EGP</span>
+                <span class="font-bold text-primary text-sm sm:text-base">{{ totalPrice }} EGP</span>
               </div>
             </div>
           </div>
 
           <!-- Notes -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1.5 block text-xs font-semibold text-muted">
               ملاحظات إضافية (Order Notes)
             </span>
             <input
@@ -236,7 +236,7 @@ const inputCls = 'h-11 w-full rounded-xl border bg-slate-50 px-3.5 text-xs sm:te
             <button 
               type="submit" 
               :disabled="loading" 
-              class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#F5CC07] px-6 text-sm font-bold text-slate-950 shadow-md shadow-yellow-500/20 hover:bg-yellow-400 active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
+              class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-on-accent shadow-md shadow-accent/20 hover:bg-accent-hover active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
             >
               <ShoppingBag class="h-4 w-4" />
               <span>{{ loading ? 'جاري إرسال الطلب… / Submitting…' : 'إرسال الطلب / Submit Request' }}</span>
