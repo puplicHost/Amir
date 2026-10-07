@@ -50,7 +50,7 @@ function onAddToCart(e: Event) {
 
 <template>
   <div
-    class="group flex h-full flex-col justify-between overflow-hidden rounded-xl border border-border bg-bg shadow-xs hover:-translate-y-1 hover:border-primary hover:shadow-lg transition-all duration-300"
+    class="group flex h-full flex-col justify-between overflow-hidden rounded-lg sm:rounded-xl border border-border bg-bg shadow-xs hover:-translate-y-1 hover:border-primary hover:shadow-lg transition-all duration-300"
   >
     <NuxtLink :to="localePath(`/p/${product.slug}`)" class="block flex-1 flex flex-col">
       <!-- Cover Image with Fixed 1:1 Aspect Ratio and Smooth Zoom -->
@@ -66,10 +66,10 @@ function onAddToCart(e: Event) {
           {{ t('common.noImage') }}
         </div>
 
-        <!-- Category Chip (Top Start) -->
+        <!-- Category Chip (Top Start) - hidden on mobile -->
         <span 
           v-if="product.category" 
-          class="absolute start-2 top-2 rounded-full bg-navy/80 px-2.5 py-0.5 text-[9px] sm:text-[10px] font-semibold text-white backdrop-blur-md"
+          class="hidden sm:inline-block absolute start-2 top-2 rounded-full bg-navy/80 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md"
         >
           {{ locale === 'ar' ? product.category.nameAr : product.category.nameEn }}
         </span>
@@ -77,8 +77,7 @@ function onAddToCart(e: Event) {
         <!-- Discount Badge (Top-Left corner, only when discounted) -->
         <span
           v-if="discountPercent > 0"
-          class="absolute left-[10px] top-[10px] z-[5] inline-flex items-center rounded-full bg-error px-[10px] py-[4px] text-[12px] font-bold text-white shadow-xs"
-          style="border-radius: 20px;"
+          class="absolute left-1.5 top-1.5 sm:left-[10px] sm:top-[10px] z-[5] inline-flex items-center rounded-full bg-error px-1.5 py-0.5 sm:px-[10px] sm:py-[4px] text-xs sm:text-[12px] font-bold text-white shadow-xs"
         >
           {{ locale === 'ar' ? `خصم ${discountPercent}%` : `${discountPercent}% OFF` }}
         </span>
@@ -86,18 +85,18 @@ function onAddToCart(e: Event) {
       </div>
 
       <!-- Information & Pricing with Uniform Line Height & Baseline -->
-      <div class="p-3 sm:p-3.5 flex flex-1 flex-col justify-between">
-        <h3 class="font-heading text-xs sm:text-sm font-bold leading-snug text-text line-clamp-2 min-h-[2.4rem] sm:min-h-[2.5rem] group-hover:text-primary transition-colors mb-2">
+      <div class="p-2 sm:p-3.5 flex flex-1 flex-col justify-between">
+        <h3 class="font-heading text-xs sm:text-sm font-semibold sm:font-bold leading-snug text-text line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] group-hover:text-primary transition-colors mb-1.5 sm:mb-2">
           {{ name(product) }}
         </h3>
 
-        <div class="mt-auto flex items-baseline gap-1.5 flex-wrap">
-          <span class="text-sm sm:text-base font-black text-primary">
+        <div class="mt-auto flex items-baseline gap-1 sm:gap-1.5 flex-wrap">
+          <span class="text-sm sm:text-base font-bold sm:font-black text-primary">
             {{ product.price }} <span class="text-[10px] sm:text-xs font-semibold">EGP</span>
           </span>
           <span 
             v-if="product.compareAtPrice" 
-            class="text-[11px] sm:text-xs text-slate-400 line-through"
+            class="text-xs text-slate-400 line-through"
           >
             {{ product.compareAtPrice }} EGP
           </span>
@@ -106,10 +105,10 @@ function onAddToCart(e: Event) {
     </NuxtLink>
 
     <!-- Card Action Button: Add to Cart -->
-    <div class="p-3 sm:p-3.5 pt-0">
+    <div class="p-2 sm:p-3.5 pt-0">
       <button
         type="button"
-        class="inline-flex h-8.5 sm:h-9 w-full items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-bold transition-all active:scale-[0.98]"
+        class="inline-flex py-1.5 px-2 sm:h-9 sm:px-2.5 w-full items-center justify-center gap-1 sm:gap-1.5 rounded-md sm:rounded-lg text-xs font-bold transition-all active:scale-[0.98]"
         :class="added ? 'bg-emerald-600 text-white' : 'bg-border/40 hover:bg-accent text-text hover:text-on-accent'"
         @click="onAddToCart"
       >

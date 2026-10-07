@@ -296,12 +296,12 @@ catch { /* state not registered yet — mount layout already ran */ }
         </div>
 
         <!-- Asymmetric Bento Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch">
           
           <!-- Cell 1: Flagship Featured Service Card (same size as the rest; badge + border mark it featured) -->
           <div
             v-if="flagshipService"
-            class="reveal group relative overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-br from-navy via-navy-light to-navy p-6 sm:p-8 text-white shadow-lg transition-all duration-300 hover:border-accent hover:shadow-2xl hover:-translate-y-1 h-full"
+            class="reveal group relative overflow-hidden rounded-lg sm:rounded-2xl border border-accent/40 bg-gradient-to-br from-navy via-navy-light to-navy p-3 sm:p-6 lg:p-8 text-white shadow-lg transition-all duration-300 hover:border-accent hover:shadow-2xl hover:-translate-y-1 h-full"
           >
             <!-- Circuit watermark -->
             <div 
@@ -310,31 +310,31 @@ catch { /* state not registered yet — mount layout already ran */ }
 
             <div class="relative z-10 flex flex-col h-full">
               <div>
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-                  <span class="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-bold text-on-accent">
-                    <Sparkles class="h-3.5 w-3.5" />
+                <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+                  <span class="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-accent px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-bold text-on-accent">
+                    <Sparkles class="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     <span>{{ t('home.flagshipBadge') }}</span>
                   </span>
-                  <span class="text-xs font-mono font-medium text-cream/80">
+                  <span class="text-[10px] sm:text-xs font-mono font-medium text-cream/80">
                     {{ flagshipService.tag }}
                   </span>
                 </div>
 
-                <div class="flex items-center gap-4 mb-4">
-                  <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent shadow-md">
-                    <component :is="flagshipService.icon" class="h-7 w-7" />
+                <div class="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+                  <div class="flex h-9 w-9 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-accent text-on-accent shadow-md">
+                    <component :is="flagshipService.icon" class="h-4.5 w-4.5 sm:h-7 sm:w-7" />
                   </div>
-                  <h3 class="font-heading text-xl sm:text-2xl font-bold leading-tight text-white group-hover:text-cream transition-colors line-clamp-2">
+                  <h3 class="font-heading text-sm sm:text-2xl font-bold leading-tight text-white group-hover:text-cream transition-colors line-clamp-2">
                     {{ flagshipService.name }}
                   </h3>
                 </div>
 
-                <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-6 max-w-2xl line-clamp-3">
+                <p class="text-xs sm:text-base text-slate-300 leading-relaxed mb-3 sm:mb-6 max-w-2xl line-clamp-2 sm:line-clamp-3">
                   {{ flagshipService.description }}
                 </p>
 
                 <!-- Technical highlights strip -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6 text-xs text-slate-200">
+                <div class="hidden sm:grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6 text-xs text-slate-200">
                   <div class="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
                     <Check class="h-4 w-4 text-cream shrink-0" />
                     <span>Siemens / Delta / Schneider</span>
@@ -350,18 +350,18 @@ catch { /* state not registered yet — mount layout already ran */ }
                 </div>
               </div>
 
-              <div class="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
+              <div class="mt-auto pt-2.5 sm:pt-4 border-t border-white/10 flex items-center justify-between">
                 <NuxtLink 
                   :to="localePath(`/services/${flagshipService.id}`)"
-                  class="inline-flex items-center gap-2 text-sm font-bold text-cream hover:underline"
+                  class="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold text-cream hover:underline"
                 >
                   <span>{{ t('home.serviceAction') }}</span>
-                  <ArrowRight class="h-4 w-4 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
+                  <ArrowRight class="h-3.5 w-3.5 sm:h-4 sm:w-4 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
                 </NuxtLink>
 
                 <NuxtLink 
                   :to="localePath('/services')"
-                  class="text-xs text-slate-400 hover:text-white transition-colors"
+                  class="hidden sm:inline-block text-xs text-slate-400 hover:text-white transition-colors"
                 >
                   {{ t('home.viewAllServices') }}
                 </NuxtLink>
@@ -374,7 +374,7 @@ catch { /* state not registered yet — mount layout already ran */ }
             v-for="(srv, i) in standardServices"
             :key="srv.id"
             :to="localePath(`/services/${srv.id}`)"
-            class="reveal group relative flex flex-col rounded-2xl border p-5 sm:p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full"
+            class="reveal group relative flex flex-col rounded-lg sm:rounded-2xl border p-3 sm:p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full"
             :class="[
               srv.showSponsored
                 ? 'border-primary bg-primary/10'
@@ -385,31 +385,31 @@ catch { /* state not registered yet — mount layout already ran */ }
             <!-- Sponsored Badge (Change 13) -->
             <span
               v-if="srv.showSponsored"
-              class="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-on-accent shadow-xs"
+              class="absolute top-2 end-2 sm:top-3 sm:end-3 inline-flex items-center gap-1 rounded-full bg-accent px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-on-accent shadow-xs"
             >
               ★ مميز
             </span>
 
             <div>
-              <div class="flex items-center justify-between gap-2 mb-3.5">
-                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-accent group-hover:text-on-accent transition-colors">
-                  <component :is="srv.icon" class="h-5 w-5" />
+              <div class="flex items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-3.5">
+                <div class="flex h-8 w-8 sm:h-11 sm:w-11 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 text-primary group-hover:bg-accent group-hover:text-on-accent transition-colors">
+                  <component :is="srv.icon" class="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span class="text-[11px] font-mono font-medium text-muted">
+                <span class="text-[10px] sm:text-[11px] font-mono font-medium text-muted">
                   {{ srv.tag }}
                 </span>
               </div>
 
-              <h3 class="font-heading text-base sm:text-lg font-bold text-text group-hover:text-primary transition-colors line-clamp-2 mb-2 leading-snug">
+              <h3 class="font-heading text-sm sm:text-lg font-bold text-text group-hover:text-primary transition-colors line-clamp-2 mb-1.5 sm:mb-2 leading-snug">
                 {{ srv.name }}
               </h3>
 
-              <p class="text-xs sm:text-sm text-muted line-clamp-3 leading-relaxed mb-4">
+              <p class="text-xs sm:text-sm text-muted line-clamp-2 sm:line-clamp-3 leading-relaxed mb-3 sm:mb-4">
                 {{ srv.description }}
               </p>
             </div>
 
-            <div class="mt-auto pt-3 border-t border-border flex items-center justify-between text-xs font-bold text-primary">
+            <div class="mt-auto pt-2 sm:pt-3 border-t border-border flex items-center justify-between text-xs font-bold text-primary">
               <span>{{ t('home.serviceAction') }}</span>
               <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
@@ -439,13 +439,13 @@ catch { /* state not registered yet — mount layout already ran */ }
         <!-- Category Grid (Responsive 2-col mobile, 3-col desktop) -->
         <div 
           v-if="categories?.length" 
-          class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+          class="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6"
         >
           <NuxtLink
             v-for="(cat, i) in categories"
             :key="cat.id"
             :to="localePath(`/products/${cat.slug}`)"
-            class="reveal group relative h-56 sm:h-72 lg:h-80 overflow-hidden rounded-2xl bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-border transition-all duration-300"
+            class="reveal group relative h-32 sm:h-72 lg:h-80 overflow-hidden rounded-lg sm:rounded-2xl bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-border transition-all duration-300"
             :style="{ '--reveal-delay': `${i * 70}ms` }"
           >
             <!-- Category Cover Image -->
@@ -469,17 +469,17 @@ catch { /* state not registered yet — mount layout already ran */ }
             <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/60 to-transparent opacity-90 group-hover:opacity-95 transition-opacity"></div>
 
             <!-- Card Bottom Content -->
-            <div class="absolute inset-0 p-4 sm:p-6 flex flex-col justify-end">
-              <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-cream mb-1">
+            <div class="absolute inset-0 p-2.5 sm:p-6 flex flex-col justify-end">
+              <span class="hidden sm:block text-[11px] font-mono font-bold uppercase tracking-wider text-cream mb-1">
                 {{ locale === 'ar' ? 'فئة معتمدة' : 'Hardware Catalog' }}
               </span>
-              <h3 class="font-heading text-lg sm:text-2xl font-bold text-white mb-3 group-hover:text-cream transition-colors leading-tight">
+              <h3 class="font-heading text-sm sm:text-2xl font-semibold sm:font-bold text-white mb-1.5 sm:mb-3 group-hover:text-cream transition-colors leading-tight line-clamp-2">
                 {{ locale === 'ar' ? cat.nameAr : cat.nameEn }}
               </h3>
               <div>
-                <span class="inline-flex items-center gap-1.5 rounded-lg bg-white/15 backdrop-blur-md px-3 py-1.5 text-xs sm:text-sm font-semibold text-white group-hover:bg-cream group-hover:text-navy transition-all duration-300">
+                <span class="inline-flex items-center gap-1 sm:gap-1.5 rounded-md sm:rounded-lg bg-white/15 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold text-white group-hover:bg-cream group-hover:text-navy transition-all duration-300">
                   <span>{{ t('home.categoryAction') }}</span>
-                  <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
+                  <ArrowRight class="h-3 w-3 sm:h-3.5 sm:w-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
                 </span>
               </div>
             </div>
@@ -515,7 +515,7 @@ catch { /* state not registered yet — mount layout already ran */ }
           <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
           <AppProductCard
             v-for="(product, i) in featuredProducts"
             :key="product.id"
@@ -540,43 +540,43 @@ catch { /* state not registered yet — mount layout already ran */ }
           <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="reveal relative rounded-2xl bg-bg p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 0ms">
-            <span class="text-3xl font-extrabold font-mono text-primary">01</span>
-            <h3 class="font-heading text-lg font-bold text-text mt-2 mb-2">
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6 items-stretch">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 0ms">
+            <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">01</span>
+            <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step1Title') }}
             </h3>
-            <p class="text-xs sm:text-sm text-muted leading-relaxed">
+            <p class="text-xs sm:text-sm text-muted leading-relaxed line-clamp-3 sm:line-clamp-none">
               {{ t('home.step1Desc') }}
             </p>
           </div>
 
-          <div class="reveal relative rounded-2xl bg-bg p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 70ms">
-            <span class="text-3xl font-extrabold font-mono text-primary">02</span>
-            <h3 class="font-heading text-lg font-bold text-text mt-2 mb-2">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 70ms">
+            <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">02</span>
+            <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step2Title') }}
             </h3>
-            <p class="text-xs sm:text-sm text-muted leading-relaxed">
+            <p class="text-xs sm:text-sm text-muted leading-relaxed line-clamp-3 sm:line-clamp-none">
               {{ t('home.step2Desc') }}
             </p>
           </div>
 
-          <div class="reveal relative rounded-2xl bg-bg p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 140ms">
-            <span class="text-3xl font-extrabold font-mono text-primary">03</span>
-            <h3 class="font-heading text-lg font-bold text-text mt-2 mb-2">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 140ms">
+            <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">03</span>
+            <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step3Title') }}
             </h3>
-            <p class="text-xs sm:text-sm text-muted leading-relaxed">
+            <p class="text-xs sm:text-sm text-muted leading-relaxed line-clamp-3 sm:line-clamp-none">
               {{ t('home.step3Desc') }}
             </p>
           </div>
 
-          <div class="reveal relative rounded-2xl bg-bg p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style="--reveal-delay: 210ms">
-            <span class="text-3xl font-extrabold font-mono text-primary">04</span>
-            <h3 class="font-heading text-lg font-bold text-text mt-2 mb-2">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 210ms">
+            <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">04</span>
+            <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step4Title') }}
             </h3>
-            <p class="text-xs sm:text-sm text-muted leading-relaxed">
+            <p class="text-xs sm:text-sm text-muted leading-relaxed line-clamp-3 sm:line-clamp-none">
               {{ t('home.step4Desc') }}
             </p>
           </div>
