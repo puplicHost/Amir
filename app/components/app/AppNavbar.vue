@@ -6,12 +6,10 @@ import {
   Globe, 
   Loader2, 
   Menu, 
-  Moon, 
   PhoneCall, 
   Search, 
   ShoppingCart, 
   Sparkles, 
-  Sun, 
   Wrench, 
   X 
 } from 'lucide-vue-next'
@@ -19,7 +17,6 @@ import {
 const { t, locale, setLocale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const colorMode = useColorMode()
 const mobileOpen = ref(false)
 const productsOpen = ref(false)
 
@@ -146,12 +143,6 @@ const { data: generalSettings } = await useAsyncData('navbar-settings-general', 
 function toggleLocale() {
   setLocale(locale.value === 'ar' ? 'en' : 'ar')
   mobileOpen.value = false
-}
-
-const isDark = computed(() => colorMode.value === 'dark')
-
-function toggleTheme() {
-  colorMode.preference = isDark.value ? 'light' : 'dark'
 }
 
 // Transparent-over-hero mode (homepage only): navbar shows the navy hero
@@ -398,24 +389,6 @@ const isProductsActive = computed(() => {
         >
           <Globe class="h-3.5 w-3.5" aria-hidden="true" />
           <span>{{ locale === 'ar' ? 'English' : 'العربية' }}</span>
-        </button>
-
-        <!-- Theme Toggle -->
-        <button
-          type="button"
-          :aria-label="t('common.toggleTheme')"
-          :title="t('common.toggleTheme')"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-lg border active:scale-95 transition-all"
-          :class="iconBtn()"
-          @click="toggleTheme"
-        >
-          <ClientOnly>
-            <Moon v-if="!isDark" class="h-4 w-4" aria-hidden="true" />
-            <Sun v-else class="h-4 w-4 text-primary" aria-hidden="true" />
-            <template #fallback>
-              <Moon class="h-4 w-4" aria-hidden="true" />
-            </template>
-          </ClientOnly>
         </button>
 
         <div class="h-4 w-px bg-border mx-0.5" />
@@ -742,7 +715,7 @@ const isProductsActive = computed(() => {
         </li>
       </ul>
 
-      <!-- Mobile Language & Theme Toggles -->
+      <!-- Mobile Language Toggle -->
       <div class="mt-4 flex items-center gap-2 border-t border-border pt-3.5">
         <button
           type="button"
@@ -752,21 +725,6 @@ const isProductsActive = computed(() => {
         >
           <Globe class="h-4 w-4" aria-hidden="true" />
           <span>{{ locale === 'ar' ? 'English' : 'العربية' }}</span>
-        </button>
-        <button
-          type="button"
-          class="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold"
-          :class="iconBtn()"
-          @click="toggleTheme"
-        >
-          <ClientOnly>
-            <Moon v-if="!isDark" class="h-4 w-4" aria-hidden="true" />
-            <Sun v-else class="h-4 w-4 text-primary" aria-hidden="true" />
-            <template #fallback>
-              <Moon class="h-4 w-4" aria-hidden="true" />
-            </template>
-          </ClientOnly>
-          <span><ClientOnly>{{ isDark ? t('common.light') : t('common.dark') }}<template #fallback>{{ t('common.dark') }}</template></ClientOnly></span>
         </button>
       </div>
     </div>

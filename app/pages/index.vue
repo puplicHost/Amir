@@ -13,8 +13,7 @@ import {
   Search,
   ShoppingCart,
   Sparkles,
-  Wrench,
-  Zap
+  Wrench
 } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
@@ -230,54 +229,50 @@ catch { /* state not registered yet — mount layout already ran */ }
 <template>
   <div class="space-y-0 selection:bg-accent selection:text-on-accent">
 
-    <!-- 1. Hero Section (Full Viewport Height minus sticky navbar, Max 4 Elements, Zero Em-Dashes) -->
+    <!-- 1. Hero Section (image + dark overlay + arch curve; content vertically centered) -->
     <section
       ref="heroSection"
       class="relative flex min-h-[calc(100vh-4rem)] supports-[height:100svh]:min-h-[calc(100svh-4rem)] flex-col justify-center overflow-hidden bg-navy bg-cover bg-center px-4 pt-16 pb-16 text-center sm:pt-20 sm:pb-20"
       :style="general?.heroImagePath ? `background-image: url('${general.heroImagePath}')` : ''"
     >
-      <!-- Technical Grid & Ambient Lighting -->
-      <div class="absolute inset-0 bg-gradient-to-b from-navy/90 via-navy/95 to-navy"></div>
-      <div 
-        class="pointer-events-none absolute inset-0 opacity-[0.07]" 
-        style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
-      ></div>
-      <div class="pointer-events-none absolute top-0 left-1/2 h-[380px] w-[600px] -translate-x-1/2 rounded-full bg-primary/20 blur-[130px]"></div>
-      <div class="pointer-events-none absolute -bottom-24 right-1/4 h-[300px] w-[450px] rounded-full bg-primary/25 blur-[120px]"></div>
+      <!-- Dark overlay -->
+      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.5), rgba(13,27,46,0.75))"></div>
 
-      <div ref="heroContent" class="relative z-10 mx-auto max-w-5xl">
-        <!-- Element 1: Eyebrow Badge (Rationed, Max 1 per 3 sections) -->
-        <div class="hero-anim mb-5 inline-flex items-center gap-2 rounded-full border border-cream/30 bg-cream/10 px-5 py-2 text-[22px] font-bold text-cream shadow-sm backdrop-blur-md" style="animation-delay: 0ms">
-          <Zap class="h-3.5 w-3.5 fill-current" />
-          <span>{{ t('home.heroEyebrow') }}</span>
+      <!-- Arch curve: page background rises into the hero at the bottom center -->
+      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+        <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
+      </svg>
+
+      <div ref="heroContent" class="relative z-10 mx-auto w-full max-w-5xl pb-20 sm:pb-24">
+        <!-- Tagline divider centered above the headline -->
+        <div
+          class="hero-anim mx-auto mb-5 flex items-center justify-center gap-4"
+          style="animation-delay: 0ms"
+        >
+          <span class="h-px max-w-[80px] flex-1 bg-white/30" aria-hidden="true"></span>
+          <span class="text-white text-[14px] font-light uppercase tracking-[0.2em] drop-shadow-lg">{{ t('brand.tagline') }}</span>
+          <span class="h-px max-w-[80px] flex-1 bg-white/30" aria-hidden="true"></span>
         </div>
 
-        <!-- Element 2: Hero Headline (Max 2 lines desktop, leading-tight) -->
-        <h1 class="hero-anim font-heading text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-[3.5rem] mb-5 leading-tight" style="animation-delay: 100ms">
+        <!-- Headline (max 2 lines) -->
+        <h1 class="hero-anim font-heading text-3xl font-extrabold tracking-tight text-balance text-white sm:text-4xl lg:text-[3.5rem] mb-4 leading-tight" style="animation-delay: 100ms">
           <span class="block">{{ t('home.heroTitleLine1') }}</span>
           <span class="block">{{ t('home.heroTitleLine2') }}</span>
         </h1>
 
-        <!-- Element 3: Subtext (Max 20 words, strictly zero em-dashes) -->
-        <p class="hero-anim mb-8 text-base text-slate-300 sm:text-lg max-w-2xl mx-auto leading-relaxed" style="animation-delay: 200ms">
+        <!-- Subheadline (1 line) -->
+        <p class="hero-anim mb-8 text-base text-white/80 sm:text-lg max-w-3xl mx-auto leading-relaxed truncate" style="animation-delay: 200ms">
           {{ t('home.heroSubtitle') }}
         </p>
 
-        <!-- Element 4: Action CTAs (No wrap, WCAG AA min contrast, active push feedback) -->
-        <div class="hero-anim flex flex-col sm:flex-row items-center justify-center gap-4" style="animation-delay: 300ms">
-          <NuxtLink 
-            :to="localePath('/products')" 
-            class="h-12 sm:h-13 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-lg bg-accent px-8 text-base font-bold text-on-accent shadow-lg shadow-accent/20 hover:bg-accent-hover active:scale-[0.98] transition-all"
+        <!-- Single primary CTA -->
+        <div class="hero-anim flex items-center justify-center" style="animation-delay: 300ms">
+          <NuxtLink
+            :to="localePath('/products')"
+            class="h-12 sm:h-13 inline-flex items-center justify-center gap-2.5 rounded-lg bg-accent px-8 text-base font-bold text-on-accent shadow-lg shadow-accent/20 hover:bg-accent-hover active:scale-[0.98] transition-all"
           >
             <span>{{ t('home.shopCta') }}</span>
-            <ArrowRight class="h-4 w-4 rtl:rotate-180" />
-          </NuxtLink>
-
-          <NuxtLink 
-            :to="localePath('/services')" 
-            class="h-12 sm:h-13 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-lg border border-white/25 bg-white/5 backdrop-blur px-8 text-base font-bold text-white hover:bg-white/15 hover:border-white/40 active:scale-[0.98] transition-all"
-          >
-            <span>{{ t('home.servicesCta') }}</span>
+            <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
           </NuxtLink>
         </div>
       </div>
