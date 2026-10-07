@@ -342,11 +342,8 @@ const isProductsActive = computed(() => {
           <NuxtLink 
             :to="localePath('/products/offers')" 
             class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-all"
-            :class="isActiveRoute(localePath('/products/offers')) 
-              ? 'bg-accent text-on-accent shadow-xs' 
-              : 'text-primary hover:bg-primary/15'"
+            :class="deskLink(isActiveRoute(localePath('/products/offers')))"
           >
-            <span>🏷️</span>
             <span>{{ locale === 'ar' ? 'العروض والخصومات' : 'Deals & Offers' }}</span>
             <span class="rounded bg-accent px-1.5 py-0.5 text-[9px] font-black text-on-accent shadow-xs">
               HOT
