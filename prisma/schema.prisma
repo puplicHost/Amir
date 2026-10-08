@@ -621,3 +621,16 @@ model CustomerAccessToken {
   @@index([resourceType, resourceId])
   @@index([expiresAt])
 }
+
+// ─── Contact inbox ─────────────────────────────────────────────
+// Public contact-form messages. Read/deleted from Admin → Inbox.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead, createdAt])
+}

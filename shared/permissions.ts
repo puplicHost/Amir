@@ -8,6 +8,7 @@ export const PERMISSION_GROUPS = {
   quotes: ['quotes.view', 'quotes.manage'],
   services: ['services.view', 'services.manage', 'services.config'],
   categories: ['categories.manage'],
+  inbox: ['inbox.view', 'inbox.manage'],
   banners: ['banners.manage'],
   invoices: ['invoices.view', 'invoices.manage'],
   inventory: ['inventory.view'],

@@ -95,11 +95,6 @@ const tagline = computed(() => {
                 <span>{{ t('nav.cart') }}</span>
               </NuxtLink>
             </li>
-            <li>
-              <NuxtLink :to="localePath('/about')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
-                <span>{{ t('nav.about') }}</span>
-              </NuxtLink>
-            </li>
           </ul>
         </div>
 

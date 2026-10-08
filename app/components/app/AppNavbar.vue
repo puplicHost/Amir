@@ -124,7 +124,6 @@ function submitNavSearch() {
 const links = computed(() => [
   { label: t('nav.home'), to: localePath('/'), exact: true },
   { label: t('nav.services'), to: localePath('/services') },
-  { label: t('nav.about'), to: localePath('/about') },
   { label: t('nav.contact'), to: localePath('/contact') },
 ])
 const productsHref = computed(() => localePath('/products'))
@@ -350,17 +349,6 @@ const isProductsActive = computed(() => {
             :class="deskLink(isActiveRoute(localePath('/services')))"
           >
             {{ t('nav.services') }}
-          </NuxtLink>
-        </li>
-
-        <!-- Contact Link -->
-        <li>
-          <NuxtLink 
-            :to="localePath('/about')" 
-            class="inline-flex items-center rounded-lg px-3.5 py-2 text-sm font-semibold transition-all"
-            :class="deskLink(isActiveRoute(localePath('/about')))"
-          >
-            {{ t('nav.about') }}
           </NuxtLink>
         </li>
 
@@ -691,16 +679,6 @@ const isProductsActive = computed(() => {
             @click="mobileOpen = false"
           >
             {{ t('nav.services') }}
-          </NuxtLink>
-        </li>
-        <li>
-          <NuxtLink
-            :to="localePath('/about')"
-            class="block rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors"
-            :class="solidLink(isActiveRoute(localePath('/about')))"
-            @click="mobileOpen = false"
-          >
-            {{ t('nav.about') }}
           </NuxtLink>
         </li>
         <li>

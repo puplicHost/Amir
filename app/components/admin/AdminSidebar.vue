@@ -8,6 +8,7 @@ import {
   FolderTree,
   LayoutDashboard,
   LogOut,
+  Mail,
   Megaphone,
   Settings,
   ShoppingCart,
@@ -45,10 +46,26 @@ const canSettingsView = useAdminCan('settings.view')
 const canBannersManage = useAdminCan('banners.manage')
 const canInventoryView = useAdminCan('inventory.view')
 const canFinancialsView = useAdminCan('financials.view')
+const canInboxView = useAdminCan('inbox.view')
+
+const fetch = useRequestFetch()
+const { data: inboxUnread, refresh: refreshInboxUnread } = await useAsyncData('admin-inbox-unread', () =>
+  fetch<{ unreadCount: number }>('/api/admin/inbox', { params: { page: 1, limit: 1 } }),
+  { server: false, lazy: true },
+)
+watch(() => route.fullPath, () => refreshInboxUnread())
 
 const canQuotesView = computed(() => canQuotesManage.value || canServicesView.value || canOrdersView.value || data.value?.user.isSuper)
 
-const items = computed(() => [
+interface SidebarItem {
+  label: string
+  to: string
+  icon: any
+  show: boolean
+  badge?: number
+}
+
+const items = computed<SidebarItem[]>(() => [
   { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, show: true },
   { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value },
   { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value },
@@ -57,6 +74,7 @@ const items = computed(() => [
   { label: locale.value === 'ar' ? 'المالية والمصاريف' : 'Financials', to: '/admin/financials', icon: Wallet, show: canFinancialsView.value },
   { label: locale.value === 'ar' ? 'المخزون' : 'Inventory', to: '/admin/inventory', icon: Boxes, show: canProductsView.value || canInventoryView.value },
   { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
+  { label: locale.value === 'ar' ? 'صندوق الوارد' : 'Inbox', to: '/admin/inbox', icon: Mail, show: canInboxView.value, badge: inboxUnread.value?.unreadCount || 0 },
   { label: locale.value === 'ar' ? 'البنرات' : 'Banners', to: '/admin/banners', icon: Megaphone, show: canBannersManage.value },
   { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },
   { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value },
@@ -179,6 +197,12 @@ const userInitials = computed(() => {
                     aria-hidden="true"
                   />
                   <span v-if="!collapsed" class="flex-1 truncate">{{ item.label }}</span>
+                  <span
+                    v-if="!collapsed && item.badge > 0"
+                    class="shrink-0 rounded-full bg-[#F5CC07] px-1.5 py-px text-[10px] font-black text-slate-950"
+                  >
+                    {{ item.badge > 99 ? '99+' : item.badge }}
+                  </span>
                 </NuxtLink>
               </li>
             </template>

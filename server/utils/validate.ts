@@ -78,6 +78,13 @@ export const quoteStatusSchema = z.object({
   status: z.enum(['New', 'Reviewed', 'Closed', 'Pending', 'Accepted', 'Rejected', 'Expired']),
 })
 
+// ── Contact inbox ──
+export const contactMessageSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  phone: z.string().trim().regex(/^01[0125][0-9]{8}$/),
+  message: z.string().trim().min(1).max(1000),
+})
+
 // ── Services ──
 export const serviceCreateSchema = z.object({
   slug: z.string().trim().max(120).nullish(),
