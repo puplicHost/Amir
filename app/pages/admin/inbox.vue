@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  CheckCheck,
   Inbox,
   MailOpen,
   Trash2,
@@ -125,6 +126,20 @@ async function deleteMessage(m: ContactMessageItem, e?: Event) {
   }
 }
 
+const markingAllRead = ref(false)
+async function markAllAsRead() {
+  if (unreadCount.value === 0 || markingAllRead.value) return
+  markingAllRead.value = true
+  try {
+    await $fetch('/api/admin/inbox/read-all', { method: 'PUT' })
+    await refresh()
+  }
+  catch { /* best-effort */ }
+  finally {
+    markingAllRead.value = false
+  }
+}
+
 const tabs = computed(() => [
   { id: 'all' as const, labelAr: 'الكل', labelEn: 'All' },
   { id: 'unread' as const, labelAr: 'غير المقروءة', labelEn: 'Unread' },
@@ -137,7 +152,20 @@ const tabs = computed(() => [
     <AdminPageHeader
       :title="locale === 'ar' ? 'صندوق الوارد' : 'Inbox'"
       :description="locale === 'ar' ? 'رسائل نموذج اتصل بنا من العملاء.' : 'Contact-form messages from customers.'"
-    />
+    >
+      <template #actions>
+        <button
+          v-if="unreadCount > 0"
+          type="button"
+          :disabled="markingAllRead"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+          @click="markAllAsRead"
+        >
+          <CheckCheck class="h-4 w-4" aria-hidden="true" />
+          <span>{{ locale === 'ar' ? 'تعليم الكل كمقروء' : 'Mark all as read' }}</span>
+        </button>
+      </template>
+    </AdminPageHeader>
 
     <!-- Filter tabs -->
     <div class="mb-4 flex items-center gap-1 rounded-md border bg-white p-1 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">

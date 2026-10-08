@@ -126,6 +126,34 @@ async function resetReqFilters() {
   await refreshRequests()
 }
 
+const canServicesManage = useAdminCan('services.manage')
+const updatingReqId = ref<string | null>(null)
+
+async function updateReqStatus(req: any, newStatus: string) {
+  if (!canServicesManage.value || updatingReqId.value === req.id || req.status === newStatus) return
+  updatingReqId.value = req.id
+  try {
+    await $fetch(`/api/admin/services/requests/${req.id}/status`, {
+      method: 'PUT',
+      body: { status: newStatus },
+    })
+    req.status = newStatus
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث الحالة' : 'Status Updated',
+      locale.value === 'ar' ? `حالة الطلب #${req.id.slice(-6).toUpperCase()} أصبحت "${newStatus}".` : `Status updated to "${newStatus}".`,
+    )
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث الحالة' : 'Update Failed',
+      e?.data?.message || 'Failed to update status',
+    )
+  }
+  finally {
+    updatingReqId.value = null
+  }
+}
+
 async function gotoRequestsPage(p: number) {
   requestsPage.value = p
   await router.replace({
@@ -691,9 +719,22 @@ function formatDate(d: string) {
                   {{ formatDate(req.submittedAt) }}
                 </td>
 
-                <!-- Status Badge -->
+                <!-- Status Select (1-click quick update) -->
                 <td class="px-4 py-3 text-center">
-                  <AdminStatusBadge :status="req.status" size="sm" />
+                  <select
+                    v-if="canServicesManage"
+                    :value="req.status.toLowerCase()"
+                    :disabled="updatingReqId === req.id"
+                    class="h-8 rounded-md border bg-white px-2 text-xs font-semibold focus:border-[#2B71AE] focus:outline-none dark:bg-[#162032] transition-colors"
+                    :style="{ borderColor: 'var(--color-border)' }"
+                    @change="updateReqStatus(req, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="pending">{{ locale === 'ar' ? 'جديد (Pending)' : 'Pending' }}</option>
+                    <option value="reviewed">{{ locale === 'ar' ? 'تمت المراجعة (Reviewed)' : 'Reviewed' }}</option>
+                    <option value="contacted">{{ locale === 'ar' ? 'تم التواصل (Contacted)' : 'Contacted' }}</option>
+                    <option value="closed">{{ locale === 'ar' ? 'مغلق (Closed)' : 'Closed' }}</option>
+                  </select>
+                  <AdminStatusBadge v-else :status="req.status" size="sm" />
                 </td>
 
                 <!-- Action Button -->

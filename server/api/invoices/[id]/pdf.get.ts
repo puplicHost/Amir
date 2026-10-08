@@ -1,7 +1,7 @@
 import { generateInvoicePdf } from '../../../utils/invoice-pdf'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'invoices.view')
+  const user = await requirePermission(event, 'invoices.view')
   const id = getRouterParam(event, 'id')
 
   const invoice = await prisma.invoice.findUnique({
@@ -30,9 +30,11 @@ export default defineEventHandler(async (event) => {
       subtotal: Number(i.subtotal),
     })),
     subtotalAmount: Number(invoice.subtotalAmount),
+    discountAmount: Math.max(0, Number(invoice.subtotalAmount) + Number(invoice.taxAmount) - Number(invoice.totalAmount)),
     taxAmount: Number(invoice.taxAmount),
     totalAmount: Number(invoice.totalAmount),
     notes: invoice.notes,
+    createdByName: user?.name || (invoice as any).createdByName || null,
     locale: 'ar',
     siteSettings: settings || undefined,
   })

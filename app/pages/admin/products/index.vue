@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
+import { Copy, Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.view' })
 
@@ -87,6 +87,58 @@ const { confirm: confirmDialog } = useAdminConfirm()
 const canCreateProduct = useAdminCan('products.create')
 const canEditProduct = useAdminCan('products.edit')
 const canDeleteProduct = useAdminCan('products.delete')
+
+const togglingId = ref<string | null>(null)
+async function toggleProductActive(p: Row) {
+  if (!canEditProduct.value || togglingId.value === p.id) return
+  togglingId.value = p.id
+  const next = !p.isActive
+  try {
+    await $fetch(`/api/admin/products/${p.id}`, {
+      method: 'PUT',
+      body: { isActive: next },
+    })
+    p.isActive = next
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث الحالة' : 'Status Updated',
+      locale.value === 'ar' ? `المنتج "${p.nameAr || p.nameEn}" أصبح ${next ? 'نشطاً' : 'معطلاً'}.` : `Product is now ${next ? 'active' : 'inactive'}.`,
+    )
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل تحديث الحالة' : 'Update Failed',
+      e?.data?.message || 'Failed to update status',
+    )
+  }
+  finally {
+    togglingId.value = null
+  }
+}
+
+const duplicatingId = ref<string | null>(null)
+async function duplicateProduct(p: Row) {
+  if (!canCreateProduct.value || duplicatingId.value === p.id) return
+  duplicatingId.value = p.id
+  try {
+    const cloned = await $fetch<any>(`/api/admin/products/${p.id}/duplicate`, {
+      method: 'POST',
+    })
+    toast.success(
+      locale.value === 'ar' ? 'تم نسخ المنتج' : 'Product Duplicated',
+      locale.value === 'ar' ? `تم إنشاء نسخة "${cloned.nameAr}" كمسودة بنجاح.` : `Created duplicate "${cloned.nameEn}" as draft.`,
+    )
+    await refresh()
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل نسخ المنتج' : 'Duplicate Failed',
+      e?.data?.message || 'Could not duplicate product',
+    )
+  }
+  finally {
+    duplicatingId.value = null
+  }
+}
 
 async function removeProduct(p: Row) {
   const ok = await confirmDialog({
@@ -323,9 +375,23 @@ async function shareProduct(p: Row) {
                 </div>
               </td>
 
-              <!-- Status Badge -->
+              <!-- Status Badge (1-click interactive toggle) -->
               <td class="px-4 py-3 text-center">
-                <AdminStatusBadge :status="p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive')" size="sm" />
+                <button
+                  v-if="canEditProduct"
+                  type="button"
+                  :disabled="togglingId === p.id"
+                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                  :class="p.isActive
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
+                    : 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'"
+                  :title="locale === 'ar' ? 'اضغط للتبديل بين نشط ومعطل' : 'Click to toggle active status'"
+                  @click="toggleProductActive(p)"
+                >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="p.isActive ? 'bg-emerald-500' : 'bg-slate-400'" />
+                  <span>{{ p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive') }}</span>
+                </button>
+                <AdminStatusBadge v-else :status="p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive')" size="sm" />
               </td>
 
               <!-- Last Modification (Audit Log) -->
@@ -377,6 +443,17 @@ async function shareProduct(p: Row) {
                     <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
                     <span>{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
                   </NuxtLink>
+                  <button
+                    v-if="canCreateProduct"
+                    type="button"
+                    :disabled="duplicatingId === p.id"
+                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    :title="locale === 'ar' ? 'نسخ هذا المنتج' : 'Duplicate product'"
+                    @click="duplicateProduct(p)"
+                  >
+                    <Copy class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'نسخ' : 'Duplicate' }}</span>
+                  </button>
                   <button
                     type="button"
                     class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"

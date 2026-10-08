@@ -5,6 +5,9 @@ definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 
 
 const { locale } = useI18n()
 const localePath = useLocalePath()
+const toast = useAdminToast()
+const canEditProduct = useAdminCan('products.edit')
+const updatingStockId = ref<string | null>(null)
 
 interface InventoryRow {
   id: string
@@ -86,6 +89,35 @@ const rangeText = computed(() => {
     ? `عرض ${from}-${to} من ${meta.value.total} منتج`
     : `Showing ${from}-${to} of ${meta.value.total} products`
 })
+
+async function updateStock(p: InventoryRow, val: string) {
+  const newStock = Math.max(0, parseInt(val, 10) || 0)
+  if (p.stock === newStock) return
+  updatingStockId.value = p.id
+  try {
+    await $fetch(`/api/admin/products/${p.id}`, {
+      method: 'PUT',
+      body: { stock: newStock },
+    })
+    p.stock = newStock
+    if (p.costPrice !== null) p.stockValue = newStock * p.costPrice
+    p.status = newStock === 0 ? 'out' : newStock <= p.minStock ? 'low' : 'ok'
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث المخزون' : 'Stock Updated',
+      locale.value === 'ar' ? `مخزون "${p.nameAr || p.nameEn}" أصبح ${newStock} قطعة.` : `Stock updated to ${newStock} units.`,
+    )
+    await refresh()
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل التحديث' : 'Update Failed',
+      e?.data?.message || 'Could not update stock',
+    )
+  }
+  finally {
+    updatingStockId.value = null
+  }
+}
 
 function gotoPage(p: number | '…') {
   if (p === '…' || p === meta.value.page) return
@@ -206,17 +238,42 @@ function statusMeta(status: string) {
                   {{ locale === 'ar' ? (p.category.nameAr || p.category.nameEn) : p.category.nameEn }}
                 </span>
               </td>
+              <!-- Stock Level (Inline quick adjustment) -->
               <td class="px-4 py-3 text-center">
-                <span
-                  v-if="p.stock === 0"
-                  class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white"
-                >
-                  {{ locale === 'ar' ? 'نفد المخزون' : 'Out of stock' }}
-                </span>
-                <span v-else-if="p.status === 'low'" class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400">
-                  <span aria-hidden="true">⚠️</span> {{ p.stock }}
-                </span>
-                <span v-else class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{{ p.stock }}</span>
+                <div v-if="canEditProduct" class="inline-flex items-center justify-center gap-1.5">
+                  <input
+                    type="number"
+                    min="0"
+                    :value="p.stock"
+                    :disabled="updatingStockId === p.id"
+                    :title="locale === 'ar' ? 'عدّل الرقم واضغط Enter أو اخرج للحفظ' : 'Edit number and press Enter to save'"
+                    class="h-8 w-20 rounded-md border bg-transparent px-2 text-center font-mono text-xs font-bold text-slate-800 transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 disabled:opacity-50 dark:text-slate-200"
+                    :style="{ borderColor: 'var(--color-border)' }"
+                    @change="updateStock(p, ($event.target as HTMLInputElement).value)"
+                  />
+                  <span
+                    v-if="p.stock === 0"
+                    class="inline-block h-2 w-2 rounded-full bg-rose-500"
+                    :title="locale === 'ar' ? 'نفد المخزون' : 'Out of stock'"
+                  />
+                  <span
+                    v-else-if="p.status === 'low'"
+                    class="inline-block h-2 w-2 rounded-full bg-amber-500"
+                    :title="locale === 'ar' ? 'مخزون منخفض' : 'Low stock'"
+                  />
+                </div>
+                <template v-else>
+                  <span
+                    v-if="p.stock === 0"
+                    class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white"
+                  >
+                    {{ locale === 'ar' ? 'نفد المخزون' : 'Out of stock' }}
+                  </span>
+                  <span v-else-if="p.status === 'low'" class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400">
+                    <span aria-hidden="true">⚠️</span> {{ p.stock }}
+                  </span>
+                  <span v-else class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{{ p.stock }}</span>
+                </template>
               </td>
               <td class="px-4 py-3 text-center font-mono text-xs text-slate-600 dark:text-slate-300">{{ p.minStock }}</td>
               <td class="px-4 py-3 text-center font-mono text-xs text-slate-600 dark:text-slate-300">
