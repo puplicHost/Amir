@@ -49,16 +49,6 @@ interface DashboardResponse {
     serviceNameEn: string
     customerName: string
   }>
-  recentActivity: Array<{
-    id: string
-    entityType: string
-    entityId: string
-    entityName: string
-    action: string
-    details: string | null
-    userName: string
-    createdAt: string
-  }>
 }
 
 const fetch = useRequestFetch()
@@ -88,28 +78,9 @@ const { data: finSummary, pending: finPending } = await useAsyncData(
 const stats = computed(() => data.value?.stats)
 const recentOrders = computed(() => data.value?.recentOrders || [])
 const recentServiceRequests = computed(() => data.value?.recentServiceRequests || [])
-const recentActivity = computed(() => data.value?.recentActivity || [])
 const lowStockCount = computed(() => stats.value?.lowStockCount || 0)
 
 const canProductsView = useAdminCan('products.view')
-
-function activityIcon(entityType: string) {
-  if (entityType === 'category') return FolderTree
-  if (entityType === 'service') return Wrench
-  return Package
-}
-
-function activityLink(entry: { entityType: string, entityId: string }) {
-  if (entry.entityType === 'category') return '/admin/categories'
-  if (entry.entityType === 'service') return '/admin/services'
-  return `/admin/products/${entry.entityId}/edit`
-}
-
-function activityActionLabel(entry: { action: string, details: string | null }): string {
-  if (entry.action === 'created') return locale.value === 'ar' ? 'أضاف' : 'created'
-  if (entry.action === 'deleted') return locale.value === 'ar' ? 'حذف' : 'deleted'
-  return entry.details || (locale.value === 'ar' ? 'عدّل' : 'updated')
-}
 
 function formatCurrency(amount: number): string {
   const formatted = (amount || 0).toLocaleString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
@@ -661,69 +632,6 @@ const quickActions = computed(() => [
             <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" aria-hidden="true" />
           </div>
         </NuxtLink>
-      </div>
-    </section>
-
-    <!-- Latest Activity Widget (Audit Log) -->
-    <section aria-label="Latest Activity">
-      <div
-        class="overflow-hidden rounded-xl border bg-white shadow-xs dark:bg-[#162032]"
-        :style="{ borderColor: 'var(--color-border)' }"
-      >
-        <div class="flex items-center justify-between border-b px-5 py-4" :style="{ borderColor: 'var(--color-border)' }">
-          <div class="space-y-0.5">
-            <div class="flex items-center gap-2">
-              <Clock class="h-4 w-4 text-[#2B71AE] dark:text-blue-400" aria-hidden="true" />
-              <h2 class="font-heading text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-base">
-                {{ locale === 'ar' ? 'آخر النشاطات' : 'Latest Activity' }}
-              </h2>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ locale === 'ar' ? 'آخر التعديلات على المنتجات والأقسام والخدمات' : 'Recent edits across products, categories & services' }}
-            </p>
-          </div>
-        </div>
-
-        <ul v-if="recentActivity.length > 0" class="divide-y divide-slate-100 dark:divide-slate-800/60">
-          <li v-for="entry in recentActivity" :key="entry.id">
-            <NuxtLink
-              :to="localePath(activityLink(entry))"
-              class="group flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
-            >
-              <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2B71AE]/10 text-[#2B71AE] transition-transform group-hover:scale-105 dark:bg-[#2B71AE]/20 dark:text-blue-300">
-                  <component :is="activityIcon(entry.entityType)" class="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
-                    {{ entry.entityName }}
-                    <span class="font-medium text-slate-500 dark:text-slate-400">
-                      · {{ activityActionLabel(entry) }} · {{ entry.userName }}
-                    </span>
-                  </p>
-                  <p class="truncate text-[11px] text-slate-400 dark:text-slate-500">
-                    {{ entry.entityType === 'product' ? (locale === 'ar' ? 'منتج' : 'Product') : entry.entityType === 'category' ? (locale === 'ar' ? 'قسم' : 'Category') : (locale === 'ar' ? 'خدمة' : 'Service') }}
-                  </p>
-                </div>
-              </div>
-              <span class="shrink-0 text-[11px] text-slate-400 dark:text-slate-500">
-                <ClientOnly>
-                  {{ formatRelativeTime(entry.createdAt) }}
-                  <template #fallback>{{ formatDate(entry.createdAt) }}</template>
-                </ClientOnly>
-              </span>
-            </NuxtLink>
-          </li>
-        </ul>
-
-        <div v-else class="flex flex-col items-center justify-center p-8 text-center">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
-            <Clock class="h-5 w-5" />
-          </div>
-          <p class="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-            {{ locale === 'ar' ? 'لا يوجد نشاط مسجل بعد' : 'No activity recorded yet' }}
-          </p>
-        </div>
       </div>
     </section>
   </div>

@@ -47,6 +47,9 @@ const userInitials = computed(() => {
       <!-- Notification center -->
       <AdminNotificationBell />
 
+      <!-- Latest activity -->
+      <AdminActivityBell />
+
       <!-- Language toggle -->
       <button
         type="button"

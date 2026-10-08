@@ -296,9 +296,9 @@ async function shareProduct(p: Row) {
     <!-- Products Table Card -->
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[1020px] text-start text-sm [&_td]:align-middle [&_th]:align-middle">
+        <table class="w-full min-w-[1020px] text-start text-[13px] [&_td]:align-middle [&_th]:align-middle">
           <thead class="sticky top-0 z-10">
-            <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
+            <tr class="border-b bg-slate-50/75 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الفئة' : 'Category' }}</th>
               <th v-if="showKeywordsColumn" scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'كلمات البحث' : 'Keywords' }}</th>
@@ -418,60 +418,62 @@ async function shareProduct(p: Row) {
                   v-if="(p.stock ?? 0) === 0"
                   class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs"
                 >
-                  {{ locale === 'ar' ? 'نفد المخزون' : 'Out of stock' }}
+                  {{ locale === 'ar' ? 'نفد المخزون' : 'Out' }}
                 </span>
                 <span
                   v-else-if="(p.stock ?? 0) <= (p.minStock ?? 0)"
                   class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400"
                 >
                   <span aria-hidden="true">⚠️</span>
-                  <span>{{ locale === 'ar' ? `${p.stock} قطع` : `${p.stock} pcs` }}</span>
+                  <span>{{ p.stock }}</span>
                 </span>
                 <span v-else class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  {{ locale === 'ar' ? `${p.stock} قطعة` : `${p.stock} pcs` }}
+                  {{ p.stock }}
                 </span>
               </td>
 
               <!-- Actions -->
               <td class="px-4 py-3 text-end">
-                <div class="flex items-center justify-end gap-1.5">
+                <div class="flex items-center justify-end gap-1">
                   <NuxtLink
                     v-if="canEditProduct"
                     :to="localePath(`/admin/products/${p.id}/edit`)"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                    :title="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    :aria-label="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                   >
-                    <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
+                    <Pencil class="h-4 w-4" aria-hidden="true" />
                   </NuxtLink>
                   <button
                     v-if="canCreateProduct"
                     type="button"
                     :disabled="duplicatingId === p.id"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                    :title="locale === 'ar' ? 'نسخ هذا المنتج' : 'Duplicate product'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    :title="locale === 'ar' ? 'نسخ' : 'Duplicate'"
+                    :aria-label="locale === 'ar' ? 'نسخ' : 'Duplicate'"
                     @click="duplicateProduct(p)"
                   >
-                    <Copy class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'نسخ' : 'Duplicate' }}</span>
+                    <Copy class="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     type="button"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                    :title="locale === 'ar' ? 'نسخ رابط المنتج للمشاركة' : 'Copy public product link to clipboard'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    :title="locale === 'ar' ? 'مشاركة' : 'Share'"
+                    :aria-label="locale === 'ar' ? 'مشاركة' : 'Share'"
                     @click="shareProduct(p)"
                   >
-                    <Share2 class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'مشاركة' : 'Share' }}</span>
+                    <Share2 class="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     v-if="canDeleteProduct"
                     type="button"
                     :disabled="deletingId === p.id"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                    :title="locale === 'ar' ? 'حذف' : 'Delete'"
+                    :aria-label="locale === 'ar' ? 'حذف' : 'Delete'"
                     @click="removeProduct(p)"
                   >
-                    <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'حذف' : 'Delete' }}</span>
+                    <Trash2 class="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </td>

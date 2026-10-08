@@ -13,7 +13,6 @@ export default defineEventHandler(async (event) => {
     revenueAggregate,
     recentOrdersRaw,
     recentRequestsRaw,
-    recentActivity,
     lowStockProducts,
   ] = await Promise.all([
     prisma.order.count(),
@@ -66,20 +65,6 @@ export default defineEventHandler(async (event) => {
           },
         },
         values: true,
-      },
-    }),
-    prisma.auditLog.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: {
-        id: true,
-        entityType: true,
-        entityId: true,
-        entityName: true,
-        action: true,
-        details: true,
-        userName: true,
-        createdAt: true,
       },
     }),
     prisma.product.findMany({
@@ -188,6 +173,5 @@ export default defineEventHandler(async (event) => {
     },
     recentOrders,
     recentServiceRequests,
-    recentActivity,
   }
 })

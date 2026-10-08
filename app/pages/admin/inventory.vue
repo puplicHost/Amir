@@ -254,7 +254,7 @@ function statusMeta(status: string) {
                   <span
                     v-if="p.stock === 0"
                     class="inline-block h-2 w-2 rounded-full bg-rose-500"
-                    :title="locale === 'ar' ? 'نفد المخزون' : 'Out of stock'"
+                    :title="locale === 'ar' ? 'نفد المخزون' : 'Out'"
                   />
                   <span
                     v-else-if="p.status === 'low'"
@@ -267,7 +267,7 @@ function statusMeta(status: string) {
                     v-if="p.stock === 0"
                     class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white"
                   >
-                    {{ locale === 'ar' ? 'نفد المخزون' : 'Out of stock' }}
+                    {{ locale === 'ar' ? 'نفد المخزون' : 'Out' }}
                   </span>
                   <span v-else-if="p.status === 'low'" class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400">
                     <span aria-hidden="true">⚠️</span> {{ p.stock }}
