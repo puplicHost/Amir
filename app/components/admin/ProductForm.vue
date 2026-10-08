@@ -603,7 +603,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           <button
             type="button"
             :disabled="saving"
-            class="inline-flex h-9 items-center gap-2 rounded-md bg-[#2B71AE] px-5 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#285E8E] active:scale-[0.98] disabled:opacity-50"
+            class="inline-flex h-9 items-center gap-2 rounded-md bg-[#F5CC07] px-5 text-xs font-bold text-slate-950 shadow-xs transition-all hover:bg-yellow-400 active:scale-[0.98] disabled:opacity-50"
             @click="saveAll"
           >
             <Save class="h-4 w-4" aria-hidden="true" />
@@ -1230,7 +1230,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <button
           type="button"
           :disabled="saving"
-          class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-7 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#285E8E] active:scale-[0.98] disabled:opacity-50"
+          class="inline-flex h-10 items-center gap-2 rounded-md bg-[#F5CC07] px-7 text-xs font-bold text-slate-950 shadow-xs transition-all hover:bg-yellow-400 active:scale-[0.98] disabled:opacity-50"
           @click="saveAll"
         >
           <Save class="h-4 w-4" aria-hidden="true" />

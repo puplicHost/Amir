@@ -1039,7 +1039,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
               <button
                 type="submit"
                 :disabled="submitting || selectedItems.length === 0"
-                class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#2B71AE] px-5 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E] active:scale-[0.98] disabled:opacity-50 transition-all cursor-pointer"
+                class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#F5CC07] px-5 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400 active:scale-[0.98] disabled:opacity-50 transition-all cursor-pointer"
               >
                 <Download v-if="!submitting" class="h-4 w-4" />
                 <Loader2 v-else class="h-4 w-4 animate-spin" />

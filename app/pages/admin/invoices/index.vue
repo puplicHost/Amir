@@ -288,7 +288,7 @@ async function saveManualInvoice() {
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[900px] text-start text-sm">
-          <thead>
+          <thead class="sticky top-0 z-10">
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? '# الفاتورة' : 'Invoice #' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'العميل' : 'Customer' }}</th>
@@ -300,7 +300,7 @@ async function saveManualInvoice() {
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-            <tr v-for="inv in data?.invoices || []" :key="inv.id" class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+            <tr v-for="inv in data?.invoices || []" :key="inv.id" class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
               <td class="px-4 py-3">
                 <NuxtLink :to="localePath(`/admin/invoices/${inv.id}`)" class="font-mono text-xs font-bold text-[#2B71AE] hover:underline dark:text-blue-400">
                   {{ inv.invoiceNumber }}

@@ -1,20 +1,58 @@
 <script setup lang="ts">
 import {
+  Activity,
+  AlertTriangle,
   ArrowRight,
+  Battery,
   Boxes,
   Building2,
-  Check,
+  CheckCircle,
   Clock,
   Cpu,
+  Database,
   Flame,
   Gauge,
+  GitBranch,
+  Hammer,
+  Layers,
+  Monitor,
+  Package,
   Phone,
   Radio,
   Search,
+  Server,
+  Settings,
+  Shield,
   ShoppingCart,
-  Sparkles,
-  Wrench
+  Wifi,
+  Wind,
+  Wrench,
+  Zap
 } from 'lucide-vue-next'
+
+// Icon registry for DB-driven service card icons (saved as names via the admin icon picker)
+const serviceIconMap: Record<string, any> = {
+  Wrench,
+  Settings,
+  Zap,
+  Cpu,
+  Radio,
+  Wind,
+  Flame,
+  Shield,
+  Hammer,
+  Monitor,
+  Server,
+  Database,
+  Wifi,
+  Battery,
+  GitBranch,
+  Layers,
+  Package,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+}
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -135,9 +173,14 @@ const displayServices = computed(() => {
       id,
       name,
       description,
-      icon: fallback.icon,
+      icon: (srv.iconName && serviceIconMap[srv.iconName]) || fallback.icon,
+      iconPath: srv.iconPath || null,
+      cardColor: srv.cardColor || '#FFFFFF',
       key,
       tag: locale.value === 'ar' ? fallback.tagAr : fallback.tagEn,
+      pill: locale.value === 'ar'
+        ? (srv.tagAr || fallback.tagAr)
+        : (srv.tagEn || fallback.tagEn),
       isFlagship: fallback.key === 'plcSystems',
       isFeatured: Boolean(srv.isFeatured),
     }
@@ -298,121 +341,79 @@ catch { /* state not registered yet — mount layout already ran */ }
         <!-- Asymmetric Bento Grid -->
         <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch">
           
-          <!-- Cell 1: Flagship Featured Service Card (same size as the rest; badge + border mark it featured) -->
+          <!-- Unified Service Card: flagship entry (same style as all cards) -->
           <div
             v-if="flagshipService"
-            class="reveal group relative overflow-hidden rounded-lg sm:rounded-2xl border border-accent/40 bg-gradient-to-br from-navy via-navy-light to-navy p-3 sm:p-6 lg:p-8 text-white shadow-lg transition-all duration-300 hover:border-accent hover:shadow-2xl hover:-translate-y-1 h-full"
+            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-[var(--card-bg)] dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
+            :style="{ '--card-bg': flagshipService.cardColor || '#FFFFFF' }"
           >
-            <!-- Circuit watermark -->
-            <div 
-              class="pointer-events-none absolute -right-16 -bottom-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl"
-            ></div>
-
-            <div class="relative z-10 flex flex-col h-full">
-              <div>
-                <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-4">
-                  <span class="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-accent px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-bold text-on-accent">
-                    <Sparkles class="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    <span>{{ t('home.flagshipBadge') }}</span>
-                  </span>
-                  <span class="text-[10px] sm:text-xs font-mono font-medium text-cream/80">
-                    {{ flagshipService.tag }}
-                  </span>
-                </div>
-
-                <div class="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
-                  <div class="flex h-9 w-9 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-accent text-on-accent shadow-md">
-                    <component :is="flagshipService.icon" class="h-4.5 w-4.5 sm:h-7 sm:w-7" />
-                  </div>
-                  <h3 class="font-heading text-sm sm:text-2xl font-bold leading-tight text-white group-hover:text-cream transition-colors line-clamp-2">
-                    {{ flagshipService.name }}
-                  </h3>
-                </div>
-
-                <p class="text-xs sm:text-base text-slate-300 leading-relaxed mb-3 sm:mb-6 max-w-2xl line-clamp-2 sm:line-clamp-3">
-                  {{ flagshipService.description }}
-                </p>
-
-                <!-- Technical highlights strip -->
-                <div class="hidden sm:grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6 text-xs text-slate-200">
-                  <div class="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                    <Check class="h-4 w-4 text-cream shrink-0" />
-                    <span>Siemens / Delta / Schneider</span>
-                  </div>
-                  <div class="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                    <Check class="h-4 w-4 text-cream shrink-0" />
-                    <span>HMI & SCADA Development</span>
-                  </div>
-                  <div class="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                    <Check class="h-4 w-4 text-cream shrink-0" />
-                    <span>Cabinet Wiring & Testing</span>
-                  </div>
-                </div>
+            <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
+              <div class="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300">
+                <img v-if="flagshipService.iconPath" :src="flagshipService.iconPath" :alt="flagshipService.name" class="h-5 w-5 object-contain" loading="lazy" />
+                <component v-else :is="flagshipService.icon" class="h-5 w-5" aria-hidden="true" />
               </div>
-
-              <div class="mt-auto pt-2.5 sm:pt-4 border-t border-white/10 flex items-center justify-between">
-                <NuxtLink 
-                  :to="localePath(`/services/${flagshipService.id}`)"
-                  class="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold text-cream hover:underline"
-                >
-                  <span>{{ t('home.serviceAction') }}</span>
-                  <ArrowRight class="h-3.5 w-3.5 sm:h-4 sm:w-4 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
-                </NuxtLink>
-
-                <NuxtLink 
-                  :to="localePath('/services')"
-                  class="hidden sm:inline-block text-xs text-slate-400 hover:text-white transition-colors"
-                >
-                  {{ t('home.viewAllServices') }}
-                </NuxtLink>
-              </div>
+              <span class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
+                {{ flagshipService.pill }}
+              </span>
             </div>
+
+            <h3 class="font-heading text-base font-bold text-text line-clamp-2 mb-1.5 leading-snug">
+              {{ flagshipService.name }}
+            </h3>
+
+            <p class="text-sm text-muted line-clamp-2 leading-relaxed mb-3 sm:mb-4">
+              {{ flagshipService.description }}
+            </p>
+
+            <NuxtLink
+              :to="localePath(`/services/${flagshipService.id}`)"
+              class="mt-auto flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 hover:bg-yellow-400 active:scale-[0.98] transition-colors"
+            >
+              <span>{{ t('home.serviceAction') }}</span>
+              <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+            </NuxtLink>
           </div>
 
-          <!-- Bento Cells 2-7: Standard Specialized Engineering Services -->
+          <!-- Unified Service Cards -->
           <NuxtLink
             v-for="(srv, i) in standardServices"
             :key="srv.id"
             :to="localePath(`/services/${srv.id}`)"
-            class="reveal group relative flex flex-col rounded-lg sm:rounded-2xl border p-3 sm:p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full"
-            :class="[
-              srv.showSponsored
-                ? 'border-primary bg-primary/10'
-                : 'border-border bg-surface hover:border-primary'
-            ]"
-            :style="{ '--reveal-delay': `${(i + 1) * 70}ms` }"
+            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-[var(--card-bg)] dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
+            :style="{ '--reveal-delay': `${(i + 1) * 70}ms`, '--card-bg': srv.cardColor || '#FFFFFF' }"
           >
-            <!-- Sponsored Badge (Change 13) -->
-            <span
-              v-if="srv.showSponsored"
-              class="absolute top-2 end-2 sm:top-3 sm:end-3 inline-flex items-center gap-1 rounded-full bg-accent px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-on-accent shadow-xs"
-            >
-              ★ مميز
-            </span>
-
-            <div>
-              <div class="flex items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-3.5">
-                <div class="flex h-8 w-8 sm:h-11 sm:w-11 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 text-primary group-hover:bg-accent group-hover:text-on-accent transition-colors">
-                  <component :is="srv.icon" class="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
-                <span class="text-[10px] sm:text-[11px] font-mono font-medium text-muted">
-                  {{ srv.tag }}
+            <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
+              <div class="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300">
+                <img v-if="srv.iconPath" :src="srv.iconPath" :alt="srv.name" class="h-5 w-5 object-contain" loading="lazy" />
+                <component v-else :is="srv.icon" class="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
+                  {{ srv.pill }}
+                </span>
+                <span
+                  v-if="srv.showSponsored"
+                  class="inline-flex items-center rounded-full border border-[#F5CC07]/60 bg-[#F5CC07]/10 px-2 py-0.5 text-xs font-bold text-[#7a6200] dark:text-[#F5CC07]"
+                >
+                  {{ locale === 'ar' ? 'مميز' : 'Featured' }}
                 </span>
               </div>
-
-              <h3 class="font-heading text-sm sm:text-lg font-bold text-text group-hover:text-primary transition-colors line-clamp-2 mb-1.5 sm:mb-2 leading-snug">
-                {{ srv.name }}
-              </h3>
-
-              <p class="text-xs sm:text-sm text-muted line-clamp-2 sm:line-clamp-3 leading-relaxed mb-3 sm:mb-4">
-                {{ srv.description }}
-              </p>
             </div>
 
-            <div class="mt-auto pt-2 sm:pt-3 border-t border-border flex items-center justify-between text-xs font-bold text-primary">
+            <h3 class="font-heading text-base font-bold text-text line-clamp-2 mb-1.5 leading-snug">
+              {{ srv.name }}
+            </h3>
+
+            <p class="text-sm text-muted line-clamp-2 leading-relaxed mb-3 sm:mb-4">
+              {{ srv.description }}
+            </p>
+
+            <span
+              class="mt-auto flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 group-hover:bg-yellow-400 active:scale-[0.98] transition-colors"
+            >
               <span>{{ t('home.serviceAction') }}</span>
-              <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
-            </div>
+              <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+            </span>
           </NuxtLink>
         </div>
 

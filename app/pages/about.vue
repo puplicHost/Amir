@@ -44,6 +44,8 @@ useHead(() => {
 
 const { data: contact } = await useAsyncData('about-contact', () => $fetch<any>('/api/settings/contact'))
 
+const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
+
 const whatsappUrl = computed(() => {
   const num = contact.value?.contactWhatsapp || contact.value?.contactPhone1 || ''
   return num ? whatsappLink(num) : ''
@@ -89,20 +91,22 @@ const values = computed(() => [
   <div class="space-y-0 selection:bg-accent selection:text-on-accent">
 
     <!-- 1. Hero / Intro Band (Dark Industrial Aesthetic with Breadcrumb & Ambience) -->
-    <section class="relative overflow-hidden bg-navy text-white border-b border-white/10">
-      <div class="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-primary/25 blur-[130px]"></div>
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
-      ></div>
+    <section
+      class="relative overflow-hidden bg-navy bg-cover bg-center text-white"
+      :style="heroGeneral?.heroImagePath ? `background-image: url('${heroGeneral.heroImagePath}')` : ''"
+    >
+      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.85), rgba(13,27,46,0.95))"></div>
 
-      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
+      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+        <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
+      </svg>
+
+      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-24 sm:pb-28 text-center">
         <!-- Breadcrumb Navigation -->
-        <nav class="mb-5 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400" aria-label="Breadcrumb">
+        <nav class="mb-5 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
           <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
-          <span class="text-muted" aria-hidden="true">/</span>
-          <span class="text-cream font-semibold" aria-current="page">{{ t('nav.about') }}</span>
+          <span class="text-white/40" aria-hidden="true">/</span>
+          <span class="text-white font-semibold" aria-current="page">{{ t('nav.about') }}</span>
         </nav>
 
         <!-- Eyebrow Badge -->
@@ -112,12 +116,12 @@ const values = computed(() => [
         </div>
 
         <!-- Headline -->
-        <h1 class="hero-anim font-heading text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+        <h1 class="hero-anim font-heading text-4xl font-extrabold tracking-tight text-white mb-4 leading-tight">
           {{ locale === 'ar' ? 'شريكك الهندسي للتوريد والصيانة الصناعية' : 'Engineering Trust, Powering Industry' }}
         </h1>
 
         <!-- Confident Tagline Sentence -->
-        <p class="hero-anim text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed mb-6">
+        <p class="hero-anim text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mb-6">
           {{ locale === 'ar'
             ? 'مكونات إلكترونية أصلية، أدوات دقيقة، وخدمات أتمتة وصيانة متقدمة من الإسماعيلية إلى جميع أنحاء مصر.'
             : 'Original electronic components, precision tools, and certified automation & maintenance services from Ismailia across Egypt.' }}

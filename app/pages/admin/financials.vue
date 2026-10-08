@@ -356,7 +356,7 @@ async function removeExpense(e: Expense) {
             </div>
             <div class="overflow-x-auto">
               <table class="w-full min-w-[520px] text-start text-xs">
-                <thead>
+                <thead class="sticky top-0 z-10">
                   <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400">
                     <th scope="col" class="px-5 py-2.5 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
                     <th scope="col" class="px-4 py-2.5 text-center">{{ locale === 'ar' ? 'الكمية المباعة' : 'Qty Sold' }}</th>
@@ -364,7 +364,7 @@ async function removeExpense(e: Expense) {
                   </tr>
                 </thead>
                 <tbody v-if="!salesPending" class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  <tr v-for="row in salesData?.data || []" :key="row.productId || row.name" class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                  <tr v-for="row in salesData?.data || []" :key="row.productId || row.name" class="even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
                     <td class="max-w-[260px] truncate px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-100">{{ row.name }}</td>
                     <td class="px-4 py-2.5 text-center font-mono">{{ formatInt(row.quantity) }}</td>
                     <td class="px-4 py-2.5 text-end font-mono font-bold">{{ formatMoney(row.total) }}</td>
@@ -402,7 +402,7 @@ async function removeExpense(e: Expense) {
             </div>
             <div class="overflow-x-auto">
               <table class="w-full min-w-[560px] text-start text-xs">
-                <thead>
+                <thead class="sticky top-0 z-10">
                   <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400">
                     <th scope="col" class="px-5 py-2.5 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
                     <th scope="col" class="px-4 py-2.5 text-center">{{ locale === 'ar' ? 'الكمية المباعة' : 'Qty Sold' }}</th>
@@ -411,7 +411,7 @@ async function removeExpense(e: Expense) {
                   </tr>
                 </thead>
                 <tbody v-if="!costsPending" class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  <tr v-for="row in costsData?.data || []" :key="row.productId || row.name" class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                  <tr v-for="row in costsData?.data || []" :key="row.productId || row.name" class="even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
                     <td class="max-w-[220px] truncate px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-100">{{ row.name }}</td>
                     <td class="px-4 py-2.5 text-center font-mono">{{ formatInt(row.quantity) }}</td>
                     <td class="px-4 py-2.5 text-center font-mono text-slate-500">{{ formatMoney(row.unitCost) }}</td>
@@ -466,11 +466,11 @@ async function removeExpense(e: Expense) {
           </div>
 
           <!-- Final result card -->
-          <div class="rounded-xl border-2 border-[#2B71AE] bg-white p-6 text-center shadow-md dark:bg-[#162032] sm:p-8">
+          <div class="rounded-lg border border-[#2B71AE] bg-white p-6 text-center shadow-sm dark:bg-[#162032]">
             <p class="font-heading text-sm font-bold text-slate-900 dark:text-white">
               {{ locale === 'ar' ? 'صافي الربح النهائي' : 'Final Net Profit' }}
             </p>
-            <p class="mt-2 font-heading text-4xl font-black" :class="summary.profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'" style="font-size: 36px;">
+            <p class="mt-2 font-heading text-2xl font-black" :class="summary.profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'">
               {{ formatMoney(summary.profit) }}
             </p>
             <p class="mt-2 text-base text-slate-500 dark:text-slate-400">
@@ -572,7 +572,7 @@ async function removeExpense(e: Expense) {
       <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[640px] text-start text-sm">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'التصنيف' : 'Category' }}</th>
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الوصف' : 'Description' }}</th>

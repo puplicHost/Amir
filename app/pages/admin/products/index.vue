@@ -157,7 +157,7 @@ async function shareProduct(p: Row) {
         <NuxtLink
           v-if="canCreateProduct"
           :to="localePath('/admin/products/new')"
-          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5CC07]"
         >
           <Plus class="h-4 w-4" aria-hidden="true" />
           <span>{{ locale === 'ar' ? 'إضافة منتج' : 'Add Product' }}</span>
@@ -245,7 +245,7 @@ async function shareProduct(p: Row) {
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[1020px] text-start text-sm [&_td]:align-middle [&_th]:align-middle">
-          <thead>
+          <thead class="sticky top-0 z-10">
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الفئة' : 'Category' }}</th>
@@ -261,7 +261,7 @@ async function shareProduct(p: Row) {
             <tr
               v-for="p in data?.products || []"
               :key="p.id"
-              class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+              class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
             >
               <!-- Product Image & Name -->
               <td class="px-4 py-3">
@@ -424,7 +424,7 @@ async function shareProduct(p: Row) {
               v-else
               v-if="canCreateProduct"
               :to="localePath('/admin/products/new')"
-              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E]"
+              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400"
             >
               <Plus class="h-3.5 w-3.5" aria-hidden="true" />
               <span>{{ locale === 'ar' ? 'إضافة منتج' : 'Add Product' }}</span>

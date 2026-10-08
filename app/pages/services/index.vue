@@ -42,6 +42,8 @@ const { data: services } = await useAsyncData('services-list', () =>
   $fetch<any[]>('/api/services'),
 )
 
+const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
+
 const serviceMetaMap: Record<number, { icon: any, category: string, tagAr: string, tagEn: string }> = {
   1: { icon: Wrench, category: 'maintenance', tagAr: 'صيانة وإصلاح', tagEn: 'Maintenance & Repair' },
   2: { icon: Radio, category: 'iot', tagAr: 'أنظمة ذكية IoT', tagEn: 'Smart IoT & Telemetry' },
@@ -104,41 +106,37 @@ function clearFilters() {
   <div class="space-y-0 selection:bg-accent selection:text-on-accent">
 
     <!-- 1. Hero Band: Centered Title + Breadcrumb on Dark Themed Banner -->
-    <section class="relative overflow-hidden bg-navy text-white border-b border-white/10">
-      <!-- Ambient Lighting Highlights -->
-      <div class="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-primary/25 blur-[130px]"></div>
+    <section
+      class="relative overflow-hidden bg-navy bg-cover bg-center text-white"
+      :style="heroGeneral?.heroImagePath ? `background-image: url('${heroGeneral.heroImagePath}')` : ''"
+    >
+      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.85), rgba(13,27,46,0.95))"></div>
 
-      <!-- Technical Circuit Grid Overlay -->
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
-      ></div>
+      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+        <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
+      </svg>
 
-      <!-- Deep Dark Contrast Scrim -->
-      <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/85 to-navy/75"></div>
-
-      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
+      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-24 sm:pb-28 text-center">
         <!-- Eyebrow Pill -->
         <div class="inline-flex items-center gap-1.5 rounded-full border border-cream/30 bg-cream/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-cream shadow-sm backdrop-blur-md mb-4">
           <Wrench class="h-3.5 w-3.5 text-cream" aria-hidden="true" />
           <span>{{ locale === 'ar' ? 'حلول وتوريدات صناعية معتمدة' : 'Certified Engineering Solutions' }}</span>
         </div>
 
+        <!-- Centered Breadcrumb -->
+        <nav class="mb-4 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
+          <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
+          <span class="text-white/40" aria-hidden="true">/</span>
+          <span class="text-white font-semibold" aria-current="page">{{ locale === 'ar' ? 'خدماتنا' : 'Services' }}</span>
+        </nav>
+
         <!-- Centered Page Title -->
-        <h1 class="font-heading text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+        <h1 class="font-heading text-4xl font-extrabold tracking-tight text-white mb-4 leading-tight">
           {{ locale === 'ar' ? 'خدماتنا' : 'Our Services' }}
         </h1>
 
-        <!-- Centered Breadcrumb (Mirrored in RTL) -->
-        <nav class="mb-5 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-slate-400" aria-label="Breadcrumb">
-          <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
-          <span class="text-muted" aria-hidden="true">/</span>
-          <span class="text-cream font-semibold" aria-current="page">{{ locale === 'ar' ? 'خدماتنا' : 'Services' }}</span>
-        </nav>
-
         <!-- Concise Subtitle -->
-        <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-sm sm:text-base text-white/80 max-w-2xl mx-auto leading-relaxed">
           {{ locale === 'ar'
             ? 'فحص دوري، أتمتة خطوط الإنتاج، برمجة لوحات PLC، وتركيب الأنظمة الذكية بأيدي مهندسين معتمدين.'
             : 'Certified diagnostics, line automation, PLC cabinet programming, and smart telemetry tailored for modern industrial facilities.' }}

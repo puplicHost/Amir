@@ -167,7 +167,7 @@ async function gotoPage(p: number) {
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[860px] text-start text-sm">
-          <thead>
+          <thead class="sticky top-0 z-10">
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'رقم العرض' : 'Quote #' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الشركة / المنشأة' : 'Company' }}</th>
@@ -182,7 +182,7 @@ async function gotoPage(p: number) {
             <tr
               v-for="q in data?.quotes || []"
               :key="q.id"
-              class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+              class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
             >
               <!-- Quote Number -->
               <td class="px-4 py-3 font-medium">

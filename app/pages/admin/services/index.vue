@@ -1,21 +1,74 @@
 <script setup lang="ts">
 import {
+  Activity,
+  AlertTriangle,
+  Battery,
   Check,
+  CheckCircle,
+  Cpu,
+  Database,
   ExternalLink,
   Eye,
   FileText,
   Filter,
+  Flame,
   FolderTree,
+  GitBranch,
+  Hammer,
   Inbox,
   Layers,
+  Monitor,
+  Package,
+  Pencil,
   Plus,
+  Radio,
   RotateCcw,
   Search,
+  Server,
+  Settings,
   Settings2,
+  Shield,
   Trash2,
+  Wifi,
+  Wind,
   Wrench,
   X,
+  Zap,
 } from 'lucide-vue-next'
+
+// Visual icon picker options for the service card icon
+const serviceIconOptions = [
+  { name: 'Wrench', icon: Wrench },
+  { name: 'Settings', icon: Settings },
+  { name: 'Zap', icon: Zap },
+  { name: 'Cpu', icon: Cpu },
+  { name: 'Radio', icon: Radio },
+  { name: 'Wind', icon: Wind },
+  { name: 'Flame', icon: Flame },
+  { name: 'Shield', icon: Shield },
+  { name: 'Hammer', icon: Hammer },
+  { name: 'Monitor', icon: Monitor },
+  { name: 'Server', icon: Server },
+  { name: 'Database', icon: Database },
+  { name: 'Wifi', icon: Wifi },
+  { name: 'Battery', icon: Battery },
+  { name: 'GitBranch', icon: GitBranch },
+  { name: 'Layers', icon: Layers },
+  { name: 'Package', icon: Package },
+  { name: 'Activity', icon: Activity },
+  { name: 'AlertTriangle', icon: AlertTriangle },
+  { name: 'CheckCircle', icon: CheckCircle },
+]
+
+// Card background color swatches (default: White)
+const serviceCardColors = [
+  { value: '#FFFFFF', labelAr: 'أبيض', labelEn: 'White' },
+  { value: '#1e3a5f', labelAr: 'كحلي داكن', labelEn: 'Dark Blue' },
+  { value: '#2B71AE', labelAr: 'أزرق', labelEn: 'Blue' },
+  { value: '#1A1D2E', labelAr: 'رمادي داكن', labelEn: 'Slate' },
+  { value: '#F8FAFC', labelAr: 'فاتح', labelEn: 'Light' },
+  { value: '#FFFBEB', labelAr: 'أصفر فاتح', labelEn: 'Yellow tint' },
+]
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['services.view', 'services.config'] })
 
@@ -102,21 +155,49 @@ const serviceForm = reactive({
   nameEn: '',
   descriptionAr: '',
   descriptionEn: '',
-  iconPath: '',
+  iconName: '',
+  cardColor: '#FFFFFF',
+  tagAr: '',
+  tagEn: '',
   sortOrder: 0,
   isActive: true,
   isFeatured: false,
 })
 
+const editingServiceId = ref<string | null>(null)
+
 function openCreateService() {
+  editingServiceId.value = null
   Object.assign(serviceForm, {
     nameAr: '',
     nameEn: '',
     descriptionAr: '',
     descriptionEn: '',
-    iconPath: '',
+    iconName: '',
+    cardColor: '#FFFFFF',
+    tagAr: '',
+    tagEn: '',
     sortOrder: (services.value?.length || 0) + 1,
     isActive: true,
+  })
+  serviceFormError.value = ''
+  showServiceModal.value = true
+}
+
+function openEditService(s: any) {
+  editingServiceId.value = s.id
+  Object.assign(serviceForm, {
+    nameAr: s.nameAr || '',
+    nameEn: s.nameEn || '',
+    descriptionAr: s.descriptionAr || '',
+    descriptionEn: s.descriptionEn || '',
+    iconName: s.iconName || '',
+    cardColor: s.cardColor || '#FFFFFF',
+    tagAr: s.tagAr || '',
+    tagEn: s.tagEn || '',
+    sortOrder: s.sortOrder ?? 0,
+    isActive: s.isActive !== false,
+    isFeatured: Boolean(s.isFeatured),
   })
   serviceFormError.value = ''
   showServiceModal.value = true
@@ -130,15 +211,38 @@ async function saveService() {
   savingService.value = true
   serviceFormError.value = ''
   try {
-    await $fetch('/api/admin/services', {
-      method: 'POST',
-      body: { ...serviceForm, iconPath: serviceForm.iconPath || undefined },
-    })
+    const body = {
+      nameAr: serviceForm.nameAr,
+      nameEn: serviceForm.nameEn,
+      descriptionAr: serviceForm.descriptionAr || undefined,
+      descriptionEn: serviceForm.descriptionEn || undefined,
+      iconName: serviceForm.iconName || undefined,
+      cardColor: serviceForm.cardColor || undefined,
+      tagAr: serviceForm.tagAr.trim() || undefined,
+      tagEn: serviceForm.tagEn.trim() || undefined,
+      sortOrder: serviceForm.sortOrder,
+      isActive: serviceForm.isActive,
+      isFeatured: serviceForm.isFeatured,
+    }
+    if (editingServiceId.value) {
+      await $fetch(`/api/admin/services/${editingServiceId.value}`, {
+        method: 'PUT',
+        body,
+      })
+    }
+    else {
+      await $fetch('/api/admin/services', {
+        method: 'POST',
+        body,
+      })
+    }
     showServiceModal.value = false
     await refreshServices()
     toast.success(
-      locale.value === 'ar' ? 'تمت إضافة الخدمة' : 'Service Added',
-      locale.value === 'ar' ? `تم حفظ خدمة "${serviceForm.nameAr || serviceForm.nameEn}".` : `Service "${serviceForm.nameEn}" added successfully.`,
+      editingServiceId.value
+        ? (locale.value === 'ar' ? 'تم تحديث الخدمة' : 'Service Updated')
+        : (locale.value === 'ar' ? 'تمت إضافة الخدمة' : 'Service Added'),
+      locale.value === 'ar' ? `تم حفظ خدمة "${serviceForm.nameAr || serviceForm.nameEn}".` : `Service "${serviceForm.nameEn}" saved successfully.`,
     )
   }
   catch (e: any) {
@@ -267,7 +371,7 @@ function formatDate(d: string) {
         <button
           v-if="activeTab === 'services' && canConfigServices"
           type="button"
-          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5CC07]"
           @click="openCreateService"
         >
           <Plus class="h-4 w-4" aria-hidden="true" />
@@ -324,7 +428,7 @@ function formatDate(d: string) {
       <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-start text-sm">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'اسم الخدمة' : 'Service' }}</th>
                 <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
@@ -338,7 +442,7 @@ function formatDate(d: string) {
               <tr
                 v-for="s in services"
                 :key="s.id"
-                class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+                class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
               >
                 <!-- Service Name -->
                 <td class="px-4 py-3">
@@ -445,6 +549,17 @@ function formatDate(d: string) {
                       <span class="hidden sm:inline">{{ locale === 'ar' ? 'شير' : 'Share' }}</span>
                     </button>
 
+                    <button
+                      v-if="canConfigServices"
+                      type="button"
+                      class="inline-flex h-8 items-center gap-1 rounded border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:border-[#2B71AE] hover:text-[#2B71AE] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#F5CC07] dark:hover:text-[#F5CC07] transition-colors"
+                      :title="locale === 'ar' ? 'تعديل الخدمة' : 'Edit service'"
+                      @click="openEditService(s)"
+                    >
+                      <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
+                      <span class="hidden sm:inline">{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
+                    </button>
+
                     <NuxtLink
                       v-if="canConfigServices"
                       :to="localePath(`/admin/services/${s.id}/form`)"
@@ -541,7 +656,7 @@ function formatDate(d: string) {
       <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-start text-sm">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الطلب #' : 'Request #' }}</th>
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الخدمة' : 'Service' }}</th>
@@ -554,7 +669,7 @@ function formatDate(d: string) {
               <tr
                 v-for="req in requestsData?.requests"
                 :key="req.id"
-                class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+                class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
               >
                 <!-- Request ID -->
                 <td class="px-4 py-3">
@@ -643,7 +758,7 @@ function formatDate(d: string) {
         <div class="mb-5 flex items-center justify-between border-b pb-4" :style="{ borderColor: 'var(--color-border)' }">
           <div>
             <h2 class="font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
-              {{ locale === 'ar' ? 'إضافة خدمة جديدة' : 'Add Service' }}
+              {{ editingServiceId ? (locale === 'ar' ? 'تعديل الخدمة' : 'Edit Service') : (locale === 'ar' ? 'إضافة خدمة جديدة' : 'Add Service') }}
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400">
               {{ locale === 'ar' ? 'تحديد الاسم والوصف وحالة التفعيل' : 'Configure names, description, and visibility' }}
@@ -692,10 +807,54 @@ function formatDate(d: string) {
             </label>
           </div>
 
-          <label class="block">
-            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'مسار الأيقونة (اختياري)' : 'Icon Path (Optional)' }}</span>
-            <input v-model="serviceForm.iconPath" type="text" placeholder="/icons/plc.svg" class="h-10 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
-          </label>
+          <div>
+            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'الأيقونة' : 'Icon' }}</span>
+            <div class="grid grid-cols-4 gap-2 overflow-y-auto rounded-md border p-2" style="max-height: 200px; border-color: var(--color-border)">
+              <button
+                v-for="opt in serviceIconOptions"
+                :key="opt.name"
+                type="button"
+                :title="opt.name"
+                :aria-label="opt.name"
+                :aria-pressed="serviceForm.iconName === opt.name"
+                class="flex h-12 w-12 items-center justify-center rounded-lg border transition-colors"
+                :class="serviceForm.iconName === opt.name ? 'border-[#2B71AE] bg-[#2B71AE]/10 text-[#2B71AE]' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                @click="serviceForm.iconName = opt.name"
+              >
+                <component :is="opt.icon" class="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
+            <p class="mt-1 text-[11px] text-slate-400 dark:text-slate-500">{{ serviceForm.iconName || (locale === 'ar' ? 'لم تُختر أيقونة' : 'No icon selected') }}</p>
+          </div>
+
+          <div>
+            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'لون الكارت' : 'Card color' }}</span>
+            <div class="flex items-center gap-2.5">
+              <button
+                v-for="c in serviceCardColors"
+                :key="c.value"
+                type="button"
+                :title="locale === 'ar' ? c.labelAr : c.labelEn"
+                :aria-label="locale === 'ar' ? c.labelAr : c.labelEn"
+                :aria-pressed="serviceForm.cardColor === c.value"
+                class="h-8 w-8 rounded-full border border-slate-300 transition-transform hover:scale-110 dark:border-slate-600"
+                :style="{ backgroundColor: c.value }"
+                :class="serviceForm.cardColor === c.value ? 'ring-2 ring-offset-2 ring-primary' : ''"
+                @click="serviceForm.cardColor = c.value"
+              />
+            </div>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'تصنيف قصير (اختياري)' : 'Short tag (optional)' }}</span>
+              <input v-model="serviceForm.tagAr" type="text" maxlength="20" placeholder="مثال: صيانة صناعية" dir="rtl" class="h-10 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Short tag (optional)</span>
+              <input v-model="serviceForm.tagEn" type="text" maxlength="20" placeholder="e.g. Industrial" class="h-10 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
+            </label>
+          </div>
 
           <div class="flex flex-wrap items-center justify-between gap-4 border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
             <div class="space-y-2">
@@ -729,7 +888,7 @@ function formatDate(d: string) {
           <button
             type="button"
             :disabled="savingService"
-            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-5 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E] disabled:opacity-50"
+            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-5 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400 disabled:opacity-50"
             @click="saveService"
           >
             <span>{{ savingService ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الخدمة' : 'Save Service') }}</span>

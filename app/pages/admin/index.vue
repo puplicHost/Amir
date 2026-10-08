@@ -364,7 +364,7 @@ const quickActions = computed(() => [
         v-for="card in cards"
         :key="card.label"
         :to="localePath(card.to)"
-        class="group relative flex flex-col justify-between rounded-xl border bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2B71AE]/50 hover:shadow-md dark:bg-[#162032]"
+        class="group relative flex flex-col justify-between rounded-lg border bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2B71AE]/50 hover:shadow-md dark:bg-[#162032]"
         :class="{ 'border-amber-300 dark:border-amber-700/60': card.highlight && card.label.includes('Pending') }"
         :style="{ borderColor: card.highlight ? undefined : 'var(--color-border)' }"
       >
@@ -373,12 +373,12 @@ const quickActions = computed(() => [
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {{ card.label }}
             </p>
-            <p class="font-heading text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+            <p class="font-heading text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
               {{ card.value.toLocaleString() }}
             </p>
           </div>
           <div
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105"
             :class="card.iconBg"
           >
             <component :is="card.icon" class="h-5 w-5" aria-hidden="true" />
@@ -434,7 +434,7 @@ const quickActions = computed(() => [
           <!-- Orders Table -->
           <div v-if="recentOrders.length > 0" class="overflow-x-auto">
             <table class="w-full text-start text-xs">
-              <thead>
+              <thead class="sticky top-0 z-10">
                 <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
                   <th scope="col" class="px-5 py-3 text-start">{{ locale === 'ar' ? 'رقم الطلب' : 'Order #' }}</th>
                   <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'العميل' : 'Customer' }}</th>

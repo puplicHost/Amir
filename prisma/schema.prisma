@@ -287,6 +287,10 @@ model Service {
   descriptionAr String?  @db.Text
   descriptionEn String?  @db.Text
   iconPath      String?
+  iconName      String?
+  cardColor     String?
+  tagAr         String?
+  tagEn         String?
   isActive      Boolean  @default(true)
   isFeatured    Boolean  @default(false)
   sortOrder     Int      @default(0)

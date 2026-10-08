@@ -166,7 +166,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <button
           v-if="!isCreating"
           type="button"
-          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E]"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400"
           @click="isCreating = true"
         >
           <Plus class="h-4 w-4" aria-hidden="true" />
@@ -345,7 +345,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
     </div>
 
     <!-- Empty State -->
-    <div v-else class="rounded-md border bg-white p-8 dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div v-else class="rounded-md border bg-white p-6 dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <AdminEmptyState
         :title="locale === 'ar' ? 'لا توجد حقول في نموذج هذه الخدمة' : 'No form fields configured'"
         :description="locale === 'ar' ? 'أضف الحقول التي يحتاجها فريق الهندسة عند تقديم العميل لطلب الخدمة.' : 'Add the form fields required for clients submitting this engineering service.'"
@@ -354,7 +354,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <template #action>
           <button
             type="button"
-            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E]"
+            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400"
             @click="isCreating = true"
           >
             <Plus class="h-3.5 w-3.5" aria-hidden="true" />

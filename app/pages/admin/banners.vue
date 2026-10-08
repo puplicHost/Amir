@@ -289,7 +289,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <button
           v-if="activeTab === 'banners'"
           type="button"
-          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E]"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400"
           @click="openCreate"
         >
           <Plus class="h-4 w-4" aria-hidden="true" />
@@ -337,7 +337,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[720px] text-start text-sm">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'البانر' : 'Banner' }}</th>
                 <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'الموضع' : 'Placement' }}</th>
@@ -347,7 +347,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-              <tr v-for="bn in banners" :key="bn.id" class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+              <tr v-for="bn in banners" :key="bn.id" class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <div class="h-10 w-16 shrink-0 overflow-hidden rounded border bg-slate-100 dark:bg-slate-800" :style="{ borderColor: 'var(--color-border)' }">
@@ -423,7 +423,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <input v-model.number="tickerForm.speed" type="number" min="5" max="120" class="h-8 w-20 rounded border bg-transparent px-2 text-center text-xs" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
-        <button type="submit" :disabled="tickerLoading" class="inline-flex h-10 items-center gap-2 rounded-md bg-[#2B71AE] px-6 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50">
+        <button type="submit" :disabled="tickerLoading" class="inline-flex h-10 items-center gap-2 rounded-md bg-[#F5CC07] px-6 text-xs font-semibold text-slate-950 hover:bg-yellow-400 disabled:opacity-50">
           <span>{{ tickerLoading ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الشريط' : 'Save Ticker') }}</span>
         </button>
       </form>
@@ -542,7 +542,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           <button type="button" class="h-9 rounded-md border px-4 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800" @click="showModal = false">
             {{ locale === 'ar' ? 'إلغاء' : 'Cancel' }}
           </button>
-          <button type="button" :disabled="saving" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-5 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50" @click="saveBanner">
+          <button type="button" :disabled="saving" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-5 text-xs font-semibold text-slate-950 hover:bg-yellow-400 disabled:opacity-50" @click="saveBanner">
             <span>{{ saving ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ البانر' : 'Save Banner') }}</span>
           </button>
         </div>

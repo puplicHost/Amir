@@ -215,7 +215,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <button
           type="button"
           :disabled="savingSettings"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E] disabled:opacity-50 transition-all"
+          class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400 disabled:opacity-50 transition-all"
           @click="saveBarSettings"
         >
           <span>{{ savingSettings ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ إعدادات الشريط' : 'Save Bar Settings') }}</span>
@@ -505,7 +505,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <button
               type="submit"
               :disabled="savingItem"
-              class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#2B71AE] px-5 text-xs font-bold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-all"
+              class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#F5CC07] px-5 text-xs font-bold text-slate-950 hover:bg-yellow-400 disabled:opacity-50 transition-all"
             >
               <span>{{ savingItem ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الإشعار' : 'Save Item') }}</span>
             </button>

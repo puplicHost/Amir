@@ -5,26 +5,29 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 
 useHead(() => ({ title: `${t('products.title')} | ${t('brand.name')}` }))
+
+const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
 </script>
 
 <template>
   <div class="space-y-0">
     <!-- Header Banner with Breadcrumb & Technical Styling -->
-    <div class="relative overflow-hidden bg-navy text-white border-b border-white/10">
-      <!-- Ambient Lighting -->
-      <div class="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-primary/25 blur-[130px]"></div>
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
-      ></div>
+    <div
+      class="relative overflow-hidden bg-navy bg-cover bg-center text-white"
+      :style="heroGeneral?.heroImagePath ? `background-image: url('${heroGeneral.heroImagePath}')` : ''"
+    >
+      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.85), rgba(13,27,46,0.95))"></div>
 
-      <div class="relative z-10 mx-auto w-full max-w-[1536px] px-4 sm:px-6 lg:px-8 xl:px-10 py-10 sm:py-12">
+      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+        <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
+      </svg>
+
+      <div class="relative z-10 mx-auto w-full max-w-[1536px] px-4 sm:px-6 lg:px-8 xl:px-10 pt-10 sm:pt-12 pb-24 sm:pb-28">
         <!-- Breadcrumb -->
-        <nav class="mb-5 flex items-center gap-1.5 text-xs font-medium text-slate-400" aria-label="Breadcrumb">
+        <nav class="mb-5 flex items-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
           <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
-          <span class="text-muted" aria-hidden="true">/</span>
-          <span class="text-cream font-semibold" aria-current="page">{{ t('products.title') }}</span>
+          <span class="text-white/40" aria-hidden="true">/</span>
+          <span class="text-white font-semibold" aria-current="page">{{ t('products.title') }}</span>
         </nav>
 
         <div class="max-w-3xl">
@@ -32,10 +35,10 @@ useHead(() => ({ title: `${t('products.title')} | ${t('brand.name')}` }))
             <Boxes class="h-3.5 w-3.5" aria-hidden="true" />
             <span>{{ locale === 'ar' ? 'الكتالوج المعتمد' : 'Certified Catalog' }}</span>
           </div>
-          <h1 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-3 leading-tight">
+          <h1 class="font-heading text-4xl font-extrabold tracking-tight text-white mb-3 leading-tight">
             {{ t('products.title') }}
           </h1>
-          <p class="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
+          <p class="text-sm sm:text-base text-white/80 max-w-2xl leading-relaxed">
             {{ t('products.subtitle') }}
           </p>
 

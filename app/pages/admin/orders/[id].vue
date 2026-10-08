@@ -424,7 +424,7 @@ function formatDate(d: string) {
 
                 <button
                   type="button"
-                  class="flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#285E8E] disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-bold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="updating || newStatus === data.order.status"
                   @click="updateStatus"
                 >

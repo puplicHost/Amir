@@ -336,7 +336,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       <template #actions>
         <button
           type="button"
-          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE]"
+          class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5CC07]"
           @click="openCreate"
         >
           <Plus class="h-4 w-4" aria-hidden="true" />
@@ -349,7 +349,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
     <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[760px] text-start text-sm">
-          <thead>
+          <thead class="sticky top-0 z-10">
             <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المسؤول' : 'Admin User' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'البريد الإلكتروني' : 'Email' }}</th>
@@ -364,7 +364,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <tr
               v-for="user in data?.users || []"
               :key="user.id"
-              class="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+              class="transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
               :class="{ 'opacity-60': !user.isActive }"
             >
               <!-- Name & Avatar -->
@@ -636,7 +636,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           <button
             type="button"
             :disabled="saving"
-            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-5 text-xs font-semibold text-white shadow-xs hover:bg-[#285E8E] disabled:opacity-50"
+            class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-5 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400 disabled:opacity-50"
             @click="save"
           >
             <span>{{ saving ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ المسؤول' : 'Save User') }}</span>

@@ -28,6 +28,8 @@ const { data: contact } = await useAsyncData('contact-info', () =>
   { server: true, lazy: true },
 )
 
+const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
+
 const address = computed(() => locale.value === 'ar' ? contact.value?.contactAddressAr : contact.value?.contactAddressEn)
 const whatsappNum = computed(() => (contact.value?.contactWhatsapp || contact.value?.contactPhone1 || '').replace(/[^0-9]/g, ''))
 const whatsappUrl = computed(() => `https://wa.me/${whatsappNum.value}`)
@@ -92,20 +94,35 @@ const inputCls = 'h-11 w-full rounded-xl border border-border bg-surface px-3.5 
 </script>
 
 <template>
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-    <nav class="mb-4 flex items-center gap-1.5 text-xs font-medium text-slate-400" aria-label="Breadcrumb">
-      <NuxtLink :to="localePath('/')" class="hover:text-muted transition-colors">{{ t('nav.home') }}</NuxtLink>
-      <span class="text-muted">/</span>
-      <span class="text-primary font-semibold">{{ t('contact.title') }}</span>
-    </nav>
+  <div class="space-y-0">
+    <!-- Contact Hero (matches homepage hero style) -->
+    <div
+      class="relative overflow-hidden bg-navy bg-cover bg-center text-center"
+      :style="heroGeneral?.heroImagePath ? `background-image: url('${heroGeneral.heroImagePath}')` : ''"
+    >
+      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.85), rgba(13,27,46,0.95))"></div>
 
-    <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-text">
-      {{ t('contact.title') }}
-    </h1>
-    <p class="mt-1 text-xs sm:text-sm text-muted">
-      {{ t('contact.subtitle') }}
-    </p>
+      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+        <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
+      </svg>
 
+      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28">
+        <nav class="mb-4 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
+          <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
+          <span class="text-white/40">/</span>
+          <span class="text-white font-semibold">{{ t('contact.title') }}</span>
+        </nav>
+
+        <h1 class="font-heading text-4xl font-extrabold tracking-tight text-white">
+          {{ t('contact.title') }}
+        </h1>
+        <p class="mt-1 text-xs sm:text-sm text-white/80">
+          {{ t('contact.subtitle') }}
+        </p>
+      </div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
     <div class="mt-8 grid gap-6 lg:grid-cols-12 lg:items-start">
       <!-- Info cards -->
       <div class="space-y-4 lg:col-span-5">
@@ -193,4 +210,5 @@ const inputCls = 'h-11 w-full rounded-xl border border-border bg-surface px-3.5 
       </div>
     </div>
   </div>
+</div>
 </template>

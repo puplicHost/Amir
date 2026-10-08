@@ -18,6 +18,8 @@ if (error.value) {
   throw createError({ statusCode: 404, statusMessage: 'Category not found', fatal: true })
 }
 
+const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
+
 const name = computed(() => (locale.value === 'ar' ? data.value?.category.nameAr : data.value?.category.nameEn))
 const desc = computed(() => (locale.value === 'ar' ? data.value?.category.descriptionAr : data.value?.category.descriptionEn))
 
@@ -30,32 +32,31 @@ useHead(() => ({
 <template>
   <div class="space-y-0">
     <!-- Category Hero Banner with Cover Media & Dark Scrim -->
-    <div class="relative overflow-hidden bg-navy text-white border-b border-white/10">
-      <!-- Background Cover Image (if available) -->
+    <div
+      class="relative overflow-hidden bg-navy bg-cover bg-center text-white"
+      :style="!data?.category.coverImagePath && heroGeneral?.heroImagePath ? `background-image: url('${heroGeneral.heroImagePath}')` : ''"
+    >
+      <!-- Category cover image (with alt); homepage hero image is the CSS fallback above -->
       <img
         v-if="data?.category.coverImagePath"
         :src="data.category.coverImagePath"
         :alt="name"
-        class="absolute inset-0 h-full w-full object-cover opacity-25 filter blur-xs scale-102"
+        class="absolute inset-0 h-full w-full object-cover"
       />
-      <!-- Gradient Overlays for High Contrast -->
-      <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/85 to-navy/70"></div>
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style="background-image: radial-gradient(rgb(var(--palette-silver) / 0.6) 1px, transparent 1px); background-size: 24px 24px;"
-      ></div>
-      <!-- Ambient Lighting -->
-      <div class="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-primary/25 blur-[130px]"></div>
+      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.85), rgba(13,27,46,0.95))"></div>
 
-      <div class="relative z-10 mx-auto w-full max-w-[1536px] px-4 sm:px-6 lg:px-8 xl:px-10 py-10 sm:py-12">
+      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+        <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
+      </svg>
+
+      <div class="relative z-10 mx-auto w-full max-w-[1536px] px-4 sm:px-6 lg:px-8 xl:px-10 pt-10 sm:pt-12 pb-24 sm:pb-28">
         <!-- Breadcrumb Navigation -->
-        <nav class="mb-5 flex items-center gap-1.5 text-xs font-medium text-slate-400" aria-label="Breadcrumb">
+        <nav class="mb-5 flex items-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
           <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
-          <span class="text-muted" aria-hidden="true">/</span>
+          <span class="text-white/40" aria-hidden="true">/</span>
           <NuxtLink :to="localePath('/products')" class="hover:text-white transition-colors">{{ t('products.title') }}</NuxtLink>
-          <span class="text-muted" aria-hidden="true">/</span>
-          <span class="text-cream font-semibold" aria-current="page">{{ name }}</span>
+          <span class="text-white/40" aria-hidden="true">/</span>
+          <span class="text-white font-semibold" aria-current="page">{{ name }}</span>
         </nav>
 
         <div class="max-w-3xl">
@@ -64,11 +65,11 @@ useHead(() => ({
             <span>{{ locale === 'ar' ? 'فئة معتمدة' : 'Verified Category' }}</span>
           </div>
 
-          <h1 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-3 leading-tight">
+          <h1 class="font-heading text-4xl font-extrabold tracking-tight text-white mb-3 leading-tight">
             {{ name }}
           </h1>
 
-          <p v-if="desc" class="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+          <p v-if="desc" class="text-sm sm:text-base text-white/80 leading-relaxed max-w-2xl">
             {{ desc }}
           </p>
         </div>
