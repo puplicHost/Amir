@@ -177,6 +177,7 @@ model Order {
   paymentMethod      String   @default("COD")
   status             String   @default("Pending")
   stockDeducted      Boolean  @default(false)
+  refundReason       String? // 'customer_request' | 'damaged' | 'wrong_item' | 'other'
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

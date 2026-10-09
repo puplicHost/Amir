@@ -24,8 +24,10 @@ export const orderCreateSchema = z.object({
 })
 
 export const orderStatusSchema = z.object({
-  status: z.enum(['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']),
+  status: z.enum(['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded']),
 })
+
+export const refundReasonSchema = z.enum(['customer_request', 'damaged', 'wrong_item', 'other'])
 
 // ── Quotes ──
 export const quoteItemSchema = z.object({

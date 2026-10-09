@@ -137,6 +137,35 @@
     "noNotifications": "No notifications yet",
     "viewAllNotifications": "View all notifications",
     "allNotifications": "All Notifications",
+    "finVsPrev": "vs prior period",
+    "finRefunds": "Refunds",
+    "finRefundedOrders": "refunded orders",
+    "finRefund": "Refund",
+    "finRefundReason": "Refund reason",
+    "finReasonCustomerRequest": "Customer request",
+    "finReasonDamaged": "Damaged",
+    "finReasonWrongItem": "Wrong item",
+    "finReasonOther": "Other",
+    "finConfirm": "Confirm",
+    "finCancel": "Cancel",
+    "finRefundSuccess": "Refund recorded",
+    "finRefundFailed": "Refund failed",
+    "finRefundNeedsReason": "Select a refund reason",
+    "fin": {
+      "kpi": {
+        "ordersTitle": "Orders",
+        "deliveredOrders": "delivered orders",
+        "ordersSub": "For selected period",
+        "unitsTitle": "Units Sold",
+        "unitsUnit": "units",
+        "across": "Across",
+        "products": "products",
+        "aovTitle": "Avg Order Value",
+        "perOrder": "Per delivered order",
+        "bestSellerTitle": "Best Seller",
+        "unitsSold": "units sold"
+      }
+    },
     "shellNotice": "Admin shell - functional modules arrive in later phases."
   },
   "common": {

@@ -1,20 +1,28 @@
 <script setup lang="ts">
 import {
-  Banknote,
-  Boxes,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpRight,
   Calendar,
   Download,
+  Eye,
+  EyeOff,
+  Minus,
+  Package,
   Plus,
+  Receipt,
   Repeat,
+  ShoppingCart,
   Trash2,
-  TrendingUp,
+  Trophy,
+  Undo2,
   Wallet,
   X,
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'financials.view' })
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
@@ -108,26 +116,15 @@ function formatInt(n: number): string {
   return (Number(n) || 0).toLocaleString(locale.value === 'ar' ? 'ar-EG' : 'en-US')
 }
 
-// ═════════ Tab 1b: sales / costs breakdown + chart (Change E) ═════════
+// ═════════ Tab 1b: sales breakdown (top products, best seller, units) ═════════
 const payFilter = ref<'all' | 'COD' | 'ONLINE'>('all')
-const salesPage = ref(1)
-const costsPage = ref(1)
-watch([selMonth, selYear, payFilter], () => {
-  salesPage.value = 1
-  costsPage.value = 1
-})
 
-const { data: salesData, pending: salesPending } = await useAsyncData(
+const { data: salesData, pending: salesPending, refresh: refreshSales } = await useAsyncData(
   'admin-fin-sales',
-  () => fetch<any>(`/api/admin/financials/sales?month=${selMonth.value}&year=${selYear.value}&page=${salesPage.value}&perPage=10${payFilter.value !== 'all' ? `&pay=${payFilter.value}` : ''}`),
-  { watch: [selMonth, selYear, payFilter, salesPage] },
+  () => fetch<any>(`/api/admin/financials/sales?month=${selMonth.value}&year=${selYear.value}&page=1&perPage=50${payFilter.value !== 'all' ? `&pay=${payFilter.value}` : ''}`),
+  { watch: [selMonth, selYear, payFilter] },
 )
-const { data: costsData, pending: costsPending } = await useAsyncData(
-  'admin-fin-costs',
-  () => fetch<any>(`/api/admin/financials/costs?month=${selMonth.value}&year=${selYear.value}&page=${costsPage.value}&perPage=10${payFilter.value !== 'all' ? `&pay=${payFilter.value}` : ''}`),
-  { watch: [selMonth, selYear, payFilter, costsPage] },
-)
-const { data: chartData, pending: chartPending } = await useAsyncData('admin-fin-chart', () =>
+const { data: chartData, pending: chartPending, refresh: refreshChart } = await useAsyncData('admin-fin-chart', () =>
   fetch<{ data: { month: number, year: number, label: string, labelEn: string, sales: number, costs: number, profit: number }[] }>('/api/admin/financials/chart?months=12'),
 )
 
@@ -175,6 +172,154 @@ const hoverPoint = computed(() => hoverIdx.value === null ? null : chartPoints.v
 function chartGridVals(): number[] {
   const m = chartMax.value
   return [m, m / 2, 0]
+}
+
+// ═════════ Overview cards (image-style, 100% real API data) ═════════
+const canOrdersView = useAdminCan('orders.view')
+const hideAmounts = ref(false)
+function money(n: number): string {
+  return hideAmounts.value ? '••••••' : formatMoney(n)
+}
+
+const { data: txData, pending: txPending, refresh: refreshTx } = await useAsyncData('admin-fin-transactions', () =>
+  fetch<{ transactions: { id: string, orderNumber: string, paymentMethod: string, total: number, itemCount: number, deliveredAt: string }[] }>(
+    `/api/admin/financials/transactions?month=${selMonth.value}&year=${selYear.value}&limit=5${payFilter.value !== 'all' ? `&pay=${payFilter.value}` : ''}`,
+  ),
+  { watch: [selMonth, selYear, payFilter] },
+)
+const transactions = computed(() => txData.value?.transactions || [])
+
+const netBalance = computed(() =>
+  Number(summary.value?.revenue?.total || 0) - Number(summary.value?.expenses?.total || 0),
+)
+const deliveredCount = computed(() => Number(summary.value?.counts?.completedOrders || 0))
+const itemsSold = computed(() => Number(salesData.value?.meta?.grandQty || 0))
+const earningTotal = computed(() => Number(salesData.value?.meta?.grandTotal || summary.value?.revenue?.total || 0))
+const profitMargin = computed(() => Number(summary.value?.margin || 0))
+
+const expenseCats = computed(() => [
+  { key: 'cogs', label: locale.value === 'ar' ? 'تكلفة البضاعة' : 'COGS', value: Number(summary.value?.expenses?.cogs || 0), color: '#a3e635' },
+  { key: 'payroll', label: locale.value === 'ar' ? 'المرتبات' : 'Payroll', value: Number(summary.value?.expenses?.salaries || 0), color: '#2B71AE' },
+  { key: 'other', label: locale.value === 'ar' ? 'مصاريف أخرى' : 'Other', value: Number(summary.value?.expenses?.other || 0), color: '#f59e0b' },
+])
+const expenseTotal = computed(() => expenseCats.value.reduce((s, c) => s + c.value, 0))
+const DONUT_R = 50
+const DONUT_C = 2 * Math.PI * DONUT_R
+const donutSegs = computed(() => {
+  let acc = 0
+  return expenseCats.value.map((c) => {
+    const frac = expenseTotal.value > 0 ? c.value / expenseTotal.value : 0
+    const seg = { ...c, frac, start: acc }
+    acc += frac * DONUT_C
+    return seg
+  })
+})
+const expenseShareOfSales = computed(() => {
+  const sales = Number(summary.value?.revenue?.total || 0)
+  return sales > 0 ? Math.round((expenseTotal.value / sales) * 100) : 0
+})
+
+const topProducts = computed(() => (salesData.value?.data || []).slice(0, 4))
+function earningShare(total: number): number {
+  const base = earningTotal.value
+  return base > 0 ? Math.max(2, Math.round((Number(total) / base) * 100)) : 0
+}
+
+// ═════════ KPI summary row (period totals + best seller) ═════════
+const productsCount = computed(() => Number(salesData.value?.meta?.total || 0))
+const avgOrderValue = computed(() => {
+  const orders = Number(summary.value?.counts?.completedOrders || 0)
+  return orders > 0 ? Number(summary.value?.revenue?.total || 0) / orders : 0
+})
+const bestSeller = computed(() => {
+  let best: { name: string, quantity: number } | null = null
+  for (const row of salesData.value?.data || []) {
+    const qty = Number(row.quantity || 0)
+    if (!best || qty > best.quantity) best = { name: String(row.name || ''), quantity: qty }
+  }
+  return best || { name: '', quantity: 0 }
+})
+
+function txTime(d: string): string {
+  if (!d) return ''
+  return new Date(d).toLocaleString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+function payLabel(pay: string): string {
+  if (pay === 'ONLINE') return locale.value === 'ar' ? 'أونلاين' : 'Online'
+  return 'COD'
+}
+
+// ═════════ MoM/YoY delta chips (Fix 4) ═════════
+// Positive → green ↑, negative → red ↓, zero or no prior data → gray dash.
+function deltaOf(current: number, prev: number | null | undefined): { text: string, chip: string, dir: 'up' | 'down' | 'flat' } {
+  const flat = { text: '—', chip: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500', dir: 'flat' } as const
+  if (prev === null || prev === undefined || prev === 0) return { ...flat }
+  const pct = ((Number(current) - Number(prev)) / Math.abs(Number(prev))) * 100
+  if (!Number.isFinite(pct) || pct === 0) return { ...flat }
+  const rounded = `${pct > 0 ? '+' : ''}${Math.round(pct * 10) / 10}%`
+  return pct > 0
+    ? { text: rounded, chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300', dir: 'up' }
+    : { text: rounded, chip: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300', dir: 'down' }
+}
+const prevBalance = computed(() =>
+  Number(summary.value?.previous?.revenue || 0) - Number(summary.value?.previous?.expensesTotal || 0),
+)
+// Earning tile shows pay-filtered sales; a prior figure only exists unfiltered (All).
+const earningDelta = computed(() =>
+  payFilter.value === 'all'
+    ? deltaOf(earningTotal.value, summary.value?.previous?.revenue)
+    : deltaOf(0, 0),
+)
+const balanceDelta = computed(() => deltaOf(netBalance.value, prevBalance.value))
+const profitDelta = computed(() => deltaOf(Number(summary.value?.profit || 0), summary.value?.previous?.profit))
+const spendingDelta = computed(() => deltaOf(expenseTotal.value, summary.value?.previous?.expensesTotal))
+const txCountDelta = computed(() => deltaOf(deliveredCount.value, summary.value?.previous?.deliveredCount))
+const refundsDelta = computed(() => deltaOf(Number(summary.value?.refunds?.total || 0), summary.value?.previous?.refundTotal))
+
+// ═════════ Refund action (Fix 5) ═════════
+const canOrdersManage = useAdminCan('orders.manage')
+const refundingId = ref<string | null>(null)
+const refundReason = ref('customer_request')
+const refundSaving = ref(false)
+const REFUND_REASONS = [
+  { id: 'customer_request', key: 'admin.finReasonCustomerRequest' },
+  { id: 'damaged', key: 'admin.finReasonDamaged' },
+  { id: 'wrong_item', key: 'admin.finReasonWrongItem' },
+  { id: 'other', key: 'admin.finReasonOther' },
+] as const
+function startRefund(txId: string) {
+  refundingId.value = txId
+  refundReason.value = 'customer_request'
+}
+function cancelRefund() {
+  refundingId.value = null
+}
+async function confirmRefund(tx: { id: string, orderNumber: string }) {
+  if (!refundReason.value) {
+    toast.error(t('admin.finRefundNeedsReason'))
+    return
+  }
+  refundSaving.value = true
+  try {
+    await $fetch(`/api/admin/orders/${tx.id}/status`, {
+      method: 'PUT',
+      body: { status: 'Refunded', refundReason: refundReason.value },
+    })
+    refundingId.value = null
+    toast.success(t('admin.finRefundSuccess'), `${tx.orderNumber}`)
+    await Promise.all([refreshSummary(), refreshTx(), refreshSales(), refreshChart()])
+  }
+  catch (e: any) {
+    toast.error(
+      t('admin.finRefundFailed'),
+      e?.data?.message || 'Could not mark order as refunded',
+    )
+  }
+  finally {
+    refundSaving.value = false
+  }
 }
 
 // ═════════ Tab 2: other expenses ═════════
@@ -351,209 +496,400 @@ async function removeExpense(e: Expense) {
       </div>
 
       <template v-else-if="summary">
-        <!-- Section 1: 4 summary cards -->
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div class="rounded-xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-            <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-              <span aria-hidden="true">📈</span>
-              <p class="text-[11px] font-semibold uppercase tracking-wider">{{ locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales' }}</p>
+        <!-- Overview: balance + profit hero cards -->
+        <div class="grid gap-4 lg:grid-cols-5">
+          <!-- Active balance card -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs sm:p-6 lg:col-span-3 dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {{ locale === 'ar' ? 'بالجنيه المصري' : 'EGP' }}
+              </span>
+              <span class="text-[11px] font-semibold text-slate-400">
+                {{ monthName }} · {{ locale === 'ar' ? `${deliveredCount} طلب تم تسليمه` : `${deliveredCount} delivered orders` }}
+              </span>
             </div>
-            <p class="mt-2 font-heading text-[28px] font-bold leading-none text-slate-900 dark:text-white">{{ formatMoney(summary.revenue.total) }}</p>
-            <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-              {{ locale === 'ar'
-                ? `من ${formatInt(summary.counts?.completedOrders || 0)} طلب مكتمل (تم التسليم)`
-                : `From ${formatInt(summary.counts?.completedOrders || 0)} delivered orders` }}
+            <p class="mt-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+              {{ locale === 'ar' ? 'صافي الرصيد النشط' : 'Active Balance' }}
             </p>
+            <div class="mt-1 flex items-center gap-2">
+              <p class="font-heading text-4xl font-black tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+                {{ money(netBalance) }}
+              </p>
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                :aria-label="hideAmounts ? (locale === 'ar' ? 'إظهار المبالغ' : 'Show amounts') : (locale === 'ar' ? 'إخفاء المبالغ' : 'Hide amounts')"
+                :title="hideAmounts ? (locale === 'ar' ? 'إظهار المبالغ' : 'Show amounts') : (locale === 'ar' ? 'إخفاء المبالغ' : 'Hide amounts')"
+                @click="hideAmounts = !hideAmounts"
+              >
+                <EyeOff v-if="hideAmounts" class="h-4 w-4" aria-hidden="true" />
+                <Eye v-else class="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+            <span class="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" :class="balanceDelta.chip">
+              <ArrowUp v-if="balanceDelta.dir === 'up'" class="h-3 w-3" aria-hidden="true" />
+              <ArrowDown v-else-if="balanceDelta.dir === 'down'" class="h-3 w-3" aria-hidden="true" />
+              <Minus v-else class="h-3 w-3" aria-hidden="true" />
+              <span>{{ balanceDelta.text }}</span>
+              <span class="font-semibold opacity-70">{{ t('admin.finVsPrev') }}</span>
+            </span>
+            <div class="mt-5 flex flex-wrap items-center gap-2">
+              <button
+                v-if="canManage"
+                type="button"
+                class="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#1d4d2b] px-4 text-xs font-bold text-white transition-colors hover:bg-[#163d22]"
+                @click="openAddExpense"
+              >
+                <Plus class="h-4 w-4" aria-hidden="true" />
+                <span>{{ locale === 'ar' ? 'تسجيل مصروف' : 'Add Expense' }}</span>
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-10 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="exportExcel"
+              >
+                <Download class="h-4 w-4" aria-hidden="true" />
+                <span>{{ locale === 'ar' ? 'تصدير Excel' : 'Export Excel' }}</span>
+              </button>
+              <a
+                href="#finance-transactions"
+                class="ms-auto flex h-12 w-12 items-center justify-center rounded-full bg-lime-300 text-slate-900 transition-transform hover:scale-105"
+                :aria-label="locale === 'ar' ? 'الانتقال إلى المعاملات' : 'Go to transactions'"
+              >
+                <ArrowUpRight class="h-5 w-5" aria-hidden="true" />
+              </a>
+            </div>
           </div>
-          <div class="rounded-xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-            <div class="flex items-center gap-2 text-orange-500 dark:text-orange-400">
-              <span aria-hidden="true">📦</span>
-              <p class="text-[11px] font-semibold uppercase tracking-wider">{{ locale === 'ar' ? 'تكلفة البضاعة المباعة' : 'COGS' }}</p>
+
+          <!-- Net profit hero card -->
+          <div class="rounded-2xl bg-lime-300 p-5 text-slate-900 shadow-xs sm:p-6 lg:col-span-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-[#1d4d2b] px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white">
+                {{ locale === 'ar' ? 'صافي الربح' : 'Net Profit' }}
+              </span>
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-black/10"
+                :aria-label="hideAmounts ? (locale === 'ar' ? 'إظهار المبالغ' : 'Show amounts') : (locale === 'ar' ? 'إخفاء المبالغ' : 'Hide amounts')"
+                @click="hideAmounts = !hideAmounts"
+              >
+                <EyeOff v-if="hideAmounts" class="h-4 w-4" aria-hidden="true" />
+                <Eye v-else class="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
-            <p class="mt-2 font-heading text-[28px] font-bold leading-none text-slate-900 dark:text-white">{{ formatMoney(summary.expenses.cogs) }}</p>
-            <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-              {{ locale === 'ar' ? 'سعر الشراء × الكميات المباعة هذا الشهر' : 'Cost × quantities sold this month' }}
+            <p class="mt-4 text-xs font-medium text-slate-700">
+              {{ locale === 'ar' ? 'أرباح هذه الفترة' : 'Your Profit' }}
             </p>
-          </div>
-          <div class="rounded-xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-            <div class="flex items-center gap-2 text-[#2B71AE] dark:text-blue-400">
-              <span aria-hidden="true">👥</span>
-              <p class="text-[11px] font-semibold uppercase tracking-wider">{{ locale === 'ar' ? 'إجمالي المرتبات' : 'Payroll Total' }}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <p class="font-heading text-4xl font-black tracking-tight sm:text-5xl">
+                {{ money(Number(summary.profit || 0)) }}
+              </p>
+              <span class="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-black text-[#1d4d2b]">
+                {{ profitMargin }}% {{ locale === 'ar' ? 'هامش' : 'margin' }}
+              </span>
             </div>
-            <p class="mt-2 font-heading text-[28px] font-bold leading-none text-slate-900 dark:text-white">{{ formatMoney(summary.expenses.salaries) }}</p>
-            <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-              {{ locale === 'ar' ? `${formatInt(summary.counts?.activeEmployees || 0)} موظف نشط` : `${formatInt(summary.counts?.activeEmployees || 0)} active staff` }}
-            </p>
-          </div>
-          <div
-            class="rounded-xl border p-5 shadow-xs dark:bg-[#162032]"
-            :class="summary.profit >= 0 ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/30' : 'border-rose-200 bg-rose-50/60 dark:border-rose-900/50 dark:bg-rose-950/30'"
-          >
-            <div class="flex items-center gap-2" :class="summary.profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'">
-              <TrendingUp class="h-5 w-5" aria-hidden="true" />
-              <p class="text-[11px] font-semibold uppercase tracking-wider">{{ locale === 'ar' ? 'صافي الربح' : 'Net Profit' }}</p>
+            <span class="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" :class="profitDelta.chip">
+              <ArrowUp v-if="profitDelta.dir === 'up'" class="h-3 w-3" aria-hidden="true" />
+              <ArrowDown v-else-if="profitDelta.dir === 'down'" class="h-3 w-3" aria-hidden="true" />
+              <Minus v-else class="h-3 w-3" aria-hidden="true" />
+              <span>{{ profitDelta.text }}</span>
+              <span class="font-semibold opacity-70">{{ t('admin.finVsPrev') }}</span>
+            </span>
+            <div class="mt-5 grid grid-cols-2 gap-2.5">
+              <div class="rounded-xl bg-white/60 p-3">
+                <p class="text-[11px] font-semibold text-slate-600">{{ locale === 'ar' ? 'طلبات تم تسليمها' : 'Delivered Orders' }}</p>
+                <p class="mt-1 font-heading text-xl font-black">{{ formatInt(deliveredCount) }}</p>
+              </div>
+              <div class="rounded-xl bg-white/60 p-3">
+                <p class="text-[11px] font-semibold text-slate-600">{{ locale === 'ar' ? 'وحدات مباعة' : 'Units Sold' }}</p>
+                <p class="mt-1 font-heading text-xl font-black">{{ formatInt(itemsSold) }}</p>
+              </div>
             </div>
-            <p class="mt-2 font-heading text-[28px] font-bold leading-none" :class="summary.profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'">
-              {{ formatMoney(summary.profit) }}
-            </p>
-            <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-              {{ locale === 'ar' ? '= المبيعات − تكلفة البضاعة − المرتبات' : '= Sales − COGS − Payroll' }}
-            </p>
           </div>
         </div>
 
-        <!-- Section 2: step-by-step calculation -->
-        <section aria-label="Calculation details" class="space-y-4">
-          <h2 class="border-b pb-2 font-heading text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-base" :style="{ borderColor: 'var(--color-border)' }">
-            {{ locale === 'ar' ? 'تفاصيل الحسابة' : 'Calculation Breakdown' }}
-          </h2>
+        <!-- Refunds KPI tile -->
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-rose-200 bg-rose-50/60 px-5 py-4 dark:border-rose-900/50 dark:bg-rose-950/30">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300" aria-hidden="true">
+            <Undo2 class="h-5 w-5" />
+          </span>
+          <div class="min-w-0">
+            <p class="text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-300">{{ t('admin.finRefunds') }}</p>
+            <p class="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {{ formatInt(Number(summary.refunds?.count || 0)) }} {{ t('admin.finRefundedOrders') }}
+            </p>
+          </div>
+          <p class="ms-auto font-heading text-2xl font-black text-rose-600 dark:text-rose-300">
+            {{ money(Number(summary.refunds?.total || 0)) }}
+          </p>
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" :class="refundsDelta.chip">
+            <ArrowUp v-if="refundsDelta.dir === 'up'" class="h-3 w-3" aria-hidden="true" />
+            <ArrowDown v-else-if="refundsDelta.dir === 'down'" class="h-3 w-3" aria-hidden="true" />
+            <Minus v-else class="h-3 w-3" aria-hidden="true" />
+            <span>{{ refundsDelta.text }}</span>
+            <span class="font-semibold opacity-70">{{ t('admin.finVsPrev') }}</span>
+          </span>
+        </div>
 
-          <!-- Block 1: Sales -->
-          <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-            <div class="border-b px-5 py-4 dark:border-slate-800" :style="{ borderColor: 'var(--color-border)' }">
-              <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">{{ locale === 'ar' ? 'المبيعات' : 'Sales' }}</h3>
-              <!-- Payment method mini-tabs -->
-              <div class="mt-2.5 flex items-center gap-1.5">
+        <!-- Overview: spending donut + earning bars + transactions -->
+        <div class="grid gap-4 lg:grid-cols-3">
+          <!-- Spending donut -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {{ locale === 'ar' ? 'المصروفات' : 'Spending' }}
+              </h3>
+              <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                {{ monthName }}
+              </span>
+            </div>
+            <div class="relative mx-auto mt-2 h-44 w-44" dir="ltr">
+              <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90">
+                <circle cx="60" cy="60" :r="DONUT_R" fill="none" stroke-width="13" class="stroke-slate-100 dark:stroke-slate-800" />
+                <circle
+                  v-for="seg in donutSegs"
+                  :key="seg.key"
+                  cx="60" cy="60" :r="DONUT_R" fill="none"
+                  :stroke="seg.color" stroke-width="13"
+                  :stroke-dasharray="`${Math.max(seg.frac * DONUT_C - 4, seg.frac > 0 ? 2 : 0)} ${DONUT_C}`"
+                  :stroke-dashoffset="-seg.start"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <p class="font-heading text-xl font-black text-slate-900 dark:text-white">{{ money(expenseTotal) }}</p>
+                <p class="text-[11px] font-bold text-rose-500">
+                  {{ expenseShareOfSales }}% {{ locale === 'ar' ? 'من المبيعات' : 'of sales' }}
+                </p>
+              </div>
+            </div>
+            <ul class="mt-3 space-y-2">
+              <li class="flex justify-center">
+                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" :class="spendingDelta.chip">
+                  <ArrowUp v-if="spendingDelta.dir === 'up'" class="h-3 w-3" aria-hidden="true" />
+                  <ArrowDown v-else-if="spendingDelta.dir === 'down'" class="h-3 w-3" aria-hidden="true" />
+                  <Minus v-else class="h-3 w-3" aria-hidden="true" />
+                  <span>{{ spendingDelta.text }}</span>
+                  <span class="font-semibold opacity-70">{{ t('admin.finVsPrev') }}</span>
+                </span>
+              </li>
+              <li v-for="cat in expenseCats" :key="cat.key" class="flex items-center gap-2 text-xs">
+                <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: cat.color }" aria-hidden="true" />
+                <span class="font-semibold text-slate-600 dark:text-slate-300">{{ cat.label }}</span>
+                <span class="ms-auto font-mono font-bold text-slate-900 dark:text-slate-100">{{ money(cat.value) }}</span>
+                <span class="w-9 shrink-0 text-end font-mono text-[11px] text-slate-400">
+                  {{ expenseTotal > 0 ? Math.round((cat.value / expenseTotal) * 100) : 0 }}%
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Earning bars -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {{ locale === 'ar' ? 'الإيرادات' : 'Earning' }}
+              </h3>
+              <div class="flex items-center gap-1 rounded-full bg-slate-100 p-1 dark:bg-slate-800">
                 <button
                   v-for="opt in ([
                     { id: 'all', label: locale === 'ar' ? 'الكل' : 'All' },
                     { id: 'COD', label: 'COD' },
-                    { id: 'ONLINE', label: locale === 'ar' ? 'بوابة الدفع' : 'Gateway' },
+                    { id: 'ONLINE', label: locale === 'ar' ? 'أونلاين' : 'Online' },
                   ] as const)"
                   :key="opt.id"
                   type="button"
-                  class="h-7 rounded-full border px-3 text-[11px] font-bold transition-all"
-                  :class="payFilter === opt.id
-                    ? 'border-[#2B71AE] bg-[#2B71AE] text-white'
-                    : 'border-slate-200 text-slate-500 hover:border-[#2B71AE] hover:text-[#2B71AE] dark:border-slate-700 dark:text-slate-400'"
+                  class="h-7 rounded-full px-2.5 text-[11px] font-bold transition-colors"
+                  :class="payFilter === opt.id ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-700 dark:text-white' : 'text-slate-500 dark:text-slate-400'"
                   @click="payFilter = opt.id"
                 >
                   {{ opt.label }}
                 </button>
               </div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="w-full min-w-[520px] text-start text-xs">
-                <thead class="sticky top-0 z-10">
-                  <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400">
-                    <th scope="col" class="px-5 py-2.5 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
-                    <th scope="col" class="px-4 py-2.5 text-center">{{ locale === 'ar' ? 'الكمية المباعة' : 'Qty Sold' }}</th>
-                    <th scope="col" class="px-4 py-2.5 text-end">{{ locale === 'ar' ? 'إجمالي البيع' : 'Sales Total' }}</th>
-                  </tr>
-                </thead>
-                <tbody v-if="!salesPending" class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  <tr v-for="row in salesData?.data || []" :key="row.productId || row.name" class="even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                    <td class="max-w-[260px] truncate px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-100">{{ row.name }}</td>
-                    <td class="px-4 py-2.5 text-center font-mono">{{ formatInt(row.quantity) }}</td>
-                    <td class="px-4 py-2.5 text-end font-mono font-bold">{{ formatMoney(row.total) }}</td>
-                  </tr>
-                </tbody>
-                <tbody v-else>
-                  <tr v-for="i in 5" :key="i"><td colspan="3" class="px-5 py-2"><div class="h-7 animate-pulse rounded bg-slate-100 dark:bg-slate-800" /></td></tr>
-                </tbody>
-              </table>
+            <p class="mt-3 font-heading text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+              {{ money(earningTotal) }}
+            </p>
+            <p class="mt-1 text-[11px] font-semibold text-slate-400">
+              {{ locale === 'ar' ? `من ${formatInt(salesData?.meta?.total || 0)} منتج · ${monthName}` : `from ${formatInt(salesData?.meta?.total || 0)} products · ${monthName}` }}
+            </p>
+            <span class="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" :class="earningDelta.chip">
+              <ArrowUp v-if="earningDelta.dir === 'up'" class="h-3 w-3" aria-hidden="true" />
+              <ArrowDown v-else-if="earningDelta.dir === 'down'" class="h-3 w-3" aria-hidden="true" />
+              <Minus v-else class="h-3 w-3" aria-hidden="true" />
+              <span>{{ earningDelta.text }}</span>
+              <span class="font-semibold opacity-70">{{ t('admin.finVsPrev') }}</span>
+            </span>
+            <div v-if="salesPending" class="mt-4 space-y-3" aria-hidden="true">
+              <div v-for="i in 4" :key="i" class="h-9 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
             </div>
-            <div v-if="!salesPending && !(salesData?.data?.length)" class="p-6 text-center text-xs text-slate-400">
+            <ul v-else-if="topProducts.length" class="mt-4 space-y-3.5">
+              <li v-for="row in topProducts" :key="row.productId || row.name">
+                <div class="flex items-baseline justify-between gap-2 text-xs">
+                  <span class="truncate font-semibold text-slate-700 dark:text-slate-200">{{ row.name }}</span>
+                  <span class="shrink-0 font-mono font-bold text-slate-900 dark:text-slate-100">{{ money(row.total) }}</span>
+                </div>
+                <div class="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" dir="ltr">
+                  <div
+                    class="h-full rounded-full bg-gradient-to-r from-lime-400 to-lime-500 transition-all"
+                    :style="{ width: `${earningShare(row.total)}%` }"
+                  />
+                </div>
+              </li>
+            </ul>
+            <p v-else class="mt-4 rounded-lg bg-slate-50 p-4 text-center text-xs text-slate-400 dark:bg-slate-800/50">
               {{ locale === 'ar' ? 'لا توجد مبيعات في هذه الفترة.' : 'No sales in this period.' }}
-            </div>
-            <div class="flex items-center justify-between border-t bg-slate-50/70 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/40">
-              <span class="text-xs font-bold text-slate-900 dark:text-white">
-                {{ locale === 'ar' ? 'إجمالي المبيعات:' : 'Total sales:' }} {{ formatMoney(salesData?.meta?.grandTotal || 0) }}
+            </p>
+          </div>
+
+          <!-- Transactions -->
+          <div id="finance-transactions" class="scroll-mt-24 rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {{ locale === 'ar' ? 'المعاملات' : 'Transactions' }}
+              </h3>
+              <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                {{ locale === 'ar' ? 'أحدث الطلبات المسلمة' : 'Latest delivered' }}
               </span>
-              <div v-if="(salesData?.meta?.totalPages || 1) > 1" class="flex items-center gap-1">
-                <button type="button" :disabled="salesPage <= 1" class="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700" @click="salesPage--">‹</button>
-                <span class="font-mono text-[11px] text-slate-500">{{ salesPage }} / {{ salesData?.meta?.totalPages }}</span>
-                <button type="button" :disabled="salesPage >= (salesData?.meta?.totalPages || 1)" class="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700" @click="salesPage++">›</button>
+            </div>
+            <div class="mt-1.5 flex items-center gap-1.5">
+              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black" :class="txCountDelta.chip">
+                <ArrowUp v-if="txCountDelta.dir === 'up'" class="h-3 w-3" aria-hidden="true" />
+                <ArrowDown v-else-if="txCountDelta.dir === 'down'" class="h-3 w-3" aria-hidden="true" />
+                <Minus v-else class="h-3 w-3" aria-hidden="true" />
+                <span>{{ txCountDelta.text }}</span>
+                <span class="font-semibold opacity-70">{{ t('admin.finVsPrev') }}</span>
+              </span>
+            </div>
+            <div v-if="txPending" class="mt-4 space-y-2.5" aria-hidden="true">
+              <div v-for="i in 5" :key="i" class="flex animate-pulse items-center gap-2.5">
+                <div class="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800" />
+                <div class="h-3 flex-1 rounded bg-slate-100 dark:bg-slate-800" />
               </div>
             </div>
+            <ul v-else-if="transactions.length" class="mt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+              <li v-for="tx in transactions" :key="tx.id">
+                <component
+                  :is="canOrdersView ? 'NuxtLink' : 'div'"
+                  :to="canOrdersView ? localePath(`/admin/orders/${tx.id}`) : undefined"
+                  class="group flex items-center gap-2.5 py-2.5"
+                  :class="{ 'rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50': canOrdersView }"
+                >
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300" aria-hidden="true">
+                    {{ payLabel(tx.paymentMethod).slice(0, 1) }}
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {{ locale === 'ar' ? `طلب ${tx.orderNumber}` : `Order ${tx.orderNumber}` }}
+                    </span>
+                    <span class="block truncate text-[11px] text-slate-400">
+                      {{ payLabel(tx.paymentMethod) }} · {{ txTime(tx.deliveredAt) }} · {{ locale === 'ar' ? `${formatInt(tx.itemCount)} صنف` : `${formatInt(tx.itemCount)} items` }}
+                    </span>
+                  </span>
+                  <span class="shrink-0 font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    +{{ money(tx.total) }}
+                  </span>
+                </component>
+                <div v-if="canOrdersManage" class="pb-1.5">
+                  <button
+                    v-if="refundingId !== tx.id"
+                    type="button"
+                    class="mt-0.5 inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-bold text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
+                    :title="t('admin.finRefund')"
+                    :aria-label="`${t('admin.finRefund')} ${tx.orderNumber}`"
+                    @click="startRefund(tx.id)"
+                  >
+                    <Undo2 class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>{{ t('admin.finRefund') }}</span>
+                  </button>
+                  <div v-else class="mt-1.5 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-800/60">
+                    <label class="text-[11px] font-bold text-slate-600 dark:text-slate-300" :for="`refund-reason-${tx.id}`">
+                      {{ t('admin.finRefundReason') }}
+                    </label>
+                    <select
+                      :id="`refund-reason-${tx.id}`"
+                      v-model="refundReason"
+                      class="h-8 rounded-md border bg-white px-2 text-xs font-semibold dark:bg-[#0B1520]"
+                      :style="{ borderColor: 'var(--color-border)' }"
+                    >
+                      <option v-for="r in REFUND_REASONS" :key="r.id" :value="r.id">{{ t(r.key) }}</option>
+                    </select>
+                    <button
+                      type="button"
+                      :disabled="refundSaving"
+                      class="inline-flex h-8 items-center rounded-md bg-rose-600 px-3 text-xs font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+                      @click="confirmRefund(tx)"
+                    >
+                      {{ t('admin.finConfirm') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex h-8 items-center rounded-md px-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      @click="cancelRefund"
+                    >
+                      {{ t('admin.finCancel') }}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            </ul>
+            <p v-else class="mt-4 rounded-lg bg-slate-50 p-4 text-center text-xs text-slate-400 dark:bg-slate-800/50">
+              {{ locale === 'ar' ? 'لا توجد معاملات مسلمة في هذه الفترة.' : 'No delivered transactions in this period.' }}
+            </p>
           </div>
+        </div>
 
-          <!-- Connector arrow (−) -->
-          <div class="flex justify-center" aria-hidden="true">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full border border-[#2B71AE]/40 bg-[#2B71AE]/10 font-black text-[#2B71AE] dark:text-[#F5CC07]">−</span>
-          </div>
-
-          <!-- Block 2: COGS -->
-          <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-            <div class="border-b px-5 py-4 dark:border-slate-800" :style="{ borderColor: 'var(--color-border)' }">
-              <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">{{ locale === 'ar' ? 'تكلفة البضاعة' : 'Cost of Goods' }}</h3>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full min-w-[560px] text-start text-xs">
-                <thead class="sticky top-0 z-10">
-                  <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400">
-                    <th scope="col" class="px-5 py-2.5 text-start">{{ locale === 'ar' ? 'المنتج' : 'Product' }}</th>
-                    <th scope="col" class="px-4 py-2.5 text-center">{{ locale === 'ar' ? 'الكمية المباعة' : 'Qty Sold' }}</th>
-                    <th scope="col" class="px-4 py-2.5 text-center">{{ locale === 'ar' ? 'سعر الشراء' : 'Unit Cost' }}</th>
-                    <th scope="col" class="px-4 py-2.5 text-end">{{ locale === 'ar' ? 'إجمالي التكلفة' : 'Cost Total' }}</th>
-                  </tr>
-                </thead>
-                <tbody v-if="!costsPending" class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  <tr v-for="row in costsData?.data || []" :key="row.productId || row.name" class="even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                    <td class="max-w-[220px] truncate px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-100">{{ row.name }}</td>
-                    <td class="px-4 py-2.5 text-center font-mono">{{ formatInt(row.quantity) }}</td>
-                    <td class="px-4 py-2.5 text-center font-mono text-slate-500">{{ formatMoney(row.unitCost) }}</td>
-                    <td class="px-4 py-2.5 text-end font-mono font-bold">{{ formatMoney(row.totalCost) }}</td>
-                  </tr>
-                </tbody>
-                <tbody v-else>
-                  <tr v-for="i in 5" :key="i"><td colspan="4" class="px-5 py-2"><div class="h-7 animate-pulse rounded bg-slate-100 dark:bg-slate-800" /></td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div v-if="!costsPending && !(costsData?.data?.length)" class="p-6 text-center text-xs text-slate-400">
-              {{ locale === 'ar' ? 'لا توجد تكاليف مسجلة في هذه الفترة.' : 'No recorded costs in this period.' }}
-            </div>
-            <div class="flex items-center justify-between border-t bg-slate-50/70 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/40">
-              <span class="text-xs font-bold text-slate-900 dark:text-white">
-                {{ locale === 'ar' ? 'إجمالي التكلفة:' : 'Total cost:' }} {{ formatMoney(costsData?.meta?.grandCost || 0) }}
+        <!-- KPI summary row -->
+        <section aria-label="Period KPIs" class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <!-- Orders -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center gap-2">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/20 dark:text-blue-300" aria-hidden="true">
+                <ShoppingCart class="h-5 w-5" />
               </span>
-              <div v-if="(costsData?.meta?.totalPages || 1) > 1" class="flex items-center gap-1">
-                <button type="button" :disabled="costsPage <= 1" class="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700" @click="costsPage--">‹</button>
-                <span class="font-mono text-[11px] text-slate-500">{{ costsPage }} / {{ costsData?.meta?.totalPages }}</span>
-                <button type="button" :disabled="costsPage >= (costsData?.meta?.totalPages || 1)" class="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700" @click="costsPage++">›</button>
-              </div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('admin.fin.kpi.ordersTitle') }}</p>
             </div>
-            <div class="bg-[#2B71AE] px-5 py-3 text-xs font-bold text-white dark:bg-[#1e3a5f]">
-              {{ locale === 'ar' ? 'هامش ربح البضاعة:' : 'Goods margin:' }} {{ formatMoney((costsData?.meta?.grandSales || 0) - (costsData?.meta?.grandCost || 0)) }}
+            <p class="mt-3 font-heading text-3xl font-black text-slate-900 dark:text-white">
+              {{ formatInt(deliveredCount) }}
+              <span class="font-heading text-sm font-bold text-slate-500 dark:text-slate-400">{{ t('admin.fin.kpi.deliveredOrders') }}</span>
+            </p>
+            <p class="mt-1 text-[11px] text-slate-400">{{ t('admin.fin.kpi.ordersSub') }}</p>
+          </div>
+          <!-- Units sold -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center gap-2">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400" aria-hidden="true">
+                <Package class="h-5 w-5" />
+              </span>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('admin.fin.kpi.unitsTitle') }}</p>
             </div>
-            <div class="border-t px-5 py-2.5 text-[11px] text-slate-400 dark:border-slate-800 dark:text-slate-500">
-              {{ locale === 'ar'
-                ? `＋ تكلفة البضاعة المضافة للمخزون هذا الشهر (معلومة): ${formatMoney(summary.stockAdditions || 0)}`
-                : `＋ Stock additions value this month (info): ${formatMoney(summary.stockAdditions || 0)}` }}
+            <p class="mt-3 font-heading text-3xl font-black text-slate-900 dark:text-white">
+              {{ formatInt(itemsSold) }}
+              <span class="font-heading text-sm font-bold text-slate-500 dark:text-slate-400">{{ t('admin.fin.kpi.unitsUnit') }}</span>
+            </p>
+            <p class="mt-1 text-[11px] text-slate-400">{{ t('admin.fin.kpi.across') }} {{ formatInt(productsCount) }} {{ t('admin.fin.kpi.products') }}</p>
+          </div>
+          <!-- Avg order value -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center gap-2">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400" aria-hidden="true">
+                <Receipt class="h-5 w-5" />
+              </span>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('admin.fin.kpi.aovTitle') }}</p>
             </div>
+            <p class="mt-3 font-heading text-2xl font-black text-slate-900 dark:text-white">{{ money(avgOrderValue) }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">{{ t('admin.fin.kpi.perOrder') }}</p>
           </div>
-
-          <!-- Connector arrow (−) -->
-          <div class="flex justify-center" aria-hidden="true">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full border border-[#2B71AE]/40 bg-[#2B71AE]/10 font-black text-[#2B71AE] dark:text-[#F5CC07]">−</span>
-          </div>
-
-          <!-- Block 3: Payroll (single line, no names) -->
-          <div class="rounded-md border bg-white px-5 py-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-            <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 sm:text-sm">
-              {{ locale === 'ar'
-                ? `إجمالي مرتبات ${formatInt(summary.counts?.activeEmployees || 0)} موظف نشط: ${formatMoney(summary.expenses.salaries)}`
-                : `Total payroll for ${formatInt(summary.counts?.activeEmployees || 0)} active staff: ${formatMoney(summary.expenses.salaries)}` }}
-            </p>
-          </div>
-
-          <!-- Connector arrow (=) -->
-          <div class="flex justify-center" aria-hidden="true">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#2B71AE] font-black text-white">=</span>
-          </div>
-
-          <!-- Final result card -->
-          <div class="rounded-lg border border-[#2B71AE] bg-white p-6 text-center shadow-sm dark:bg-[#162032]">
-            <p class="font-heading text-sm font-bold text-slate-900 dark:text-white">
-              {{ locale === 'ar' ? 'صافي الربح النهائي' : 'Final Net Profit' }}
-            </p>
-            <p class="mt-2 font-heading text-2xl font-black" :class="summary.profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'">
-              {{ formatMoney(summary.profit) }}
-            </p>
-            <p class="mt-2 text-base text-slate-500 dark:text-slate-400">
-              {{ locale === 'ar' ? `هامش الربح: ${summary.margin}%` : `Margin: ${summary.margin}%` }}
-            </p>
+          <!-- Best seller -->
+          <div class="rounded-2xl border bg-white p-5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+            <div class="flex items-center gap-2">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-lime-100 text-lime-700 dark:bg-lime-950/50 dark:text-lime-300" aria-hidden="true">
+                <Trophy class="h-5 w-5" />
+              </span>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('admin.fin.kpi.bestSellerTitle') }}</p>
+            </div>
+            <p class="mt-3 truncate font-heading text-xl font-black text-slate-900 dark:text-white" :title="bestSeller.name || '—'">{{ bestSeller.name || '—' }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">{{ formatInt(bestSeller.quantity) }} {{ t('admin.fin.kpi.unitsSold') }}</p>
           </div>
         </section>
 
@@ -619,7 +955,7 @@ async function removeExpense(e: Expense) {
               }"
             >
               <p class="mb-1.5 font-bold text-slate-900 dark:text-white">
-                {{ locale === 'ar' ? hoverPoint.label : `${hoverPoint.labelEn} ${hoverPoint.year}` }} {{ hoverPoint.year }}
+                {{ locale === 'ar' ? `${hoverPoint.label} ${hoverPoint.year}` : `${hoverPoint.labelEn} ${hoverPoint.year}` }}
               </p>
               <p class="flex justify-between gap-4 text-[#2B71AE] dark:text-blue-400"><span>{{ locale === 'ar' ? 'المبيعات' : 'Sales' }}</span><span class="font-mono font-bold">{{ formatMoney(hoverPoint.sales) }}</span></p>
               <p class="flex justify-between gap-4 text-rose-500"><span>{{ locale === 'ar' ? 'التكاليف' : 'Costs' }}</span><span class="font-mono font-bold">{{ formatMoney(hoverPoint.costs) }}</span></p>
@@ -701,9 +1037,10 @@ async function removeExpense(e: Expense) {
           <span class="font-mono text-sm font-black text-slate-900 dark:text-slate-100">{{ formatMoney(expensesTotal) }}</span>
         </div>
       </div>
+    </div>
 
-      <!-- Expense modal -->
-      <Teleport to="body">
+    <!-- Expense modal (shared by overview + expenses tab) -->
+    <Teleport to="body">
         <div v-if="expModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs" role="dialog" aria-modal="true">
           <div class="w-full max-w-md rounded-xl border bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#162032]">
             <div class="mb-4 flex items-center justify-between">
@@ -746,7 +1083,6 @@ async function removeExpense(e: Expense) {
           </div>
         </div>
       </Teleport>
-    </div>
 
   </div>
 </template>

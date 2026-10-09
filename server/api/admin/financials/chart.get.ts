@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   // Oldest month start, e.g. months=12 → first day 11 months ago.
   const rangeStart = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
 
-  const [orders, expenses] = await Promise.all([
+  const [orders, expenses, salariedUsers] = await Promise.all([
     prisma.order.findMany({
       where: { status: 'Delivered', updatedAt: { gte: rangeStart } },
       select: {
@@ -25,9 +25,15 @@ export default defineEventHandler(async (event) => {
       },
       select: { amount: true, month: true, year: true, recurring: true, createdAt: true },
     }),
+    // Monthly payroll (same point-in-time figure each month, matching the hero Total Expenses definition).
+    prisma.adminUser.findMany({
+      where: { isActive: true, salary: { gt: 0 } },
+      select: { salary: true },
+    }),
   ])
 
   const round2 = (n: number) => Math.round(n * 100) / 100
+  const monthlyPayroll = round2(salariedUsers.reduce((s, u) => s + Number(u.salary), 0))
   const points: { month: number, year: number, label: string, labelEn: string, sales: number, costs: number, profit: number }[] = []
 
   for (let i = months - 1; i >= 0; i--) {
@@ -59,7 +65,8 @@ export default defineEventHandler(async (event) => {
     }
 
     sales = round2(sales)
-    const costs = round2(cogs + other)
+    // Unified cost definition: COGS + other expenses + payroll (matches hero Total Expenses).
+    const costs = round2(cogs + other + monthlyPayroll)
     points.push({
       month: m,
       year: y,

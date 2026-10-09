@@ -137,6 +137,35 @@
     "noNotifications": "لا توجد إشعارات بعد",
     "viewAllNotifications": "عرض كل الإشعارات",
     "allNotifications": "كل الإشعارات",
+    "finVsPrev": "مقارنة بالفترة السابقة",
+    "finRefunds": "المرتجعات",
+    "finRefundedOrders": "طلبات مرتجعة",
+    "finRefund": "استرجاع",
+    "finRefundReason": "سبب الاسترجاع",
+    "finReasonCustomerRequest": "طلب العميل",
+    "finReasonDamaged": "تالف",
+    "finReasonWrongItem": "صنف خاطئ",
+    "finReasonOther": "أخرى",
+    "finConfirm": "تأكيد",
+    "finCancel": "إلغاء",
+    "finRefundSuccess": "تم تسجيل الاسترجاع",
+    "finRefundFailed": "فشل الاسترجاع",
+    "finRefundNeedsReason": "اختر سبب الاسترجاع",
+    "fin": {
+      "kpi": {
+        "ordersTitle": "الطلبات",
+        "deliveredOrders": "طلبات مسلّمة",
+        "ordersSub": "للفترة المحددة",
+        "unitsTitle": "الوحدات المباعة",
+        "unitsUnit": "وحدة",
+        "across": "عبر",
+        "products": "منتجات",
+        "aovTitle": "متوسط قيمة الطلب",
+        "perOrder": "لكل طلب مسلّم",
+        "bestSellerTitle": "الأكثر مبيعًا",
+        "unitsSold": "وحدة مباعة"
+      }
+    },
     "shellNotice": "هيكل لوحة الإدارة - الوحدات الوظيفية في المراحل القادمة."
   },
   "common": {
