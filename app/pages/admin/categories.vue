@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FolderTree, Image as ImageIcon, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-vue-next'
+import { FolderTree, Image as ImageIcon, Loader2, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'categories.manage' })
 
@@ -211,6 +211,33 @@ async function save() {
 
 const { confirm: confirmDialog } = useAdminConfirm()
 
+const togglingFeaturedId = ref<string | null>(null)
+async function toggleFeatured(c: Category) {
+  if (togglingFeaturedId.value === c.id) return
+  togglingFeaturedId.value = c.id
+  const next = !c.featuredOnHomepage
+  try {
+    await $fetch(`/api/admin/categories/${c.id}`, {
+      method: 'PUT',
+      body: { showOnHome: next, featuredOnHomepage: next },
+    })
+    c.featuredOnHomepage = next
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث التمييز' : 'Featured Status Updated',
+      locale.value === 'ar' ? `فئة "${c.nameAr || c.nameEn}" أصبحت ${next ? 'مميزة بالرئيسية' : 'غير مميزة'}.` : `Category is now ${next ? 'featured' : 'not featured'}.`,
+    )
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل التحديث' : 'Update Failed',
+      e?.data?.message || 'Failed to update category',
+    )
+  }
+  finally {
+    togglingFeaturedId.value = null
+  }
+}
+
 async function removeCategory(c: Category) {
   const ok = await confirmDialog({
     title: locale.value === 'ar' ? `حذف الفئة "${c.nameAr || c.nameEn}"؟` : `Delete category "${c.nameEn}"?`,
@@ -329,14 +356,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
                 </span>
               </td>
               <td class="px-4 py-3 text-center">
-                <span
-                  v-if="c.featuredOnHomepage"
-                  class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40"
+                <button
+                  type="button"
+                  :disabled="togglingFeaturedId === c.id"
+                  class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                  :class="c.featuredOnHomepage
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40'
+                    : 'bg-slate-100 text-slate-400 border border-slate-200 hover:text-amber-600 hover:border-amber-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'"
+                  :title="locale === 'ar' ? (c.featuredOnHomepage ? 'مميز بالرئيسية (اضغط للإلغاء)' : 'غير مميز (اضغط للتمييز بالرئيسية)') : (c.featuredOnHomepage ? 'Featured on home (click to toggle)' : 'Not featured (click to feature)')"
+                  @click="toggleFeatured(c)"
                 >
-                  <Star class="h-3 w-3 fill-amber-500 text-amber-500" aria-hidden="true" />
-                  <span>{{ locale === 'ar' ? 'مميز' : 'Featured' }}</span>
-                </span>
-                <span v-else class="text-xs text-slate-400">-</span>
+                  <Loader2 v-if="togglingFeaturedId === c.id" class="h-3 w-3 animate-spin text-amber-600" />
+                  <Star v-else class="h-3 w-3" :class="c.featuredOnHomepage ? 'fill-amber-500 text-amber-500' : 'text-slate-400'" aria-hidden="true" />
+                  <span>{{ c.featuredOnHomepage ? (locale === 'ar' ? 'مميز' : 'Featured') : (locale === 'ar' ? 'غير مميز' : 'Standard') }}</span>
+                </button>
               </td>
               <td class="px-4 py-3 text-center">
                 <input

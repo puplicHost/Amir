@@ -38,6 +38,46 @@ const selMonth = ref(now.getMonth() + 1)
 const selYear = ref(now.getFullYear())
 const months = Array.from({ length: 12 }, (_, i) => i + 1)
 const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 2 + i)
+const activePreset = ref<'this-month' | 'last-month' | 'this-year' | null>('this-month')
+
+function setPreset(p: 'this-month' | 'last-month' | 'this-year') {
+  activePreset.value = p
+  const current = new Date()
+  if (p === 'this-month') {
+    selMonth.value = current.getMonth() + 1
+    selYear.value = current.getFullYear()
+  }
+  else if (p === 'last-month') {
+    const lm = current.getMonth() === 0 ? 12 : current.getMonth()
+    const ly = current.getMonth() === 0 ? current.getFullYear() - 1 : current.getFullYear()
+    selMonth.value = lm
+    selYear.value = ly
+  }
+  else if (p === 'this-year') {
+    selYear.value = current.getFullYear()
+    selMonth.value = 0
+  }
+  refreshSummary()
+}
+
+watch([selMonth, selYear], () => {
+  const current = new Date()
+  if (selYear.value === current.getFullYear() && selMonth.value === current.getMonth() + 1) {
+    activePreset.value = 'this-month'
+  }
+  else if (
+    (current.getMonth() === 0 && selMonth.value === 12 && selYear.value === current.getFullYear() - 1) ||
+    (current.getMonth() > 0 && selMonth.value === current.getMonth() && selYear.value === current.getFullYear())
+  ) {
+    activePreset.value = 'last-month'
+  }
+  else if (selYear.value === current.getFullYear() && selMonth.value === 0) {
+    activePreset.value = 'this-year'
+  }
+  else {
+    activePreset.value = null
+  }
+})
 
 const { data: summary, pending: summaryPending, refresh: refreshSummary } = await useAsyncData(
   'admin-financial-summary',
@@ -46,6 +86,9 @@ const { data: summary, pending: summaryPending, refresh: refreshSummary } = awai
 )
 
 const monthName = computed(() => {
+  if (selMonth.value === 0) {
+    return locale.value === 'ar' ? `عام ${selYear.value} كاملاً` : `Full Year ${selYear.value}`
+  }
   try {
     return new Date(selYear.value, selMonth.value - 1, 1).toLocaleDateString(
       locale.value === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' },
@@ -244,11 +287,46 @@ async function removeExpense(e: Expense) {
     </div>
 
     <!-- ═══ Tab 1: Monthly financials (Change E) ═══ -->
-    <div v-if="activeTab === 'summary'" role="tabpanel" class="space-y-8">
+    <div v-if="activeTab === 'summary'" role="tabpanel" class="space-y-4">
+      <!-- Quick date presets pill buttons -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex h-8 items-center rounded-full px-3.5 text-xs font-bold transition-all shadow-xs"
+          :class="activePreset === 'this-month'
+            ? 'bg-[#2B71AE] text-white shadow-sm'
+            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800'"
+          @click="setPreset('this-month')"
+        >
+          {{ locale === 'ar' ? 'هذا الشهر' : 'This Month' }}
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-8 items-center rounded-full px-3.5 text-xs font-bold transition-all shadow-xs"
+          :class="activePreset === 'last-month'
+            ? 'bg-[#2B71AE] text-white shadow-sm'
+            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800'"
+          @click="setPreset('last-month')"
+        >
+          {{ locale === 'ar' ? 'الشهر الماضي' : 'Last Month' }}
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-8 items-center rounded-full px-3.5 text-xs font-bold transition-all shadow-xs"
+          :class="activePreset === 'this-year'
+            ? 'bg-[#2B71AE] text-white shadow-sm'
+            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800'"
+          @click="setPreset('this-year')"
+        >
+          {{ locale === 'ar' ? 'هذا العام' : 'This Year' }}
+        </button>
+      </div>
+
       <!-- Top Controls: Month/Year picker + Excel export -->
       <div class="flex flex-wrap items-center gap-2.5 rounded-md border bg-white p-3.5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
         <Calendar class="h-4 w-4 text-slate-400" aria-hidden="true" />
         <select v-model.number="selMonth" class="h-9 rounded-md border bg-white px-3 text-xs font-semibold dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }">
+          <option :value="0">{{ locale === 'ar' ? 'العام كاملاً' : 'Full Year' }}</option>
           <option v-for="m in months" :key="m" :value="m">
             {{ new Date(2000, m - 1, 1).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'long' }) }}
           </option>

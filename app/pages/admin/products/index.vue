@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, Filter, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
+import { Copy, Filter, Loader2, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.view' })
 
@@ -127,7 +127,7 @@ async function duplicateProduct(p: Row) {
       locale.value === 'ar' ? 'تم نسخ المنتج' : 'Product Duplicated',
       locale.value === 'ar' ? `تم إنشاء نسخة "${cloned.nameAr}" كمسودة بنجاح.` : `Created duplicate "${cloned.nameEn}" as draft.`,
     )
-    await refresh()
+    await navigateTo(localePath(`/admin/products/${cloned.id}/edit`))
   }
   catch (e: any) {
     toast.error(
@@ -375,21 +375,31 @@ async function shareProduct(p: Row) {
                 </div>
               </td>
 
-              <!-- Status Badge (1-click interactive toggle) -->
+              <!-- Status Toggle Switch -->
               <td class="px-4 py-3 text-center">
                 <button
                   v-if="canEditProduct"
                   type="button"
+                  role="switch"
+                  :aria-checked="p.isActive"
                   :disabled="togglingId === p.id"
-                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                  :class="p.isActive
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
-                    : 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'"
-                  :title="locale === 'ar' ? 'اضغط للتبديل بين نشط ومعطل' : 'Click to toggle active status'"
+                  class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 disabled:cursor-wait"
+                  :class="p.isActive ? 'bg-[#2B71AE]' : 'bg-slate-300 dark:bg-slate-700'"
+                  :title="locale === 'ar' ? (p.isActive ? 'نشط (اضغط للتعطيل)' : 'معطل (اضغط للتفعيل)') : (p.isActive ? 'Active (click to deactivate)' : 'Inactive (click to activate)')"
                   @click="toggleProductActive(p)"
                 >
-                  <span class="h-1.5 w-1.5 rounded-full" :class="p.isActive ? 'bg-emerald-500' : 'bg-slate-400'" />
-                  <span>{{ p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive') }}</span>
+                  <span class="sr-only">{{ p.isActive ? 'Active' : 'Inactive' }}</span>
+                  <span
+                    v-if="togglingId === p.id"
+                    class="absolute inset-0 flex items-center justify-center"
+                  >
+                    <Loader2 class="h-3 w-3 animate-spin text-white" />
+                  </span>
+                  <span
+                    v-else
+                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                    :class="p.isActive ? (locale === 'ar' ? '-translate-x-4' : 'translate-x-4') : 'translate-x-0'"
+                  />
                 </button>
                 <AdminStatusBadge v-else :status="p.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive')" size="sm" />
               </td>
@@ -435,15 +445,6 @@ async function shareProduct(p: Row) {
               <!-- Actions -->
               <td class="px-4 py-3 text-end">
                 <div class="flex items-center justify-end gap-1">
-                  <NuxtLink
-                    v-if="canEditProduct"
-                    :to="localePath(`/admin/products/${p.id}/edit`)"
-                    :title="locale === 'ar' ? 'تعديل' : 'Edit'"
-                    :aria-label="locale === 'ar' ? 'تعديل' : 'Edit'"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                  >
-                    <Pencil class="h-4 w-4" aria-hidden="true" />
-                  </NuxtLink>
                   <button
                     v-if="canCreateProduct"
                     type="button"
@@ -453,8 +454,18 @@ async function shareProduct(p: Row) {
                     :aria-label="locale === 'ar' ? 'نسخ' : 'Duplicate'"
                     @click="duplicateProduct(p)"
                   >
-                    <Copy class="h-4 w-4" aria-hidden="true" />
+                    <Loader2 v-if="duplicatingId === p.id" class="h-4 w-4 animate-spin text-[#2B71AE]" />
+                    <Copy v-else class="h-4 w-4" aria-hidden="true" />
                   </button>
+                  <NuxtLink
+                    v-if="canEditProduct"
+                    :to="localePath(`/admin/products/${p.id}/edit`)"
+                    :title="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    :aria-label="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                  >
+                    <Pencil class="h-4 w-4" aria-hidden="true" />
+                  </NuxtLink>
                   <button
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"

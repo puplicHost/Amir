@@ -17,6 +17,7 @@ import {
   Hammer,
   Inbox,
   Layers,
+  Loader2,
   Monitor,
   Package,
   Pencil,
@@ -721,19 +722,21 @@ function formatDate(d: string) {
 
                 <!-- Status Select (1-click quick update) -->
                 <td class="px-4 py-3 text-center">
-                  <select
-                    v-if="canServicesManage"
-                    :value="req.status.toLowerCase()"
-                    :disabled="updatingReqId === req.id"
-                    class="h-8 rounded-md border bg-white px-2 text-xs font-semibold focus:border-[#2B71AE] focus:outline-none dark:bg-[#162032] transition-colors"
-                    :style="{ borderColor: 'var(--color-border)' }"
-                    @change="updateReqStatus(req, ($event.target as HTMLSelectElement).value)"
-                  >
-                    <option value="pending">{{ locale === 'ar' ? 'جديد (Pending)' : 'Pending' }}</option>
-                    <option value="reviewed">{{ locale === 'ar' ? 'تمت المراجعة (Reviewed)' : 'Reviewed' }}</option>
-                    <option value="contacted">{{ locale === 'ar' ? 'تم التواصل (Contacted)' : 'Contacted' }}</option>
-                    <option value="closed">{{ locale === 'ar' ? 'مغلق (Closed)' : 'Closed' }}</option>
-                  </select>
+                  <div v-if="canServicesManage" class="inline-flex items-center justify-center gap-1.5">
+                    <Loader2 v-if="updatingReqId === req.id" class="h-3.5 w-3.5 animate-spin text-[#2B71AE]" />
+                    <select
+                      :value="req.status.toLowerCase()"
+                      :disabled="updatingReqId === req.id"
+                      class="h-8 rounded-md border bg-white px-2 text-xs font-semibold focus:border-[#2B71AE] focus:outline-none dark:bg-[#162032] transition-colors disabled:opacity-50"
+                      :style="{ borderColor: 'var(--color-border)' }"
+                      @change="updateReqStatus(req, ($event.target as HTMLSelectElement).value)"
+                    >
+                      <option value="pending">{{ locale === 'ar' ? 'جديد (Pending)' : 'Pending' }}</option>
+                      <option value="reviewed">{{ locale === 'ar' ? 'تمت المراجعة (Reviewed)' : 'Reviewed' }}</option>
+                      <option value="contacted">{{ locale === 'ar' ? 'تم التواصل (Contacted)' : 'Contacted' }}</option>
+                      <option value="closed">{{ locale === 'ar' ? 'مغلق (Closed)' : 'Closed' }}</option>
+                    </select>
+                  </div>
                   <AdminStatusBadge v-else :status="req.status" size="sm" />
                 </td>
 

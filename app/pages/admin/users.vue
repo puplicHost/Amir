@@ -189,6 +189,59 @@ const RESOURCE_DEFS: ResourceDef[] = [
   },
 ]
 
+const ROLE_PRESETS = [
+  {
+    id: 'sales',
+    labelAr: 'مدير مبيعات',
+    labelEn: 'Sales Manager',
+    permissions: [
+      'orders.view', 'orders.manage',
+      'quotes.view', 'quotes.manage',
+      'invoices.view', 'invoices.manage',
+      'products.view',
+      'categories.manage',
+      'inbox.view', 'inbox.manage',
+    ],
+  },
+  {
+    id: 'warehouse',
+    labelAr: 'أمين مخزن',
+    labelEn: 'Warehouse Staff',
+    permissions: [
+      'inventory.view',
+      'products.view', 'products.create', 'products.edit',
+      'orders.view',
+    ],
+  },
+  {
+    id: 'support',
+    labelAr: 'دعم فني',
+    labelEn: 'Tech Support',
+    permissions: [
+      'services.view', 'services.manage',
+      'inbox.view', 'inbox.manage',
+      'orders.view',
+      'products.view',
+    ],
+  },
+  {
+    id: 'accountant',
+    labelAr: 'محاسب',
+    labelEn: 'Accountant',
+    permissions: [
+      'financials.view', 'financials.manage',
+      'dashboard.financials.view',
+      'invoices.view', 'invoices.manage',
+      'orders.view',
+      'inventory.view',
+    ],
+  },
+]
+
+function applyRolePreset(preset: typeof ROLE_PRESETS[number]) {
+  form.permissions = [...preset.permissions]
+}
+
 function togglePermission(p: string) {
   const i = form.permissions.indexOf(p)
   if (i >= 0) form.permissions.splice(i, 1)
@@ -558,6 +611,24 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
               <span>{{ locale === 'ar' ? 'حساب المسؤول نشط ويمكنه تسجيل الدخول' : 'Account active and permitted to login' }}</span>
             </label>
+          </div>
+
+          <!-- Role Presets Shortcuts -->
+          <div class="border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
+            <span class="mb-2 block text-xs font-bold text-slate-800 dark:text-slate-200">
+              {{ locale === 'ar' ? 'نماذج أدوار جاهزة (تحديد سريع):' : 'Role Presets (Quick select):' }}
+            </span>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="preset in ROLE_PRESETS"
+                :key="preset.id"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:border-[#2B71AE] hover:bg-[#2B71AE]/10 hover:text-[#2B71AE] dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
+                @click="applyRolePreset(preset)"
+              >
+                <span>{{ locale === 'ar' ? preset.labelAr : preset.labelEn }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- Granular Permissions Matrix (RTL Safe) -->

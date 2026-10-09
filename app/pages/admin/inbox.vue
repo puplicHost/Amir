@@ -132,6 +132,8 @@ async function markAllAsRead() {
   markingAllRead.value = true
   try {
     await $fetch('/api/admin/inbox/read-all', { method: 'PUT' })
+    items.value.forEach(m => { m.isRead = true })
+    if (data.value) data.value.unreadCount = 0
     await refresh()
   }
   catch { /* best-effort */ }
@@ -167,23 +169,36 @@ const tabs = computed(() => [
       </template>
     </AdminPageHeader>
 
-    <!-- Filter tabs -->
-    <div class="mb-4 flex items-center gap-1 rounded-md border bg-white p-1 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <button
-        v-for="t in tabs"
-        :key="t.id"
-        type="button"
-        class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-bold transition-colors sm:flex-none sm:px-4"
-        :class="tab === t.id ? 'bg-[#2B71AE] text-white shadow-xs' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'"
-        @click="setTab(t.id)"
-      >
-        <span>{{ locale === 'ar' ? t.labelAr : t.labelEn }}</span>
-        <span
-          v-if="t.id === 'unread' && unreadCount > 0"
-          class="rounded-full bg-[#F5CC07] px-1.5 py-px text-[10px] font-black text-slate-950"
+    <!-- Filter tabs & top actions -->
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-1 rounded-md border bg-white p-1 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+        <button
+          v-for="t in tabs"
+          :key="t.id"
+          type="button"
+          class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-bold transition-colors sm:flex-none sm:px-4"
+          :class="tab === t.id ? 'bg-[#2B71AE] text-white shadow-xs' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'"
+          @click="setTab(t.id)"
         >
-          {{ unreadCount }}
-        </span>
+          <span>{{ locale === 'ar' ? t.labelAr : t.labelEn }}</span>
+          <span
+            v-if="t.id === 'unread' && unreadCount > 0"
+            class="rounded-full bg-[#F5CC07] px-1.5 py-px text-[10px] font-black text-slate-950"
+          >
+            {{ unreadCount }}
+          </span>
+        </button>
+      </div>
+
+      <button
+        v-if="unreadCount > 0"
+        type="button"
+        :disabled="markingAllRead"
+        class="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-[#162032] dark:text-slate-300 dark:hover:bg-slate-800 transition-colors shadow-xs"
+        @click="markAllAsRead"
+      >
+        <CheckCheck class="h-4 w-4" aria-hidden="true" />
+        <span>{{ locale === 'ar' ? 'تعليم الكل كمقروء' : 'Mark all as read' }}</span>
       </button>
     </div>
 

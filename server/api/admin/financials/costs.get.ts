@@ -2,14 +2,15 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'financials.view')
   const q = getQuery(event)
   const now = new Date()
-  const month = Math.min(12, Math.max(1, Number(q.month) || now.getMonth() + 1))
+  const isFullYear = q.month !== undefined && Number(q.month) === 0
+  const month = isFullYear ? 1 : Math.min(12, Math.max(1, Number(q.month) || now.getMonth() + 1))
   const year = Math.max(2000, Math.min(2100, Number(q.year) || now.getFullYear()))
   const page = Math.max(1, Number(q.page) || 1)
   const perPage = [10, 20, 50].includes(Number(q.perPage)) ? Number(q.perPage) : 10
   const pay = q.pay === 'COD' || q.pay === 'ONLINE' ? String(q.pay) : null
 
-  const start = new Date(year, month - 1, 1)
-  const end = new Date(year, month, 1)
+  const start = isFullYear ? new Date(year, 0, 1) : new Date(year, month - 1, 1)
+  const end = isFullYear ? new Date(year + 1, 0, 1) : new Date(year, month, 1)
 
   const orders = await prisma.order.findMany({
     where: {

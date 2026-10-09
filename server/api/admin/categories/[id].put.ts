@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
   if (body.descriptionAr !== undefined) data.descriptionAr = body.descriptionAr || null
   if (body.descriptionEn !== undefined) data.descriptionEn = body.descriptionEn || null
   if (body.coverVideoUrl !== undefined) data.coverVideoUrl = body.coverVideoUrl || null
+  if (body.showOnHome !== undefined) data.featuredOnHomepage = body.showOnHome === true
   if (body.featuredOnHomepage !== undefined) data.featuredOnHomepage = body.featuredOnHomepage === true
   if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder) || 0
 

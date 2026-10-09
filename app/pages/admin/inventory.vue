@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Boxes, ChevronLeft, ChevronRight, Package, RotateCcw, Search, Wallet } from 'lucide-vue-next'
+import { AlertTriangle, Boxes, ChevronLeft, ChevronRight, Loader2, Package, Pencil, RotateCcw, Search, Wallet } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['products.view', 'inventory.view'] })
 
@@ -90,23 +90,82 @@ const rangeText = computed(() => {
     : `Showing ${from}-${to} of ${meta.value.total} products`
 })
 
+const editingStockId = ref<string | null>(null)
+const editingStockVal = ref<number>(0)
+
+function startEditStock(p: InventoryRow) {
+  if (!canEditProduct.value || updatingStockId.value === p.id) return
+  editingStockId.value = p.id
+  editingStockVal.value = p.stock
+  nextTick(() => {
+    const el = document.getElementById(`stock-input-${p.id}`) as HTMLInputElement
+    el?.focus()
+    el?.select()
+  })
+}
+
+function cancelEditStock() {
+  editingStockId.value = null
+}
+
+async function saveEditStock(p: InventoryRow) {
+  if (editingStockId.value !== p.id) return
+  const newStock = Math.max(0, parseInt(String(editingStockVal.value), 10) || 0)
+  editingStockId.value = null
+  if (p.stock === newStock) return
+
+  const oldStock = p.stock
+  const oldStockVal = p.stockValue
+
+  updatingStockId.value = p.id
+  try {
+    const res = await $fetch<{ success: boolean, stock: number, stockValue: number }>(`/api/admin/inventory/${p.id}/stock`, {
+      method: 'PUT',
+      body: { stock: newStock },
+    })
+    p.stock = res.stock
+    p.stockValue = res.stockValue
+    p.status = res.stock === 0 ? 'out' : res.stock <= p.minStock ? 'low' : 'ok'
+
+    // Update total inventory valuation reactively
+    if (summary.value && summary.value.totalValue !== undefined) {
+      summary.value.totalValue = Number(summary.value.totalValue) - oldStockVal + res.stockValue
+    }
+
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث المخزون' : 'Stock Updated',
+      locale.value === 'ar' ? `مخزون "${p.nameAr || p.nameEn}" أصبح ${newStock} قطعة.` : `Stock updated to ${newStock} units.`,
+    )
+  }
+  catch (e: any) {
+    p.stock = oldStock
+    p.stockValue = oldStockVal
+    toast.error(
+      locale.value === 'ar' ? 'فشل التحديث' : 'Update Failed',
+      e?.data?.message || 'Could not update stock',
+    )
+  }
+  finally {
+    updatingStockId.value = null
+  }
+}
+
 async function updateStock(p: InventoryRow, val: string) {
   const newStock = Math.max(0, parseInt(val, 10) || 0)
   if (p.stock === newStock) return
   updatingStockId.value = p.id
   try {
-    await $fetch(`/api/admin/products/${p.id}`, {
+    const res = await $fetch<{ success: boolean, stock: number, stockValue: number }>(`/api/admin/inventory/${p.id}/stock`, {
       method: 'PUT',
       body: { stock: newStock },
     })
-    p.stock = newStock
-    if (p.costPrice !== null) p.stockValue = newStock * p.costPrice
-    p.status = newStock === 0 ? 'out' : newStock <= p.minStock ? 'low' : 'ok'
+    p.stock = res.stock
+    p.stockValue = res.stockValue
+    p.status = res.stock === 0 ? 'out' : res.stock <= p.minStock ? 'low' : 'ok'
     toast.success(
       locale.value === 'ar' ? 'تم تحديث المخزون' : 'Stock Updated',
       locale.value === 'ar' ? `مخزون "${p.nameAr || p.nameEn}" أصبح ${newStock} قطعة.` : `Stock updated to ${newStock} units.`,
     )
-    await refresh()
   }
   catch (e: any) {
     toast.error(
@@ -238,42 +297,50 @@ function statusMeta(status: string) {
                   {{ locale === 'ar' ? (p.category.nameAr || p.category.nameEn) : p.category.nameEn }}
                 </span>
               </td>
-              <!-- Stock Level (Inline quick adjustment) -->
+              <!-- Stock Level (Inline editable cell) -->
               <td class="px-4 py-3 text-center">
-                <div v-if="canEditProduct" class="inline-flex items-center justify-center gap-1.5">
+                <div v-if="editingStockId === p.id" class="inline-flex items-center justify-center">
                   <input
+                    :id="`stock-input-${p.id}`"
+                    v-model.number="editingStockVal"
                     type="number"
                     min="0"
-                    :value="p.stock"
-                    :disabled="updatingStockId === p.id"
-                    :title="locale === 'ar' ? 'عدّل الرقم واضغط Enter أو اخرج للحفظ' : 'Edit number and press Enter to save'"
-                    class="h-8 w-20 rounded-md border bg-transparent px-2 text-center font-mono text-xs font-bold text-slate-800 transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 disabled:opacity-50 dark:text-slate-200"
-                    :style="{ borderColor: 'var(--color-border)' }"
-                    @change="updateStock(p, ($event.target as HTMLInputElement).value)"
-                  />
-                  <span
-                    v-if="p.stock === 0"
-                    class="inline-block h-2 w-2 rounded-full bg-rose-500"
-                    :title="locale === 'ar' ? 'نفد المخزون' : 'Out'"
-                  />
-                  <span
-                    v-else-if="p.status === 'low'"
-                    class="inline-block h-2 w-2 rounded-full bg-amber-500"
-                    :title="locale === 'ar' ? 'مخزون منخفض' : 'Low stock'"
+                    class="h-8 w-20 rounded-md border border-[#2B71AE] bg-white px-2 text-center font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-100"
+                    @keydown.enter="saveEditStock(p)"
+                    @keydown.esc="cancelEditStock"
+                    @blur="saveEditStock(p)"
                   />
                 </div>
-                <template v-else>
+                <div
+                  v-else
+                  :class="{ 'cursor-pointer group hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded px-2 py-1': canEditProduct }"
+                  :title="canEditProduct ? (locale === 'ar' ? 'انقر لتعديل المخزون' : 'Click to edit stock') : ''"
+                  class="inline-flex items-center justify-center gap-1.5 transition-colors"
+                  @click="startEditStock(p)"
+                >
                   <span
-                    v-if="p.stock === 0"
-                    class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white"
+                    v-if="updatingStockId === p.id"
+                    class="inline-flex items-center gap-1 text-xs text-slate-400"
                   >
-                    {{ locale === 'ar' ? 'نفد المخزون' : 'Out' }}
+                    <Loader2 class="h-3 w-3 animate-spin text-[#2B71AE]" />
+                    <span>{{ p.stock }}</span>
                   </span>
-                  <span v-else-if="p.status === 'low'" class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400">
-                    <span aria-hidden="true">⚠️</span> {{ p.stock }}
-                  </span>
-                  <span v-else class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{{ p.stock }}</span>
-                </template>
+                  <template v-else>
+                    <span
+                      v-if="p.stock === 0"
+                      class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs"
+                    >
+                      {{ locale === 'ar' ? 'نفد' : 'Out' }}
+                    </span>
+                    <span v-else-if="p.status === 'low'" class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400">
+                      <span aria-hidden="true">⚠️</span> {{ p.stock }}
+                    </span>
+                    <span v-else class="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {{ p.stock }}
+                    </span>
+                    <Pencil v-if="canEditProduct" class="h-3 w-3 opacity-0 group-hover:opacity-60 text-slate-400 transition-opacity" />
+                  </template>
+                </div>
               </td>
               <td class="px-4 py-3 text-center font-mono text-xs text-slate-600 dark:text-slate-300">{{ p.minStock }}</td>
               <td class="px-4 py-3 text-center font-mono text-xs text-slate-600 dark:text-slate-300">
