@@ -5,13 +5,11 @@ import {
   ArrowRight,
   Battery,
   Boxes,
-  Building2,
   CheckCircle,
   Clock,
   Cpu,
   Database,
   Flame,
-  Gauge,
   GitBranch,
   Hammer,
   Layers,
@@ -19,7 +17,6 @@ import {
   Package,
   Phone,
   Radio,
-  Search,
   Server,
   Settings,
   Shield,
@@ -60,7 +57,7 @@ const cartStore = useCartStore()
 
 const { data: general } = await useAsyncData('home-general', () => $fetch<any>('/api/settings/general'))
 const { data: contact } = await useAsyncData('home-contact', () => $fetch<any>('/api/settings/contact'))
-const { data: services } = await useAsyncData('home-services', () => $fetch<any[]>('/api/services'))
+const { data: services, pending: servicesPending } = await useAsyncData('home-services', () => $fetch<any[]>('/api/services'))
 const { data: categoryData } = await useAsyncData('home-categories', () => $fetch<{ categories: any[] } | any[]>('/api/categories/featured'))
 const { data: productData } = await useAsyncData('home-featured-products', () => $fetch<{ products: any[] }>('/api/products?limit=4'))
 
@@ -74,121 +71,35 @@ const featuredProducts = computed(() => {
   return productData.value?.products || []
 })
 
-const defaultServices = [
-  {
-    key: 'machineryRepair',
-    icon: Wrench,
-    sortOrder: 1,
-    tagEn: 'Industrial Maintenance',
-    tagAr: 'صيانة صناعية',
-    nameAr: 'فحص وإصلاح وصيانة المعدات',
-    nameEn: 'Machinery Repair & Maintenance',
-    descriptionAr: 'تشخيص دقيق، إصلاح الأعطال، وصيانة دورية لضمان استمرارية خطوط الإنتاج والآلات الصناعية.',
-    descriptionEn: 'Comprehensive diagnostics, component troubleshooting, and overhaul maintenance for production machinery.',
-  },
-  {
-    key: 'iotSystems',
-    icon: Radio,
-    sortOrder: 2,
-    tagEn: 'Smart Telemetry',
-    tagAr: 'تحكم ذكي',
-    nameAr: 'تركيب وتصميم أنظمة التحكم الذكية',
-    nameEn: 'IoT Systems Design & Installation',
-    descriptionAr: 'حلول إنترنت الأشياء والتحكم الذكي والمراقبة السحابية للمزارع والمنشآت والمشروعات الحديثة.',
-    descriptionEn: 'Custom telemetry, remote environmental monitoring, and smart automation for farms and facilities.',
-  },
-  {
-    key: 'plcSystems',
-    icon: Cpu,
-    sortOrder: 3,
-    tagEn: 'Automation & SCADA',
-    tagAr: 'أتمتة وتحكم صناعي',
-    nameAr: 'تركيب وإنشاء وصيانة أنظمة PLC',
-    nameEn: 'PLC Systems & Automation',
-    descriptionAr: 'برمجة وتصميم لوحات التحكم الصناعية، وشاشات HMI، ودمج الأنظمة الآلية لزيادة كفاءة الإنتاج.',
-    descriptionEn: 'Industrial programming, control panel assembly, SCADA architecture, and line modernization.',
-  },
-  {
-    key: 'fireAlarm',
-    icon: Flame,
-    sortOrder: 4,
-    tagEn: 'Facility Safety',
-    tagAr: 'سلامة المنشآت',
-    nameAr: 'تصميم وتركيب أنظمة الحريق والإنذار',
-    nameEn: 'Fire Alarm & Safety Systems',
-    descriptionAr: 'تصميم وتنفيذ شبكات الإنذار المبكر ومكافحة الحريق بأعلى معايير السلامة والأمان للمنشآت.',
-    descriptionEn: 'Certified early fire detection, emergency alarm networks, and safety engineering compliance.',
-  },
-  {
-    key: 'pneumaticSystems',
-    icon: Gauge,
-    sortOrder: 5,
-    tagEn: 'Pneumatics',
-    tagAr: 'أنظمة نيوماتيك',
-    nameAr: 'تصميم وتركيب وصيانة الأنظمة الهوائية',
-    nameEn: 'Pneumatic Systems',
-    descriptionAr: 'تصميم دوائر الهواء المضغوط وصيانة الصمامات والسلندرات الهوائية لرفع الكفاءة التشغيلية.',
-    descriptionEn: 'Compressed air circuit optimization, solenoid valve maintenance, and pneumatic cylinder retrofits.',
-  },
-  {
-    key: 'productSearch',
-    icon: Search,
-    sortOrder: 6,
-    tagEn: 'Procurement',
-    tagAr: 'توريد قطع نادرة',
-    nameAr: 'خدمة البحث وتوفير منتج خاص',
-    nameEn: 'Product Search & Rare Sourcing',
-    descriptionAr: 'توفير واستيراد القطع النادرة، والرقائق الإلكترونية المتخصصة، والبدائل المعتمدة لصيانة أجهزتك.',
-    descriptionEn: 'Direct procurement of rare chips, obsolete components, and specialized industrial hardware.',
-  },
-  {
-    key: 'bulkSupply',
-    icon: Building2,
-    sortOrder: 7,
-    tagEn: 'B2B Supply',
-    tagAr: 'توريدات شركات',
-    nameAr: 'خدمة التوريدات العامة للشركات',
-    nameEn: 'Bulk Supply for Companies',
-    descriptionAr: 'عقود توريد دورية وكميات متكاملة للشركات والمصانع ومشاريع التخرج بأسعار تنافسية.',
-    descriptionEn: 'Contract supply schedules, volume pricing, and reliable procurement for factories and businesses.',
-  },
-]
-
 const displayServices = computed(() => {
-  const list = services.value && services.value.length > 0 ? services.value : defaultServices
-  return list.map((srv, idx) => {
-    const fallback = defaultServices.find(d => 
-      d.sortOrder === srv.sortOrder || 
-      (srv.nameEn && d.nameEn.toLowerCase() === srv.nameEn.toLowerCase())
-    ) || defaultServices[idx % defaultServices.length]
-
-    const key = fallback.key
-    const name = locale.value === 'ar' 
-      ? (srv.nameAr || t(`engineeringServices.${key}.name`))
-      : (srv.nameEn || t(`engineeringServices.${key}.name`))
-    const description = (locale.value === 'ar' ? srv.descriptionAr : srv.descriptionEn) || t(`engineeringServices.${key}.description`)
-    const id = srv.id || `service-${idx + 1}`
-
+  // Strictly DB-driven: only services managed in the Admin Panel (/api/services
+  // already returns active ones only). No hardcoded fallback anywhere.
+  return (services.value || []).map((srv: any) => {
+    const name = locale.value === 'ar'
+      ? (srv.nameAr || srv.nameEn)
+      : (srv.nameEn || srv.nameAr)
+    const description = locale.value === 'ar'
+      ? (srv.descriptionAr || srv.descriptionEn)
+      : (srv.descriptionEn || srv.descriptionAr)
+    const pill = locale.value === 'ar'
+      ? (srv.tagAr || srv.tagEn)
+      : (srv.tagEn || srv.tagAr)
     return {
-      id,
-      name,
-      description,
-      icon: (srv.iconName && serviceIconMap[srv.iconName]) || fallback.icon,
+      id: srv.id,
+      name: name || '',
+      description: description || '',
+      icon: (srv.iconName && serviceIconMap[srv.iconName]) || Wrench,
       iconPath: srv.iconPath || null,
       cardColor: srv.cardColor || '#FFFFFF',
-      key,
-      tag: locale.value === 'ar' ? fallback.tagAr : fallback.tagEn,
-      pill: locale.value === 'ar'
-        ? (srv.tagAr || fallback.tagAr)
-        : (srv.tagEn || fallback.tagEn),
-      isFlagship: fallback.key === 'plcSystems',
+      pill: pill || '',
       isFeatured: Boolean(srv.isFeatured),
     }
   })
 })
 
 const flagshipService = computed(() => {
-  return displayServices.value.find(s => s.isFlagship) || displayServices.value[0]
+  // API orders featured-first, so the first eligible service leads.
+  return displayServices.value[0] || null
 })
 
 const standardServices = computed(() => {
@@ -325,7 +236,8 @@ catch { /* state not registered yet — mount layout already ran */ }
     <AppHomeBanners placement="below_hero" />
 
     <!-- 3. Engineering Solutions (Bento Grid with Asymmetric Rhythm & Background Diversity) -->
-    <section class="py-16 sm:py-24 px-4 bg-bg transition-colors">
+    <!-- Shown while loading or when at least one eligible service exists; hidden on empty/error -->
+    <section v-if="servicesPending || displayServices.length" class="py-16 sm:py-24 px-4 bg-bg transition-colors">
       <div class="mx-auto max-w-7xl">
         <!-- Section Header (Vertical Stack, No Split-Header) -->
         <div class="reveal mb-12 text-center max-w-3xl mx-auto">
@@ -338,8 +250,29 @@ catch { /* state not registered yet — mount layout already ran */ }
           <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
         </div>
 
+        <!-- Loading skeleton (same card footprint, no fake content) -->
+        <div
+          v-if="servicesPending"
+          class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch"
+          aria-hidden="true"
+        >
+          <div
+            v-for="i in 6"
+            :key="i"
+            class="flex animate-pulse flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-white dark:bg-[#1A1D2E] p-3 sm:p-5 h-full"
+          >
+            <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
+              <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
+              <div class="h-5 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
+            </div>
+            <div class="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-1.5" />
+            <div class="h-3 w-full rounded bg-slate-100 dark:bg-slate-800 mb-3 sm:mb-4" />
+            <div class="mt-auto h-10 w-full rounded-lg bg-slate-200 dark:bg-slate-700" />
+          </div>
+        </div>
+
         <!-- Asymmetric Bento Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch">
+        <div v-else class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch">
           
           <!-- Unified Service Card: flagship entry (same style as all cards) -->
           <div
@@ -352,7 +285,7 @@ catch { /* state not registered yet — mount layout already ran */ }
                 <img v-if="flagshipService.iconPath" :src="flagshipService.iconPath" :alt="flagshipService.name" class="h-5 w-5 object-contain" loading="lazy" />
                 <component v-else :is="flagshipService.icon" class="h-5 w-5" aria-hidden="true" />
               </div>
-              <span class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
+              <span v-if="flagshipService.pill" class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
                 {{ flagshipService.pill }}
               </span>
             </div>
@@ -388,7 +321,7 @@ catch { /* state not registered yet — mount layout already ran */ }
                 <component v-else :is="srv.icon" class="h-5 w-5" aria-hidden="true" />
               </div>
               <div class="flex items-center gap-1.5">
-                <span class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
+                <span v-if="srv.pill" class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
                   {{ srv.pill }}
                 </span>
                 <span

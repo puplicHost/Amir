@@ -85,36 +85,6 @@
     "directCall": "Call Direct",
     "whatsappChat": "WhatsApp Consultation"
   },
-  "engineeringServices": {
-    "machineryRepair": {
-      "name": "Machinery Repair & Maintenance",
-      "description": "Comprehensive diagnostics, component troubleshooting, and overhaul maintenance for production machinery."
-    },
-    "iotSystems": {
-      "name": "IoT Systems & Smart Control",
-      "description": "Custom telemetry, remote environmental monitoring, and smart automation for farms and facilities."
-    },
-    "plcSystems": {
-      "name": "PLC Systems & Automation",
-      "description": "Industrial programming, control panel assembly, SCADA architecture, and line modernization."
-    },
-    "fireAlarm": {
-      "name": "Fire Alarm & Safety Systems",
-      "description": "Certified early fire detection, emergency alarm networks, and preventative safety engineering."
-    },
-    "pneumaticSystems": {
-      "name": "Pneumatic Systems",
-      "description": "Compressed air circuit optimization, solenoid valve maintenance, and pneumatic cylinder retrofits."
-    },
-    "productSearch": {
-      "name": "Specialized Product Sourcing",
-      "description": "Direct procurement of rare chips, obsolete components, and specialized industrial hardware."
-    },
-    "bulkSupply": {
-      "name": "Bulk Supply for Companies",
-      "description": "Contract supply schedules, volume pricing, and reliable procurement for factories and businesses."
-    }
-  },
   "admin": {
     "dashboard": "Dashboard",
     "products": "Products",
