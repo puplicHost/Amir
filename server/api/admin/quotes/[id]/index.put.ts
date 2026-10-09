@@ -101,19 +101,40 @@ export default defineEventHandler(async (event) => {
       }
       else {
         const product = dbMap.get(String(raw.productId))
-        if (!product) continue
-        const price = Number((product as any).price)
-        const sub = Math.round(price * qty * 100) / 100
-        subtotal += sub
-        createData.push({
-          productId: (product as any).id,
-          productNameSnapshot: (product as any).nameEn,
-          productNameEnSnapshot: (product as any).nameEn,
-          productNameArSnapshot: (product as any).nameAr,
-          priceSnapshot: price, quantity: qty, imagePath: null, notes: itemNotes, isCustom: false,
-        })
-        pdfEn.push({ name: (product as any).nameEn, nameEn: (product as any).nameEn, nameAr: (product as any).nameAr, imagePath: null, notes: itemNotes, price, quantity: qty, subtotal: sub })
-        pdfAr.push({ name: (product as any).nameAr, nameEn: (product as any).nameEn, nameAr: (product as any).nameAr, imagePath: null, notes: itemNotes, price, quantity: qty, subtotal: sub })
+        if (product) {
+          const price = Number((product as any).price)
+          const sub = Math.round(price * qty * 100) / 100
+          subtotal += sub
+          createData.push({
+            productId: (product as any).id,
+            productNameSnapshot: (product as any).nameEn,
+            productNameEnSnapshot: (product as any).nameEn,
+            productNameArSnapshot: (product as any).nameAr,
+            priceSnapshot: price, quantity: qty, imagePath: null, notes: itemNotes, isCustom: false,
+          })
+          pdfEn.push({ name: (product as any).nameEn, nameEn: (product as any).nameEn, nameAr: (product as any).nameAr, imagePath: null, notes: itemNotes, price, quantity: qty, subtotal: sub })
+          pdfAr.push({ name: (product as any).nameAr, nameEn: (product as any).nameEn, nameAr: (product as any).nameAr, imagePath: null, notes: itemNotes, price, quantity: qty, subtotal: sub })
+        }
+        else {
+          // Fallback: product removed from the catalog (or legacy item without
+          // productId). Preserve the line from the submitted snapshot instead of
+          // dropping it, so edits never silently delete line items.
+          const fbNameEn = String(raw.nameEn || raw.name || 'Item').trim()
+          const fbNameAr = String(raw.nameAr || raw.name || fbNameEn).trim()
+          const fbPrice = Math.max(0, Number(raw.price) || 0)
+          const fbSub = Math.round(fbPrice * qty * 100) / 100
+          subtotal += fbSub
+          createData.push({
+            productId: null,
+            productNameSnapshot: fbNameEn,
+            productNameEnSnapshot: fbNameEn,
+            productNameArSnapshot: fbNameAr,
+            priceSnapshot: fbPrice, quantity: qty,
+            imagePath: raw.imagePath || null, notes: itemNotes, isCustom: false,
+          })
+          pdfEn.push({ name: fbNameEn, nameEn: fbNameEn, nameAr: fbNameAr, imagePath: raw.imagePath || null, notes: itemNotes, price: fbPrice, quantity: qty, subtotal: fbSub })
+          pdfAr.push({ name: fbNameAr, nameEn: fbNameEn, nameAr: fbNameAr, imagePath: raw.imagePath || null, notes: itemNotes, price: fbPrice, quantity: qty, subtotal: fbSub })
+        }
       }
     }
     if (!createData.length) throw createError({ statusCode: 400, message: 'Valid line items are required' })

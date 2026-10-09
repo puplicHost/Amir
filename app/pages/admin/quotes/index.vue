@@ -6,6 +6,7 @@ import {
   Eye, 
   FileText, 
   Filter, 
+  Pencil, 
   Plus, 
   RotateCcw, 
   Search 
@@ -38,6 +39,7 @@ interface QuoteRow {
 }
 
 const fetch = useRequestFetch()
+const canQuotesManage = useAdminCan('quotes.manage')
 
 const { data, refresh, pending } = await useAsyncData('admin-quotes', () =>
   fetch<{ quotes: QuoteRow[], total: number, pages: number }>(`/api/admin/quotes?${new URLSearchParams({
@@ -233,34 +235,46 @@ async function gotoPage(p: number) {
 
               <!-- Actions: Details & Download PDF -->
               <td class="px-4 py-3 text-end">
-                <div class="flex items-center justify-end gap-1.5">
+                <div class="flex items-center justify-end gap-1">
+                  <NuxtLink
+                    v-if="canQuotesManage"
+                    :to="localePath(`/admin/quotes/new?edit=${q.id}`)"
+                    :title="locale === 'ar' ? 'تحديث عرض السعر' : 'Update quote'"
+                    :aria-label="locale === 'ar' ? 'تحديث عرض السعر' : 'Update quote'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                  >
+                    <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
+                  </NuxtLink>
                   <NuxtLink
                     :to="localePath(`/admin/quotes/${q.id}`)"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                    :title="locale === 'ar' ? 'تفاصيل' : 'Details'"
+                    :aria-label="locale === 'ar' ? 'تفاصيل' : 'Details'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                   >
-                    <Eye class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{{ locale === 'ar' ? 'تفاصيل' : 'Details' }}</span>
+                    <Eye class="h-4 w-4" aria-hidden="true" />
                   </NuxtLink>
 
                   <a
                     :href="`/api/quotes/${q.id}/pdf?locale=en`"
                     target="_blank"
                     download
-                    class="inline-flex h-8 items-center gap-1 rounded border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                    title="Download English PDF"
+                    :title="locale === 'ar' ? 'تحميل PDF إنجليزي' : 'Download English PDF'"
+                    :aria-label="locale === 'ar' ? 'تحميل PDF إنجليزي' : 'Download English PDF'"
+                    class="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 px-2 text-[10px] font-black text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    <Download class="h-3 w-3" />
+                    <Download class="h-3.5 w-3.5" aria-hidden="true" />
                     <span>EN</span>
                   </a>
                   <a
                     :href="`/api/quotes/${q.id}/pdf?locale=ar`"
                     target="_blank"
                     download
-                    class="inline-flex h-8 items-center gap-1 rounded bg-[#2B71AE]/10 px-2 text-xs font-semibold text-[#2B71AE] hover:bg-[#2B71AE]/20 dark:bg-[#F5CC07]/15 dark:text-[#F5CC07]"
-                    title="تحميل PDF عربي"
+                    :title="locale === 'ar' ? 'تحميل PDF عربي' : 'Download Arabic PDF'"
+                    :aria-label="locale === 'ar' ? 'تحميل PDF عربي' : 'Download Arabic PDF'"
+                    class="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 px-2 text-[10px] font-black text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    <Download class="h-3 w-3" />
-                    <span>عربي</span>
+                    <Download class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>AR</span>
                   </a>
                 </div>
               </td>

@@ -1014,6 +1014,7 @@ async function removeExpense(e: Expense) {
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                     :title="locale === 'ar' ? 'حذف' : 'Delete'"
+                    :aria-label="locale === 'ar' ? 'حذف' : 'Delete'"
                     @click="removeExpense(e)"
                   >
                     <Trash2 class="h-4 w-4" aria-hidden="true" />

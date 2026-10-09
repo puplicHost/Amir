@@ -319,6 +319,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             class="flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 dark:border-slate-700 dark:hover:bg-slate-800"
             :disabled="idx === 0 || reordering"
             :title="locale === 'ar' ? 'تحريك لأعلى' : 'Move up'"
+            :aria-label="locale === 'ar' ? 'تحريك لأعلى' : 'Move up'"
             @click="moveField(idx, -1)"
           >
             <ArrowUp class="h-3.5 w-3.5" aria-hidden="true" />
@@ -328,17 +329,19 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             class="flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 dark:border-slate-700 dark:hover:bg-slate-800"
             :disabled="idx === (fields?.length || 1) - 1 || reordering"
             :title="locale === 'ar' ? 'تحريك لأسفل' : 'Move down'"
+            :aria-label="locale === 'ar' ? 'تحريك لأسفل' : 'Move down'"
             @click="moveField(idx, 1)"
           >
             <ArrowDown class="h-3.5 w-3.5" aria-hidden="true" />
           </button>
           <button
             type="button"
-            class="ms-2 flex h-8 items-center gap-1 rounded border border-rose-200 px-2.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/40"
+            class="ms-2 inline-flex h-8 w-8 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+            :title="locale === 'ar' ? 'حذف' : 'Remove'"
+            :aria-label="locale === 'ar' ? 'حذف' : 'Remove'"
             @click="removeField(field.id, field.labelEn)"
           >
-            <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{{ locale === 'ar' ? 'حذف' : 'Remove' }}</span>
+            <Trash2 class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>

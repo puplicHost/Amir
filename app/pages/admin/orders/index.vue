@@ -274,10 +274,11 @@ function formatDate(d: string) {
               <td class="px-4 py-3 text-end">
                 <NuxtLink
                   :to="localePath(`/admin/orders/${o.id}`)"
-                  class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                  :title="locale === 'ar' ? 'تفاصيل' : 'Details'"
+                  :aria-label="locale === 'ar' ? 'تفاصيل' : 'Details'"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                 >
-                  <Eye class="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>{{ locale === 'ar' ? 'تفاصيل' : 'Details' }}</span>
+                  <Eye class="h-4 w-4" aria-hidden="true" />
                 </NuxtLink>
               </td>
             </tr>

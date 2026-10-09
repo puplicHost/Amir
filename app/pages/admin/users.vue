@@ -486,23 +486,25 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
               <!-- Actions -->
               <td class="px-4 py-3 text-end">
-                <div v-if="!user.isSuper" class="flex items-center justify-end gap-1.5">
+                <div v-if="!user.isSuper" class="flex items-center justify-end gap-1">
                   <button
                     type="button"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                    :title="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    :aria-label="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                     @click="openEdit(user)"
                   >
-                    <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
+                    <Pencil class="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     type="button"
                     :disabled="deletingId === user.id"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                    :title="locale === 'ar' ? 'حذف' : 'Delete'"
+                    :aria-label="locale === 'ar' ? 'حذف' : 'Delete'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
                     @click="removeUser(user)"
                   >
-                    <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span class="hidden sm:inline">{{ locale === 'ar' ? 'حذف' : 'Delete' }}</span>
+                    <Trash2 class="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
                 <span v-else class="text-xs text-slate-400">-</span>

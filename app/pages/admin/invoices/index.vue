@@ -329,6 +329,7 @@ async function saveManualInvoice() {
                     :to="localePath(`/admin/invoices/${inv.id}`)"
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                     :title="locale === 'ar' ? 'عرض' : 'View'"
+                    :aria-label="locale === 'ar' ? 'عرض' : 'View'"
                   >
                     <Eye class="h-4 w-4" aria-hidden="true" />
                   </NuxtLink>
@@ -337,6 +338,7 @@ async function saveManualInvoice() {
                     target="_blank" download
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                     :title="locale === 'ar' ? 'تحميل PDF' : 'Download PDF'"
+                    :aria-label="locale === 'ar' ? 'تحميل PDF' : 'Download PDF'"
                   >
                     <Download class="h-4 w-4" aria-hidden="true" />
                   </a>
@@ -344,6 +346,7 @@ async function saveManualInvoice() {
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                     :title="locale === 'ar' ? 'طباعة' : 'Print'"
+                    :aria-label="locale === 'ar' ? 'طباعة' : 'Print'"
                     @click="printInvoice(inv.id)"
                   >
                     <Printer class="h-4 w-4" aria-hidden="true" />

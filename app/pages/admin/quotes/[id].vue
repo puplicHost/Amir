@@ -10,6 +10,7 @@ import {
   FileText, 
   Mail, 
   MapPin,
+  Pencil,
   Phone, 
   RotateCcw, 
   ShieldCheck, 
@@ -39,6 +40,7 @@ if (data.value?.quote) {
 }
 
 const { confirm: confirmDialog } = useAdminConfirm()
+const canQuotesManage = useAdminCan('quotes.manage')
 
 function formatExpiry(d: string): string {
   if (!d) return ''
@@ -150,6 +152,14 @@ async function convertToInvoice() {
         </template>
         <template #actions>
           <div class="flex flex-wrap items-center gap-2">
+            <NuxtLink
+              v-if="canQuotesManage"
+              :to="localePath(`/admin/quotes/new?edit=${data.quote.id}`)"
+              class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2B71AE] px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#285E8E]"
+            >
+              <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{{ locale === 'ar' ? 'تحديث العرض' : 'Update Quote' }}</span>
+            </NuxtLink>
             <a
               :href="`/api/quotes/${data.quote.id}/pdf?locale=en`"
               target="_blank"

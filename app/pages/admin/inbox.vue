@@ -252,6 +252,7 @@ const tabs = computed(() => [
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                     :title="locale === 'ar' ? 'تعليم كمقروءة' : 'Mark as read'"
+                    :aria-label="locale === 'ar' ? 'تعليم كمقروءة' : 'Mark as read'"
                     @click="markRead(m, $event)"
                   >
                     <MailOpen class="h-4 w-4" aria-hidden="true" />
@@ -261,6 +262,7 @@ const tabs = computed(() => [
                     :disabled="deletingId === m.id"
                     class="inline-flex h-8 w-8 items-center justify-center rounded text-rose-500 hover:bg-rose-50 disabled:opacity-40 dark:hover:bg-rose-950/40"
                     :title="locale === 'ar' ? 'حذف الرسالة' : 'Delete message'"
+                    :aria-label="locale === 'ar' ? 'حذف الرسالة' : 'Delete message'"
                     @click="deleteMessage(m, $event)"
                   >
                     <Trash2 class="h-4 w-4" aria-hidden="true" />

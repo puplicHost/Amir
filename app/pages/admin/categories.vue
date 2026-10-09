@@ -385,23 +385,25 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
                 />
               </td>
               <td class="px-4 py-3 text-end">
-                <div class="flex items-center justify-end gap-1.5">
+                <div class="flex items-center justify-end gap-1">
                   <button
                     type="button"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                    :title="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    :aria-label="locale === 'ar' ? 'تعديل' : 'Edit'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400 dark:hover:bg-blue-950/50"
                     @click="openEdit(c)"
                   >
-                    <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{{ locale === 'ar' ? 'تعديل' : 'Edit' }}</span>
+                    <Pencil class="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     type="button"
                     :disabled="deletingId === c.id"
-                    class="inline-flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                    :title="locale === 'ar' ? 'حذف' : 'Delete'"
+                    :aria-label="locale === 'ar' ? 'حذف' : 'Delete'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
                     @click="removeCategory(c)"
                   >
-                    <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{{ locale === 'ar' ? 'حذف' : 'Delete' }}</span>
+                    <Trash2 class="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </td>

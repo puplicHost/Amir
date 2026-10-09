@@ -27,11 +27,18 @@ definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
 const router = useRouter()
 const toast = useAdminToast()
 
+// Edit mode (?edit=<quoteId>) — declared first: useHead resolves eagerly during setup
+const editId = computed(() => String(route.query.edit || ''))
+const isEditMode = computed(() => editId.value.length > 0)
+
 useHead(() => ({
-  title: `${locale.value === 'ar' ? 'إنشاء عرض سعر جديد' : 'Create New Quote'} | ${t('brand.name')}`,
+  title: `${isEditMode.value
+    ? (locale.value === 'ar' ? 'تحديث عرض سعر' : 'Update Quote')
+    : (locale.value === 'ar' ? 'إنشاء عرض سعر جديد' : 'Create New Quote')} | ${t('brand.name')}`,
 }))
 
 // Company Information Form
@@ -88,6 +95,13 @@ const { data: initialProductsData, pending: initialLoading } = await useAsyncDat
 const browseProducts = ref<any[]>(initialProductsData.value?.products || [])
 browseTotal.value = initialProductsData.value?.total || 0
 catalogTotal.value = initialProductsData.value?.total || 0
+
+// Edit mode (?edit=<quoteId>): preload an existing quote so it can be updated
+const { data: editQuoteData } = await useAsyncData('admin-edit-quote', () =>
+  editId.value
+    ? fetch<{ quote: any }>(`/api/admin/quotes/${editId.value}`)
+    : Promise.resolve(null),
+)
 
 const browsePages = computed(() => Math.max(1, Math.ceil(browseTotal.value / DEFAULT_LIMIT)))
 
@@ -327,6 +341,74 @@ const grandTotal = computed(() => {
 const submitting = ref(false)
 const errorMessage = ref('')
 
+// Header + submit labels switch between create and edit mode
+const headerTitle = computed(() => {
+  if (!isEditMode.value) return locale.value === 'ar' ? 'إنشاء عرض سعر جديد' : 'Create New Quote'
+  return locale.value === 'ar' ? 'تحديث عرض السعر' : 'Update Quote'
+})
+const headerDescription = computed(() => {
+  if (!isEditMode.value) {
+    return locale.value === 'ar'
+      ? 'إنشاء وتوثيق عرض أسعار رسمي معتمد نيابة عن العميل واستخراج ملفي PDF بالإنجليزية والعربية.'
+      : 'Generate a formal price quotation and export official Arabic & English PDF documents.'
+  }
+  return locale.value === 'ar'
+    ? 'تعديل بيانات العرض وبنوده ثم حفظ التحديثات وإعادة توليد ملفات PDF.'
+    : 'Edit the quote details and line items, then save to regenerate the PDFs.'
+})
+const headerBackTo = computed(() => (isEditMode.value ? `/admin/quotes/${editId.value}` : '/admin/quotes'))
+const headerBackLabel = computed(() => {
+  if (!isEditMode.value) return locale.value === 'ar' ? 'العودة لعروض الأسعار' : 'Back to Quotes'
+  return locale.value === 'ar' ? 'العودة لتفاصيل العرض' : 'Back to Quote'
+})
+const submitLabel = computed(() => {
+  if (submitting.value) {
+    if (isEditMode.value) return locale.value === 'ar' ? 'جاري حفظ التحديثات…' : 'Saving Updates…'
+    return locale.value === 'ar' ? 'جاري إنشاء العرض وتصدير PDF…' : 'Generating Quote & PDFs…'
+  }
+  if (isEditMode.value) return locale.value === 'ar' ? 'حفظ تحديثات عرض السعر' : 'Save Quote Updates'
+  return locale.value === 'ar' ? 'إنشاء وتصدير عرض السعر (PDF)' : 'Generate & Export Quote (PDF)'
+})
+
+// Prefill the form when editing an existing quote (?edit=<id>)
+if (isEditMode.value) {
+  const existing = editQuoteData.value?.quote
+  if (!existing) {
+    errorMessage.value = locale.value === 'ar'
+      ? 'عرض السعر غير موجود أو تعذر تحميل بياناته.'
+      : 'Quote not found or failed to load.'
+  }
+  else {
+    form.companyName = existing.companyName || ''
+    form.contactName = existing.contactName || ''
+    form.contactTitle = existing.contactTitle || ''
+    form.phone = existing.phone || ''
+    form.email = existing.email || ''
+    form.notes = existing.notes || ''
+    const dt = String(existing.discountType || 'none')
+    discountType.value = dt === 'percentage' || dt === 'fixed' ? dt : 'none'
+    discountValue.value = Number(existing.discountValue) || ''
+    selectedItems.value = (existing.items || []).map((it: any) => {
+      const custom = !!it.isCustom
+      const nameEn = it.productNameEnSnapshot || it.productNameSnapshot || 'Item'
+      const nameAr = it.productNameArSnapshot || it.productNameSnapshot || nameEn
+      return {
+        id: custom ? `custom-${it.id}` : (it.productId || it.id),
+        productId: custom ? null : (it.productId || null),
+        name: locale.value === 'ar' ? nameAr : nameEn,
+        nameEn,
+        nameAr,
+        categoryName: '',
+        price: Number(it.priceSnapshot) || 0,
+        coverImage: it.imagePath || it.product?.images?.[0]?.path || null,
+        quantity: Math.max(1, Number(it.quantity) || 1),
+        notes: it.notes || '',
+        isCustom: custom,
+      }
+    })
+  }
+}
+
 async function submitQuote() {
   if (submitting.value) return
   errorMessage.value = ''
@@ -354,6 +436,41 @@ async function submitQuote() {
 
   submitting.value = true
   try {
+    const body = {
+      companyName: form.companyName.trim(),
+      contactName: form.contactName.trim(),
+      contactTitle: form.contactTitle.trim() || undefined,
+      phone: form.phone.trim(),
+      email: form.email.trim() || undefined,
+      notes: form.notes.trim() || undefined,
+      discountType: discountType.value,
+      discountValue: Number(discountValue.value) || 0,
+      items: selectedItems.value.map(i => ({
+        productId: i.isCustom ? null : (i.productId || null),
+        isCustom: !!i.isCustom,
+        nameEn: i.nameEn,
+        nameAr: i.nameAr,
+        price: i.price,
+        quantity: i.quantity,
+        imagePath: i.coverImage,
+        notes: i.notes || undefined,
+      })),
+    }
+
+    // Edit mode: update the existing quote via PUT, then back to its detail view
+    if (isEditMode.value) {
+      await $fetch(`/api/admin/quotes/${editId.value}`, {
+        method: 'PUT',
+        body,
+      })
+      toast.success(
+        locale.value === 'ar' ? 'تم تحديث عرض السعر بنجاح' : 'Quote Updated Successfully',
+        locale.value === 'ar' ? 'تم حفظ التعديلات وإعادة توليد ملفات PDF.' : 'Changes saved and PDFs regenerated.',
+      )
+      await router.push(localePath(`/admin/quotes/${editId.value}`))
+      return
+    }
+
     const res = await $fetch<{
       quoteId: string
       quoteNumber: string
@@ -362,26 +479,7 @@ async function submitQuote() {
       downloadUrlAr: string
     }>('/api/admin/quotes', {
       method: 'POST',
-      body: {
-        companyName: form.companyName.trim(),
-        contactName: form.contactName.trim(),
-        contactTitle: form.contactTitle.trim() || undefined,
-        phone: form.phone.trim(),
-        email: form.email.trim() || undefined,
-        notes: form.notes.trim() || undefined,
-        discountType: discountType.value,
-        discountValue: Number(discountValue.value) || 0,
-        items: selectedItems.value.map(i => ({
-          productId: i.isCustom ? null : i.productId || i.id,
-          isCustom: !!i.isCustom,
-          nameEn: i.nameEn,
-          nameAr: i.nameAr,
-          price: i.price,
-          quantity: i.quantity,
-          imagePath: i.coverImage,
-          notes: i.notes || undefined,
-        })),
-      },
+      body,
     })
 
     // Auto-trigger download for active locale
@@ -407,7 +505,9 @@ async function submitQuote() {
     await router.push(localePath(`/admin/quotes/${res.quoteId}`))
   }
   catch (e: any) {
-    errorMessage.value = e?.data?.message || (locale.value === 'ar' ? 'فشل إنشاء عرض السعر.' : 'Failed to create quote.')
+    errorMessage.value = e?.data?.message || (locale.value === 'ar'
+      ? (isEditMode.value ? 'فشل تحديث عرض السعر.' : 'فشل إنشاء عرض السعر.')
+      : (isEditMode.value ? 'Failed to update quote.' : 'Failed to create quote.'))
   }
   finally {
     submitting.value = false
@@ -421,10 +521,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
   <div>
     <!-- Page Header -->
     <AdminPageHeader
-      :title="locale === 'ar' ? 'إنشاء عرض سعر جديد' : 'Create New Quote'"
-      :description="locale === 'ar' ? 'إنشاء وتوثيق عرض أسعار رسمي معتمد نيابة عن العميل واستخراج ملفي PDF بالإنجليزية والعربية.' : 'Generate a formal price quotation and export official Arabic & English PDF documents.'"
-      back-to="/admin/quotes"
-      :back-label="locale === 'ar' ? 'العودة لعروض الأسعار' : 'Back to Quotes'"
+      :title="headerTitle"
+      :description="headerDescription"
+      :back-to="headerBackTo"
+      :back-label="headerBackLabel"
     />
 
     <!-- Error Alert -->
@@ -822,6 +922,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
                         type="button"
                         class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1"
                         :title="locale === 'ar' ? 'حذف من العرض' : 'Remove item'"
+                        :aria-label="locale === 'ar' ? 'حذف من العرض' : 'Remove item'"
                         @click="removeItem(item.id)"
                       >
                         <Trash2 class="h-3.5 w-3.5" />
@@ -1043,7 +1144,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs text-slate
               >
                 <Download v-if="!submitting" class="h-4 w-4" />
                 <Loader2 v-else class="h-4 w-4 animate-spin" />
-                <span>{{ submitting ? (locale === 'ar' ? 'جاري إنشاء العرض وتصدير PDF…' : 'Generating Quote & PDFs…') : (locale === 'ar' ? 'إنشاء وتصدير عرض السعر (PDF)' : 'Generate & Export Quote (PDF)') }}</span>
+                <span>{{ submitLabel }}</span>
               </button>
             </div>
           </form>
