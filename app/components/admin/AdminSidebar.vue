@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  Boxes,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -44,7 +43,6 @@ const canServicesView = useAdminCan('services.view')
 const canUsersManage = useAdminCan('users.manage')
 const canSettingsView = useAdminCan('settings.view')
 const canBannersManage = useAdminCan('banners.manage')
-const canInventoryView = useAdminCan('inventory.view')
 const canFinancialsView = useAdminCan('financials.view')
 const canInboxView = useAdminCan('inbox.view')
 
@@ -72,7 +70,6 @@ const items = computed<SidebarItem[]>(() => [
   { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
   { label: locale.value === 'ar' ? 'عروض الأسعار' : 'Quote Requests', to: '/admin/quotes', icon: FileText, show: canQuotesView.value },
   { label: locale.value === 'ar' ? 'المالية والمصاريف' : 'Financials', to: '/admin/financials', icon: Wallet, show: canFinancialsView.value },
-  { label: locale.value === 'ar' ? 'المخزون' : 'Inventory', to: '/admin/inventory', icon: Boxes, show: canProductsView.value || canInventoryView.value },
   { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
   { label: locale.value === 'ar' ? 'صندوق الوارد' : 'Inbox', to: '/admin/inbox', icon: Mail, show: canInboxView.value, badge: inboxUnread.value?.unreadCount || 0 },
   { label: locale.value === 'ar' ? 'البنرات' : 'Banners', to: '/admin/banners', icon: Megaphone, show: canBannersManage.value },

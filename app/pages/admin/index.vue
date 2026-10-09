@@ -263,7 +263,7 @@ const quickActions = computed(() => [
       </p>
       <NuxtLink
         v-if="canProductsView"
-        :to="localePath('/admin/inventory')"
+        :to="localePath('/admin/products')"
         class="inline-flex items-center gap-1 rounded-md bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-rose-700"
       >
         <span>{{ locale === 'ar' ? 'عرض المنتجات' : 'View products' }}</span>
