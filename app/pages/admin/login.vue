@@ -35,9 +35,16 @@ async function login() {
   }
   catch (e) {
     const status = (e as { response?: { status?: number } })?.response?.status
-    errorMessage.value = status === 401
-      ? (locale.value === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.')
-      : (locale.value === 'ar' ? 'حدث خطأ في النظام. يرجى المحاولة مرة أخرى.' : 'Something went wrong. Please try again.')
+    const isAr = locale.value === 'ar'
+    if (status === 401) {
+      errorMessage.value = isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.'
+    }
+    else if (status === 429) {
+      errorMessage.value = isAr ? 'محاولات كثيرة. يرجى الانتظار دقيقة ثم المحاولة مرة أخرى.' : 'Too many attempts. Please wait a minute and try again.'
+    }
+    else {
+      errorMessage.value = isAr ? 'حدث خطأ في النظام. يرجى المحاولة مرة أخرى.' : 'Something went wrong. Please try again.'
+    }
   }
   finally {
     pending.value = false

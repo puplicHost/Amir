@@ -1,44 +1,62 @@
+name: mango-electronics
+
 services:
   db:
     image: postgres:16-alpine
+    container_name: mango-electronics-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: mango
       POSTGRES_PASSWORD: mango
-      POSTGRES_DB: mango
+      POSTGRES_DB: mango_electronics_db
+    # Kept for local dev (`npm run dev` uses localhost:5439).
+    # On the production server, firewall this port or delete these two lines.
     ports:
-      - "5434:5432"
+      - "5439:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mango -d mango"]
+      test: ["CMD-SHELL", "pg_isready -U mango -d mango_electronics_db"]
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - internal
 
   app:
     build: .
+    container_name: mango-electronics-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    env_file: .env
     environment:
-      # Single source of truth: .env (point at Neon or local db; Compose just passes it through)
-      DATABASE_URL: "${DATABASE_URL}"
-      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:-dev-only-change-me-min-32-chars}"
+      # Overrides .env (which points at localhost for local dev).
+      # Inside Compose the db is reachable by service hostname.
+      DATABASE_URL: "postgresql://mango:mango@mango-electronics-db:5432/mango_electronics_db?schema=public"
       NODE_ENV: production
       NITRO_PORT: "3000"
       NITRO_HOST: "0.0.0.0"
+    expose:
+      - "3000"
     depends_on:
       db:
         condition: service_healthy
-    # Boot step: the image runs `prisma migrate deploy` explicitly on container
-    # start (see Dockerfile CMD) — migrations never run during image build.
-    # Uploads persist across restarts via named volumes.
     volumes:
       - uploads-data:/app/public/uploads
       - app-storage:/app/storage
+    networks:
+      - internal
+      - proxy
 
 volumes:
+  # Reuses the existing data volume (same cluster: mango + mango_electronics_db).
+  # Without this, `name: mango-electronics` would create a fresh empty volume.
   pgdata:
+    external: true
+    name: me-project_pgdata
   uploads-data:
   app-storage:
+
+networks:
+  internal:
+  proxy:
+    external: true
