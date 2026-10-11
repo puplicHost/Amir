@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'products.edit')
+  await requirePermission(event, 'products.manage')
   const body = await readBody(event)
   const order = Array.isArray(body.order) ? body.order.filter((x): x is string => typeof x === 'string') : []
   if (!order.length) throw createError({ statusCode: 400, statusMessage: 'Order array required' })

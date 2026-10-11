@@ -8,7 +8,6 @@ import {
   Menu, 
   PhoneCall, 
   Search, 
-  ShoppingCart, 
   Sparkles, 
   Wrench, 
   X 
@@ -127,7 +126,6 @@ const links = computed(() => [
   { label: t('nav.contact'), to: localePath('/contact') },
 ])
 const productsHref = computed(() => localePath('/products'))
-const cartStore = useCartStore()
 
 const { data: navCats } = await useAsyncData('navbar-categories', () =>
   $fetch<{ categories: { slug: string, nameAr: string, nameEn: string }[] }>('/api/categories'),
@@ -228,7 +226,7 @@ const isProductsActive = computed(() => {
         <img 
           v-else 
           src="/logo.png" 
-          alt="Mango Electronics" 
+          alt="Amir" 
           class="h-9 w-9 rounded object-contain shadow-xs transition-transform group-hover:scale-105" 
         />
         <div class="leading-tight">
@@ -285,21 +283,7 @@ const isProductsActive = computed(() => {
               class="rounded-xl border border-border bg-surface p-2 shadow-xl ring-1 ring-border"
               :style="{ borderColor: 'var(--color-border)' }"
             >
-              <!-- Top Deals & Offers Item (Change 10) -->
-              <NuxtLink
-                :to="localePath('/products/offers')"
-                class="flex items-center justify-between rounded-lg bg-primary/15 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/25 transition-colors mb-1"
-                @click="productsOpen = false"
-              >
-                <div class="flex items-center gap-2">
-                  <span>🏷️</span>
-                  <span class="font-bold">{{ locale === 'ar' ? 'عروض وخصومات' : 'Deals & Offers' }}</span>
-                </div>
-                <span class="rounded bg-accent px-1.5 py-0.5 text-[9px] font-black text-on-accent">HOT</span>
-              </NuxtLink>
-
-              <div class="my-1 border-t border-border"></div>
-
+              <!-- All Products entry -->
               <NuxtLink 
                 :to="productsHref" 
                 class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
@@ -327,20 +311,6 @@ const isProductsActive = computed(() => {
           </div>
         </li>
 
-        <!-- Deals & Offers Top-Level Navbar Link -->
-        <li>
-          <NuxtLink 
-            :to="localePath('/products/offers')" 
-            class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-all"
-            :class="deskLink(isActiveRoute(localePath('/products/offers')))"
-          >
-            <span>{{ locale === 'ar' ? 'العروض والخصومات' : 'Deals & Offers' }}</span>
-            <span class="rounded bg-accent px-1.5 py-0.5 text-[9px] font-black text-on-accent shadow-xs">
-              HOT
-            </span>
-          </NuxtLink>
-        </li>
-
         <!-- Services Link -->
         <li>
           <NuxtLink 
@@ -364,7 +334,7 @@ const isProductsActive = computed(() => {
         </li>
       </ul>
 
-      <!-- Action Utilities (Language, Theme, Cart) -->
+      <!-- Action Utilities (Language, Theme) -->
       <div class="hidden items-center gap-2 md:flex">
         <!-- Language Switcher -->
         <button
@@ -394,21 +364,6 @@ const isProductsActive = computed(() => {
           <Search v-else class="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <!-- Shopping Cart Button -->
-        <NuxtLink
-          :to="localePath('/cart')"
-          :aria-label="t('nav.cart')"
-          class="relative inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all"
-        >
-          <ShoppingCart class="h-4 w-4" aria-hidden="true" />
-          <span class="hidden lg:inline">{{ t('nav.cart') }}</span>
-          <span 
-            v-if="cartStore.itemCount" 
-            class="flex h-5 min-w-5 items-center justify-center rounded-full bg-cream px-1 text-[11px] font-black text-navy shadow-xs"
-          >
-            {{ cartStore.itemCount }}
-          </span>
-        </NuxtLink>
       </div>
 
       <!-- Mobile Actions -->
@@ -424,21 +379,6 @@ const isProductsActive = computed(() => {
           <X v-if="searchBarOpen" class="h-5 w-5" aria-hidden="true" />
           <Search v-else class="h-5 w-5" aria-hidden="true" />
         </button>
-
-        <NuxtLink
-          :to="localePath('/cart')"
-          :aria-label="t('nav.cart')"
-          class="relative flex h-10 w-10 items-center justify-center rounded-lg border"
-          :class="iconBtn()"
-        >
-          <ShoppingCart class="h-5 w-5" aria-hidden="true" />
-          <span 
-            v-if="cartStore.itemCount" 
-            class="absolute -end-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-black text-on-accent shadow-xs"
-          >
-            {{ cartStore.itemCount }}
-          </span>
-        </NuxtLink>
 
         <button
           type="button"
@@ -590,10 +530,7 @@ const isProductsActive = computed(() => {
 
                   <div class="text-end shrink-0">
                     <span class="font-mono text-xs sm:text-sm font-bold text-primary">
-                      {{ item.price }} EGP
-                    </span>
-                    <span v-if="item.compareAtPrice" class="block text-[10px] text-muted line-through">
-                      {{ item.compareAtPrice }} EGP
+                      {{ item.price }} €
                     </span>
                   </div>
                 </NuxtLink>
@@ -655,20 +592,6 @@ const isProductsActive = computed(() => {
           >
             <span>{{ t('nav.products') }}</span>
             <span class="text-xs text-muted font-mono">{{ t('nav.allProducts') }}</span>
-          </NuxtLink>
-        </li>
-        <li>
-          <NuxtLink
-            :to="localePath('/products/offers')"
-            class="flex items-center justify-between rounded-lg px-3.5 py-2.5 text-sm font-bold transition-colors"
-            :class="isActiveRoute(localePath('/products/offers')) ? 'bg-accent text-on-accent font-black' : 'text-primary hover:bg-primary/15'"
-            @click="mobileOpen = false"
-          >
-            <div class="flex items-center gap-2">
-              <span>🏷️</span>
-              <span>{{ locale === 'ar' ? 'العروض والخصومات' : 'Deals & Offers' }}</span>
-            </div>
-            <span class="rounded bg-accent px-1.5 py-0.5 text-[9px] font-black text-on-accent">HOT</span>
           </NuxtLink>
         </li>
         <li>

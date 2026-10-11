@@ -2,11 +2,11 @@
 
 ## 1. Overview
 
-Establish the complete project skeleton: Nuxt 3 + Nitro + Prisma + PostgreSQL + Docker, configured for bilingual RTL/LTR support, light/dark mode, shadcn-vue, Tailwind with the Mango Electronics design system tokens, and i18n. This phase produces no business features — it produces a running, correctly structured base that every subsequent phase builds on.
+Establish the complete project skeleton: Nuxt 3 + Nitro + Prisma + PostgreSQL + Docker, configured for bilingual RTL/LTR support, light/dark mode, shadcn-vue, Tailwind with the Amir design system tokens, and i18n. This phase produces no business features — it produces a running, correctly structured base that every subsequent phase builds on.
 
 ## 2. Objective
 
-When this phase completes, the development team can start any Phase 2+ task without foundational blockers. The app runs in Docker, connects to the database, renders a skeleton homepage in both Arabic and English, and applies the Mango Electronics color palette and typography.
+When this phase completes, the development team can start any Phase 2+ task without foundational blockers. The app runs in Docker, connects to the database, renders a skeleton homepage in both Arabic and English, and applies the Amir color palette and typography.
 
 ## 3. Scope
 
@@ -74,12 +74,12 @@ When this phase completes, the development team can start any Phase 2+ task with
 
 ## 8. UI Requirements
 
-- Mango Electronics color palette visible on skeleton page
+- Amir color palette visible on skeleton page
 - Archive font rendering for headings
 - Cairo font rendering when locale is AR
 - Dark mode toggle works: switches between dark/light CSS variable sets
 - Language toggle works: switches between AR (RTL) and EN (LTR)
-- Logo area in navbar shows text "Mango Electronics" or placeholder until logo asset is integrated
+- Logo area in navbar shows text "Amir" or placeholder until logo asset is integrated
 
 ## 9. Business Rules
 

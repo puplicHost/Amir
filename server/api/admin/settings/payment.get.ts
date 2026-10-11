@@ -1,29 +1,21 @@
-import { decryptData } from '../../../utils/encryption'
+import { requirePermission } from '../../../utils/auth'
 
+// Payment gateway config. Secrets are never returned raw —
+// only hasCredentials booleans.
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.view')
+  await requirePermission(event, 'settings.payment')
   const settings = await prisma.siteSettings.findFirst()
-  if (!settings) throw createError({ statusCode: 404, statusMessage: 'Settings not found' })
-
-  // Only check if credentials exist, never return them raw.
-  const hasCredentials = !!settings.paymentGatewayCredentials
-  // Optional: try to decrypt to ensure it's valid, but don't return.
-  if (hasCredentials) {
-    try {
-      decryptData(settings.paymentGatewayCredentials!)
-    }
-    catch {
-      // Data is malformed or key changed
-    }
-  }
-
   return {
     payment: {
-      codEnabled: settings.paymentCodEnabled,
-      onlineEnabled: settings.paymentOnlineEnabled,
-      gatewayName: settings.paymentGatewayName || '',
-      gatewayMode: settings.paymentGatewayMode || 'sandbox',
-      hasCredentials,
+      stripeEnabled: settings?.stripeEnabled ?? false,
+      stripePublishableKey: settings?.stripePublishableKey || '',
+      hasStripeSecret: !!settings?.stripeSecretKey,
+      hasStripeWebhookSecret: !!settings?.stripeWebhookSecret,
+      paypalEnabled: settings?.paypalEnabled ?? false,
+      paypalClientId: settings?.paypalClientId || '',
+      hasPaypalSecret: !!settings?.paypalSecret,
+      hasPaypalWebhookId: !!settings?.paypalWebhookId,
+      paypalMode: settings?.paypalMode || 'sandbox',
     },
   }
 })

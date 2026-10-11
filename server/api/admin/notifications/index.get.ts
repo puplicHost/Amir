@@ -1,34 +1,29 @@
-import { getSessionUser } from '../../../utils/auth'
+import { requirePermission } from '../../../utils/auth'
 import { NOTIFICATION_PERMISSION } from '../../../utils/admin-notifications'
 
 export default defineEventHandler(async (event) => {
-  const user = await getSessionUser(event)
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const user = await requirePermission(event, 'notifications.view')
 
   const query = getQuery(event)
   const page = Math.max(1, Number(query.page) || 1)
   const limit = Math.min(50, Math.max(1, Number(query.limit) || 15))
 
-  // A staff user only sees notification types matching their permissions.
+  // A user only sees notification types matching their permissions.
   const allowedTypes = Object.entries(NOTIFICATION_PERMISSION)
-    .filter(([, permission]) => user.permissions.includes(permission))
+    .filter(([, permission]) => {
+      const perms = Array.isArray(permission) ? permission : [permission]
+      return user.isSuper || perms.some(p => user.permissions.includes(p))
+    })
     .map(([type]) => type)
 
   if (!allowedTypes.length) {
     return { notifications: [], unreadCount: 0, total: 0, page, pages: 0 }
   }
 
-  // Optional filters used by the full-page history view. `type` accepts an
-  // exact type or a group (order/service/quote/staff/security); unknown
-  // values are ignored. `read` accepts all/read/unread.
   const TYPE_GROUPS: Record<string, string[]> = {
-    order: ['new_order'],
-    service: ['new_service_request'],
-    quote: ['new_quote'],
+    booking: ['new_booking', 'booking_cancelled_by_staff', 'booking_assigned', 'booking_reassigned'],
     staff: ['new_staff_user', 'staff_updated'],
-    security: ['failed_logins'],
+    security: ['failed_logins', 'payment_needs_refund'],
   }
   let types = allowedTypes
   if (typeof query.type === 'string' && query.type) {

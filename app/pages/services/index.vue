@@ -1,47 +1,33 @@
 <script setup lang="ts">
 import {
-  Activity,
-  AlertTriangle,
   ArrowRight,
-  Battery,
-  Building2,
-  CheckCircle,
-  Cpu,
-  Database,
-  Flame,
-  Gauge,
-  GitBranch,
-  Hammer,
-  Layers,
-  Monitor,
-  Package,
-  Radio,
   RotateCcw,
   Search,
-  Server,
-  Settings,
-  Shield,
-  Sparkles,
-  Wifi,
-  Wind,
   Wrench,
-  Zap,
 } from 'lucide-vue-next'
+import { SERVICE_SECTIONS, centsToEur } from '~~/shared/booking'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
+const { trackViewContent } = useMetaEvents()
+
+onMounted(() => {
+  trackViewContent({ content_name: 'Services Catalog' })
+})
 
 const siteSeo = await useSiteSeo()
 
 // No page-specific SEO exists for the Services list → site-wide fallback applies.
 useHead(() => {
-  const pageName = locale.value === 'ar' ? 'خدماتنا الهندسية' : 'Our Engineering Services'
+  const pageName = locale.value === 'de' ? 'Unsere Leistungen' : 'Our Services'
   const title = applySeoTitle(
-    locale.value === 'ar' ? siteSeo.value?.titleTemplateAr : siteSeo.value?.titleTemplateEn,
+    siteSeo.value?.titleTemplateEn,
     pageName,
     `${pageName} | ${t('brand.name')}`,
   )
-  const description = (locale.value === 'ar' ? 'حلول متكاملة للمصانع والورش' : 'Integrated solutions for factories and workshops')
+  const description = locale.value === 'de'
+    ? 'Exklusive Haarpflege und professionelle Kosmetikbehandlungen in Meitingen.'
+    : 'Hair styling and beauty care treatments in Meitingen.'
   return {
     title,
     meta: [
@@ -52,97 +38,33 @@ useHead(() => {
   }
 })
 
-// Active services from database. Each card links to its dedicated
-// `/services/[id]` page which renders that service's own dynamic form.
+// Active services from database, grouped by section. Cards are display-only
+// (booking flow lands in Phase 2c).
 const { data: services } = await useAsyncData('services-list', () =>
   $fetch<any[]>('/api/services'),
 )
 
 const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
 
-const serviceIconMap: Record<string, any> = {
-  Wrench,
-  Settings,
-  Zap,
-  Cpu,
-  Radio,
-  Wind,
-  Flame,
-  Shield,
-  Hammer,
-  Monitor,
-  Server,
-  Database,
-  Wifi,
-  Battery,
-  GitBranch,
-  Layers,
-  Package,
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-}
-
-const serviceMetaMap: Record<number, { icon: any, category: string, tagAr: string, tagEn: string }> = {
-  1: { icon: Wrench, category: 'maintenance', tagAr: 'صيانة وإصلاح', tagEn: 'Maintenance & Repair' },
-  2: { icon: Radio, category: 'iot', tagAr: 'أنظمة ذكية IoT', tagEn: 'Smart IoT & Telemetry' },
-  3: { icon: Cpu, category: 'automation', tagAr: 'تحكم وأتمتة PLC', tagEn: 'PLC & Automation' },
-  4: { icon: Flame, category: 'safety', tagAr: 'سلامة ومكافحة حريق', tagEn: 'Fire & Safety' },
-  5: { icon: Gauge, category: 'pneumatics', tagAr: 'أنظمة هوائية', tagEn: 'Pneumatic Systems' },
-  6: { icon: Search, category: 'sourcing', tagAr: 'بحث وتوريد خاص', tagEn: 'Rare Sourcing' },
-  7: { icon: Building2, category: 'sourcing', tagAr: 'توريدات شركات', tagEn: 'Bulk Corporate Supply' },
-}
-
-const categories = computed(() => [
-  { id: 'all', labelAr: 'كل الخدمات', labelEn: 'All Services' },
-  { id: 'maintenance', labelAr: 'صيانة وإصلاح', labelEn: 'Maintenance & Repair' },
-  { id: 'automation', labelAr: 'أتمتة و PLC', labelEn: 'Automation & PLC' },
-  { id: 'iot', labelAr: 'أنظمة ذكية IoT', labelEn: 'Smart IoT' },
-  { id: 'safety', labelAr: 'سلامة ومكافحة حريق', labelEn: 'Fire & Safety' },
-  { id: 'pneumatics', labelAr: 'أنظمة هوائية', labelEn: 'Pneumatics' },
-  { id: 'sourcing', labelAr: 'توريدات وبحث', labelEn: 'Sourcing & Supply' },
-])
-
-const enrichedServices = computed(() => {
-  return (services.value || []).map((srv, idx) => {
-    const meta = serviceMetaMap[srv.sortOrder] || serviceMetaMap[(idx % 7) + 1]
-    const resolvedIcon = (srv.iconName && serviceIconMap[srv.iconName]) || meta.icon
-    const pillTag = locale.value === 'ar'
-      ? (srv.tagAr || meta.tagAr)
-      : (srv.tagEn || meta.tagEn)
-
-    return {
-      ...srv,
-      icon: resolvedIcon,
-      category: meta.category,
-      tag: pillTag,
-      name: locale.value === 'ar' ? srv.nameAr : srv.nameEn,
-      description: locale.value === 'ar' ? srv.descriptionAr : srv.descriptionEn,
-    }
-  })
-})
-
 const searchQuery = ref('')
-const selectedCategory = ref('all')
 
-const filteredServices = computed(() => {
-  return enrichedServices.value.filter((srv) => {
-    const matchesCat = selectedCategory.value === 'all' || srv.category === selectedCategory.value
-    if (!matchesCat) return false
+const grouped = computed(() => SERVICE_SECTIONS.map(section => ({
+  section,
+  items: (services.value || [])
+    .filter((srv: any) => srv.section === section)
+    .filter((srv: any) => {
+      if (!searchQuery.value.trim()) return true
+      const q = searchQuery.value.toLowerCase().trim()
+      return (srv.name || '').toLowerCase().includes(q)
+        || (srv.description || '').toLowerCase().includes(q)
+    })
+    .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+})))
 
-    if (!searchQuery.value.trim()) return true
-    const q = searchQuery.value.toLowerCase().trim()
-    return (
-      srv.name?.toLowerCase().includes(q) ||
-      srv.description?.toLowerCase().includes(q) ||
-      srv.tag?.toLowerCase().includes(q)
-    )
-  })
-})
+const hasResults = computed(() => grouped.value.some(g => g.items.length > 0))
 
 function clearFilters() {
   searchQuery.value = ''
-  selectedCategory.value = 'all'
 }
 </script>
 
@@ -165,36 +87,33 @@ function clearFilters() {
         <nav class="mb-4 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
           <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
           <span class="text-white/40" aria-hidden="true">/</span>
-          <span class="text-white font-semibold" aria-current="page">{{ locale === 'ar' ? 'خدماتنا' : 'Services' }}</span>
+          <span class="text-white font-semibold" aria-current="page">{{ t('nav.services') }}</span>
         </nav>
 
         <!-- Centered Page Title -->
         <h1 class="font-heading text-4xl font-extrabold tracking-tight text-white mb-4 leading-tight">
-          {{ locale === 'ar' ? 'خدماتنا الهندسية' : 'Our Engineering Services' }}
+          {{ t('home.servicesTitle') }}
         </h1>
 
         <!-- Concise Subtitle -->
         <p class="text-sm sm:text-base text-white/80 max-w-2xl mx-auto leading-relaxed">
-          {{ locale === 'ar'
-            ? 'حلول متكاملة للمصانع والورش'
-            : 'Integrated solutions for factories and workshops' }}
+          {{ t('home.servicesSubtitle') }}
         </p>
       </div>
     </section>
 
-    <!-- 2. Services Grid Section: 80px padding top/bottom -->
+    <!-- 2. Services Section: grouped by section -->
     <section class="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
 
-      <!-- Search & Category Filters -->
+      <!-- Live Search Input -->
       <div class="mb-12 space-y-4">
-        <!-- Live Search Input (Clean centered, max-width 500px, h-11, rounded-xl) -->
         <div class="mx-auto max-w-[500px]">
           <div class="relative flex items-center">
             <Search class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <input
               v-model="searchQuery"
               type="search"
-              :placeholder="locale === 'ar' ? 'ابحث باسم الخدمة (صيانة، PLC، حساسات، نيوماتيك...)' : 'Search services by name (repair, PLC, IoT, pneumatics...)'"
+              :placeholder="locale === 'ar' ? 'ابحث باسم الخدمة...' : 'Search services by name...'"
               class="h-11 w-full rounded-xl border border-border bg-surface ps-10 pe-9 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-xs"
             />
             <button
@@ -207,77 +126,58 @@ function clearFilters() {
             </button>
           </div>
         </div>
-
-        <!-- Filter Category Tabs (Horizontal Scroll) -->
-        <div class="flex items-center gap-2 overflow-x-auto justify-start sm:justify-center py-1.5 px-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
-          <button
-            v-for="cat in categories"
-            :key="cat.id"
-            type="button"
-            class="shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer"
-            :class="selectedCategory === cat.id
-              ? 'bg-[#F5CC07] text-slate-950 shadow-sm'
-              : 'border border-border bg-surface text-muted hover:border-primary hover:text-primary'"
-            @click="selectedCategory = cat.id"
-          >
-            {{ locale === 'ar' ? cat.labelAr : cat.labelEn }}
-          </button>
-        </div>
       </div>
 
-      <!-- Services Grid: 3-column (desktop) / 2-column (tablet) / 1-column (mobile), 24px gap, items-stretch -->
-      <div
-        v-if="filteredServices.length"
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
-      >
-        <NuxtLink
-          v-for="srv in filteredServices"
-          :key="srv.id"
-          :to="localePath(`/services/${srv.id}`)"
-          class="group relative flex flex-col overflow-hidden rounded-xl bg-white dark:bg-[#1A1D2E] p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 h-full"
-          :class="srv.isFeatured ? 'border-2 border-yellow-400' : 'border border-border hover:border-primary'"
-        >
-          <div>
-            <!-- Top: Icon in #EFF6FF square (48x48px, rounded-lg) + Category Tag Pill -->
-            <div class="flex items-center justify-between gap-3 mb-4">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300 shadow-xs">
-                <component :is="srv.icon" class="h-6 w-6" aria-hidden="true" />
+      <div v-if="hasResults" class="space-y-12">
+        <section v-for="group in grouped" :key="group.section" :aria-label="group.section">
+          <h2 class="mb-4 font-heading text-xl sm:text-2xl font-extrabold text-text">
+            {{ group.section }}
+          </h2>
+          <div
+            v-if="group.items.length"
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
+          >
+            <div
+              v-for="srv in group.items"
+              :key="srv.id"
+              class="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-white dark:bg-[#1A1D2E] p-5 sm:p-6 shadow-sm hover:border-primary hover:shadow-md transition-all duration-300 h-full"
+            >
+              <div>
+                <div class="flex items-center justify-between gap-3 mb-4">
+                  <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300 shadow-xs">
+                    <Wrench class="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <div class="text-end">
+                    <p class="font-mono text-sm font-black text-primary">
+                      {{ t('services.priceAb') }} {{ centsToEur(Number(srv.priceAbCents || 0)) }}
+                    </p>
+                    <p class="text-[11px] text-muted">
+                      {{ srv.durationMin }} {{ t('services.minutes') }}
+                    </p>
+                  </div>
+                </div>
+
+                <h3 class="font-heading text-lg font-bold text-text group-hover:text-primary transition-colors leading-snug line-clamp-2 mb-2">
+                  {{ srv.name }}
+                </h3>
+
+                <p v-if="srv.description" class="text-sm text-muted leading-relaxed line-clamp-3 mb-6">
+                  {{ srv.description }}
+                </p>
               </div>
 
-              <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                <span
-                  v-if="srv.isFeatured"
-                  class="inline-flex items-center rounded-full bg-yellow-400/15 border border-yellow-400/50 px-2 py-0.5 text-[11px] font-bold text-yellow-800 dark:text-yellow-300"
+              <div class="mt-auto pt-4 border-t border-border">
+                <NuxtLink
+                  :to="localePath(`/booking/${srv.slug}`)"
+                  class="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 group-hover:bg-yellow-400 active:scale-[0.98] transition-colors"
                 >
-                  {{ locale === 'ar' ? 'مميز ★' : 'Featured ★' }}
-                </span>
-                <span class="inline-flex items-center border border-border text-xs rounded-full px-2.5 py-0.5 text-muted font-medium">
-                  {{ srv.tag }}
-                </span>
+                  <span>{{ t('services.bookNow') }}</span>
+                  <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+                </NuxtLink>
               </div>
             </div>
-
-            <!-- Service Name: text-lg font-bold below icon row -->
-            <h3 class="font-heading text-lg font-bold text-text group-hover:text-primary transition-colors leading-snug line-clamp-2 mb-2">
-              {{ srv.name }}
-            </h3>
-
-            <!-- Service Description: text-sm text-muted line-clamp-3 -->
-            <p class="text-sm text-muted leading-relaxed line-clamp-3 mb-6">
-              {{ srv.description }}
-            </p>
           </div>
-
-          <!-- Bottom: Full-width Yellow Button [طلب الخدمة ←] -->
-          <div class="mt-auto pt-4 border-t border-border">
-            <span
-              class="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 group-hover:bg-yellow-400 active:scale-[0.98] transition-colors"
-            >
-              <span>{{ locale === 'ar' ? 'طلب الخدمة' : 'Request Service' }}</span>
-              <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-            </span>
-          </div>
-        </NuxtLink>
+        </section>
       </div>
 
       <!-- Empty State -->
@@ -292,7 +192,7 @@ function clearFilters() {
           {{ locale === 'ar' ? 'لم نجد خدمة مطابقة لبحثك' : 'No Matching Services Found' }}
         </h3>
         <p class="text-sm text-muted max-w-sm mx-auto mb-6">
-          {{ locale === 'ar' ? 'جرّب البحث باسم مختلف أو تصفح جميع الخدمات الهندسية المتاحة.' : 'Try searching with different terms or reset the filters to see all available services.' }}
+          {{ locale === 'ar' ? 'جرّب البحث باسم مختلف أو تصفح جميع الخدمات المتاحة.' : 'Try searching with different terms or reset the filters to see all available services.' }}
         </p>
         <button
           type="button"

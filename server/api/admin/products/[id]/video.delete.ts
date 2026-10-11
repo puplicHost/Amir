@@ -3,7 +3,7 @@ import { resolveUploadPath } from '../../../../utils/storage'
 import { logAudit } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const actor = await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.manage')
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'Missing product id' })
 
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
       entityId: id,
       entityName: product ? `${product.nameAr} / ${product.nameEn}` : id,
       action: 'media',
-      details: 'غيّر الفيديو',
+      details: 'Removed video',
       user: actor,
     })
   }

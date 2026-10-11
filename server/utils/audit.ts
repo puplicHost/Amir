@@ -1,6 +1,6 @@
 import type { SessionUser } from './auth'
 
-export type AuditEntityType = 'product' | 'category' | 'service'
+export type AuditEntityType = 'product' | 'category' | 'service' | 'booking'
 export type AuditAction = 'created' | 'updated' | 'deleted' | 'media'
 
 interface AuditEntry {
@@ -35,9 +35,9 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
 }
 
 export function createdLabel(entityType: AuditEntityType): string {
-  return entityType === 'product' ? 'أضاف المنتج' : entityType === 'category' ? 'أضاف القسم' : 'أضاف الخدمة'
+  return entityType === 'product' ? 'Product created' : entityType === 'category' ? 'Category created' : 'Service created'
 }
 
 export function deletedLabel(entityType: AuditEntityType): string {
-  return entityType === 'product' ? 'حذف المنتج' : entityType === 'category' ? 'حذف القسم' : 'حذف الخدمة'
+  return entityType === 'product' ? 'Product deleted' : entityType === 'category' ? 'Category deleted' : 'Service deleted'
 }

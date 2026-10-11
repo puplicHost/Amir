@@ -3,7 +3,7 @@ import { requirePermission } from '../../../utils/auth'
 import { prisma } from '../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
+  await requirePermission(event, 'banners.manage')
   const body = await readBody(event)
 
   const settings = await prisma.siteSettings.upsert({
@@ -13,10 +13,10 @@ export default defineEventHandler(async (event) => {
       announcementBgColor: body.announcementBgColor ? String(body.announcementBgColor).trim() : undefined,
     },
     create: {
-      siteNameAr: 'مانجو إلكترونيكس',
-      siteNameEn: 'Mango Electronics',
+      siteNameAr: 'AMIR',
+      siteNameEn: 'Amir',
       announcementActive: body.announcementActive !== undefined ? Boolean(body.announcementActive) : true,
-      announcementBgColor: body.announcementBgColor || '#2B71AE',
+      announcementBgColor: body.announcementBgColor || '#050808',
     },
   })
 

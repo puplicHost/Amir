@@ -124,7 +124,7 @@ async function deleteLogo() {
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
               {{ locale === 'ar' ? 'اسم المتجر بالعربية' : 'Store Name (AR)' }}
             </span>
-            <input v-model="form.siteNameAr" type="text" placeholder="مانجو إلكترونيكس" dir="rtl" :class="settingsInputCls" :style="{ borderColor: missingAr.siteName ? '#F59E0B' : 'var(--color-border)' }" />
+            <input v-model="form.siteNameAr" type="text" placeholder="أمير" dir="rtl" :class="settingsInputCls" :style="{ borderColor: missingAr.siteName ? '#F59E0B' : 'var(--color-border)' }" />
             <span v-if="missingAr.siteName" class="mt-1 block text-[11px] font-medium text-amber-600 dark:text-amber-400">
               {{ locale === 'ar' ? 'تنبيه: الاسم بالإنجليزية موجود لكن الترجمة العربية فارغة.' : 'Heads up: English is filled but the Arabic translation is empty.' }}
             </span>
@@ -134,7 +134,7 @@ async function deleteLogo() {
             <img v-if="data?.logoPath" :src="data.logoPath" alt="" class="h-8 w-auto max-w-[80px] rounded object-contain" loading="lazy" />
             <img v-else src="/logo.png" alt="" class="h-8 w-8 rounded object-contain" loading="lazy" />
             <div class="leading-tight">
-              <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ form.siteNameAr || 'مانجو إلكترونيكس' }}</span>
+              <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ form.siteNameAr || 'أمير' }}</span>
               <span class="block text-[10px] text-slate-400">{{ form.taglineAr || 'اعملها صح، اعملها بذكاء' }}</span>
             </div>
           </div>
@@ -145,14 +145,14 @@ async function deleteLogo() {
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
               {{ locale === 'ar' ? 'اسم المتجر بالإنجليزية' : 'Store Name (EN)' }}
             </span>
-            <input v-model="form.siteNameEn" type="text" placeholder="Mango Electronics" dir="ltr" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.siteNameEn" type="text" placeholder="Amir" dir="ltr" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <!-- Live navbar preview (EN) -->
           <div class="mt-2 flex h-14 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-[#0B1520]" dir="ltr">
             <img v-if="data?.logoPath" :src="data.logoPath" alt="" class="h-8 w-auto max-w-[80px] rounded object-contain" loading="lazy" />
             <img v-else src="/logo.png" alt="" class="h-8 w-8 rounded object-contain" loading="lazy" />
             <div class="leading-tight">
-              <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ form.siteNameEn || 'Mango Electronics' }}</span>
+              <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ form.siteNameEn || 'Amir' }}</span>
               <span class="block text-[10px] text-slate-400">{{ form.taglineEn || 'Do It Right, Do It Smart' }}</span>
             </div>
           </div>
@@ -283,13 +283,13 @@ async function deleteLogo() {
           <div class="flex items-center gap-2">
             <span class="flex h-8 w-8 items-center justify-center rounded bg-white/15 text-sm font-black" :style="{ color: form.accentColor }">M</span>
             <div class="leading-tight">
-              <span class="block text-sm font-bold text-white">{{ form.siteNameEn || 'Mango Electronics' }}</span>
+              <span class="block text-sm font-bold text-white">{{ form.siteNameEn || 'Amir' }}</span>
               <span class="block text-[10px]" :style="{ color: form.accentColor }">{{ form.taglineEn || 'Do It Right, Do It Smart' }}</span>
             </div>
           </div>
           <div class="flex items-center gap-2">
             <span class="rounded-md px-3 py-1.5 text-xs font-bold text-white" :style="{ backgroundColor: form.primaryColor }">Shop</span>
-            <span class="rounded-md px-3 py-1.5 text-xs font-bold text-slate-950" :style="{ backgroundColor: form.accentColor }">Cart</span>
+            <span class="rounded-md px-3 py-1.5 text-xs font-bold text-slate-950" :style="{ backgroundColor: form.accentColor }">Button</span>
           </div>
         </div>
       </div>

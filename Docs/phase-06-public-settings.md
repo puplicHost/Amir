@@ -69,7 +69,7 @@ The public site is complete. The Homepage pulls real data (featured categories, 
 - Quick links: Home, Products, Services, Contact
 - Contact info: phone, WhatsApp, email
 - Social media links
-- Copyright line: "© [year] Mango Electronics"
+- Copyright line: "© [year] Amir"
 - Language: current locale label
 - Data: from `GET /api/settings/contact` (cached)
 
@@ -125,7 +125,7 @@ The public site is complete. The Homepage pulls real data (featured categories, 
 - Save button
 
 *Tab 3: SEO / GEO*
-- Default Meta Title Template (AR + EN) — e.g., `{page} | Mango Electronics`
+- Default Meta Title Template (AR + EN) — e.g., `{page} | Amir`
 - Default Meta Description (AR + EN)
 - Site Keywords (tag input)
 - GEO Description (textarea) — structured description of the business for AI search engines
@@ -218,7 +218,7 @@ SEO meta tags on public pages:
 1. SiteSettings is a singleton (one row) — always UPDATE, never INSERT after seed
 2. Logo and favicon are uploaded images — stored in `/storage/settings/`
 3. Public settings APIs are read-only and unauthenticated
-4. If logo path is null, Navbar falls back to text "Mango Electronics"
+4. If logo path is null, Navbar falls back to text "Amir"
 5. If hero image is null, Homepage hero uses a solid brand color background
 6. Settings cached on server for 60 seconds — changes propagate within 1 minute
 7. GEO Description field: used in structured content that helps AI search engines understand the business

@@ -17,7 +17,7 @@ function toggleTheme() {
 }
 
 function toggleLocale() {
-  setLocale(locale.value === 'ar' ? 'en' : 'ar')
+  setLocale(locale.value === 'de' ? 'en' : 'de')
 }
 
 async function login() {
@@ -25,25 +25,31 @@ async function login() {
   pending.value = true
   errorMessage.value = ''
   try {
-    await $fetch('/api/admin/auth/login', {
+    const res = await $fetch<{ user: { role: string, isSuper: boolean, permissions: string[] } }>('/api/admin/auth/login', {
       method: 'POST',
       body: { email: email.value, password: password.value },
     })
     await clearNuxtData('admin-session')
     await refreshNuxtData('admin-session')
-    await navigateTo(localePath('/admin'))
+    const isStaffOnly = !res.user.isSuper && res.user.role === 'STAFF' && !res.user.permissions.includes('bookings.view_all')
+    if (isStaffOnly) {
+      await navigateTo(localePath('/admin/my-bookings'))
+    }
+    else {
+      await navigateTo(localePath('/admin'))
+    }
   }
   catch (e) {
     const status = (e as { response?: { status?: number } })?.response?.status
-    const isAr = locale.value === 'ar'
+    const isDe = locale.value === 'de'
     if (status === 401) {
-      errorMessage.value = isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.'
+      errorMessage.value = isDe ? 'Ungültige E-Mail-Adresse oder Passwort.' : 'Invalid email or password.'
     }
     else if (status === 429) {
-      errorMessage.value = isAr ? 'محاولات كثيرة. يرجى الانتظار دقيقة ثم المحاولة مرة أخرى.' : 'Too many attempts. Please wait a minute and try again.'
+      errorMessage.value = isDe ? 'Zu viele Versuche. Bitte warten Sie eine Minute.' : 'Too many attempts. Please wait a minute and try again.'
     }
     else {
-      errorMessage.value = isAr ? 'حدث خطأ في النظام. يرجى المحاولة مرة أخرى.' : 'Something went wrong. Please try again.'
+      errorMessage.value = isDe ? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.' : 'Something went wrong. Please try again.'
     }
   }
   finally {
@@ -60,32 +66,30 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
     <div class="mx-auto flex w-full max-w-md items-center justify-between">
       <NuxtLink
         :to="localePath('/')"
-        class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-[#2B71AE] dark:text-slate-400 dark:hover:text-[#F5CC07]"
+        class="inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-brand-black dark:text-[#A6A6A6] dark:hover:text-white"
       >
-        <ArrowRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
-        <ArrowLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
-        <span>{{ locale === 'ar' ? 'العودة للمتجر' : 'Back to Store' }}</span>
+        <ArrowLeft class="h-3.5 w-3.5" aria-hidden="true" />
+        <span>{{ locale === 'de' ? 'Zurück zum Studio' : 'Back to Studio' }}</span>
       </NuxtLink>
 
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+          class="flex h-8 items-center gap-1 rounded-[2px] border border-border px-2 text-xs font-medium text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
           @click="toggleLocale"
         >
           <Globe class="h-3.5 w-3.5" aria-hidden="true" />
-          <span>{{ locale === 'ar' ? 'English' : 'عربي' }}</span>
+          <span class="tracking-wider uppercase">{{ locale === 'de' ? 'EN' : 'DE' }}</span>
         </button>
 
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-md border text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+          class="flex h-8 w-8 items-center justify-center rounded-[2px] border border-border text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
           @click="toggleTheme"
         >
-          <!-- ClientOnly: colorMode resolves 'system' on the client only (see AdminHeader) -->
           <ClientOnly>
             <Moon v-if="!isDark" class="h-3.5 w-3.5" aria-hidden="true" />
-            <Sun v-else class="h-3.5 w-3.5 text-[#F5CC07]" aria-hidden="true" />
+            <Sun v-else class="h-3.5 w-3.5 text-white" aria-hidden="true" />
             <template #fallback>
               <Moon class="h-3.5 w-3.5" aria-hidden="true" />
             </template>
@@ -97,25 +101,22 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
     <!-- Login Card -->
     <div class="mx-auto w-full max-w-md my-auto">
       <div class="mb-6 flex flex-col items-center gap-2 text-center">
-        <img src="/logo.png" alt="Mango Electronics" class="h-12 w-12 rounded object-contain shadow-xs" width="48" height="48" />
-        <h1 class="font-heading text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          {{ t('brand.name') }}
-        </h1>
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wider dark:text-slate-400">
-          {{ locale === 'ar' ? 'بوابة إدارة المنصة' : 'Administrative Console' }}
+        <img src="/brand/logo-black-transparent-small.png" alt="Amir" class="h-10 w-auto object-contain dark:hidden" />
+        <img src="/brand/logo-white-transparent-small.png" alt="Amir" class="h-10 w-auto object-contain hidden dark:block" />
+        <p class="text-xs font-medium text-muted uppercase tracking-wider dark:text-[#A6A6A6]">
+          {{ locale === 'de' ? 'Verwaltung' : 'Administration' }}
         </p>
       </div>
 
       <form
-        class="rounded-lg border bg-white p-6 shadow-sm dark:bg-[#162032]"
-        :style="{ borderColor: 'var(--color-border)' }"
+        class="rounded-[2px] border bg-white p-6 shadow-xs dark:bg-[#121616] border-border dark:border-[#303636]"
         @submit.prevent="login"
       >
         <!-- Error Alert -->
         <div
           v-if="errorMessage"
           role="alert"
-          class="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+          class="mb-4 rounded-[2px] border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
         >
           {{ errorMessage }}
         </div>
@@ -123,38 +124,36 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
         <div class="space-y-4">
           <!-- Email Field -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {{ locale === 'ar' ? 'البريد الإلكتروني' : 'Email Address' }}
+            <span class="mb-1.5 block text-xs font-medium text-brand-black dark:text-white">
+              {{ locale === 'de' ? 'E-Mail-Adresse' : 'Email Address' }}
             </span>
             <div class="relative">
-              <Mail class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+              <Mail class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <input
                 v-model="email"
                 type="email"
                 required
                 autocomplete="username"
-                placeholder="admin@mango-electronics.com"
-                class="h-10 w-full rounded-md border bg-white ps-9 pe-3 text-xs text-slate-900 transition-colors placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-100 dark:focus:border-[#2B71AE]"
-                :style="{ borderColor: 'var(--color-border)' }"
+                placeholder="admin@amir.com"
+                class="h-10 w-full rounded-[2px] border bg-white ps-9 pe-3 text-xs text-brand-black transition-colors placeholder:text-muted focus:border-brand-black focus:outline-none focus:ring-1 focus:ring-brand-black dark:bg-[#050808] dark:text-white dark:border-[#303636] dark:focus:border-white"
               />
             </div>
           </label>
 
           <!-- Password Field -->
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {{ locale === 'ar' ? 'كلمة المرور' : 'Password' }}
+            <span class="mb-1.5 block text-xs font-medium text-brand-black dark:text-white">
+              {{ locale === 'de' ? 'Passwort' : 'Password' }}
             </span>
             <div class="relative">
-              <Lock class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+              <Lock class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <input
                 v-model="password"
                 type="password"
                 required
                 autocomplete="current-password"
                 placeholder="••••••••"
-                class="h-10 w-full rounded-md border bg-white ps-9 pe-3 text-xs text-slate-900 transition-colors placeholder:text-slate-400 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-100 dark:focus:border-[#2B71AE]"
-                :style="{ borderColor: 'var(--color-border)' }"
+                class="h-10 w-full rounded-[2px] border bg-white ps-9 pe-3 text-xs text-brand-black transition-colors placeholder:text-muted focus:border-brand-black focus:outline-none focus:ring-1 focus:ring-brand-black dark:bg-[#050808] dark:text-white dark:border-[#303636] dark:focus:border-white"
               />
             </div>
           </label>
@@ -164,9 +163,9 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
         <button
           type="submit"
           :disabled="pending"
-          class="mt-6 flex h-10 w-full items-center justify-center rounded-md bg-[#2B71AE] px-4 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#285E8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B71AE] disabled:cursor-not-allowed disabled:opacity-50"
+          class="mt-6 flex h-10 w-full items-center justify-center rounded-[2px] bg-[#050808] dark:bg-white text-xs font-medium tracking-wider uppercase text-white dark:text-[#050808] transition-colors hover:bg-[#262626] dark:hover:bg-[#E5E5E5] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <span>{{ pending ? (locale === 'ar' ? 'جاري التحقق…' : 'Authenticating…') : (locale === 'ar' ? 'تسجيل الدخول' : 'Sign in to Admin') }}</span>
+          <span>{{ pending ? (locale === 'de' ? 'Anmeldung…' : 'Authenticating…') : (locale === 'de' ? 'Anmelden' : 'Sign In') }}</span>
         </button>
       </form>
     </div>

@@ -38,8 +38,7 @@ interface ProductOption {
 
 interface ServiceOption {
   id: string
-  nameAr: string
-  nameEn: string
+  name: string
 }
 
 const { data, refresh } = await useAsyncData('admin-announcements-feed', () =>
@@ -468,7 +467,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               <select v-model="itemForm.linkValue" required :class="inputCls">
                 <option value="">{{ locale === 'ar' ? 'اختر الخدمة…' : 'Select service…' }}</option>
                 <option v-for="s in data?.services || []" :key="s.id" :value="s.id">
-                  {{ s.nameAr }} ({{ s.nameEn }})
+                  {{ s.name }}
                 </option>
               </select>
             </label>
@@ -483,7 +482,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
                 v-model="itemForm.linkValue"
                 type="text"
                 required
-                placeholder="https://... أو /products/offers"
+                placeholder="https://... أو /products"
                 dir="ltr"
                 :class="inputCls"
               />

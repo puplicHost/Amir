@@ -25,6 +25,7 @@ interface AdminUserRow {
   name: string
   title: string | null
   salary: number | null
+  role: string
   isSuper: boolean
   isActive: boolean
   lastLoginAt: string | null
@@ -57,6 +58,7 @@ const form = reactive({
   name: '',
   email: '',
   password: '',
+  role: 'STAFF',
   title: '',
   salary: '' as number | '',
   permissions: [] as string[],
@@ -68,7 +70,7 @@ const deletingId = ref<string | null>(null)
 
 function openCreate() {
   editing.value = null
-  Object.assign(form, { name: '', email: '', password: '', title: '', salary: '', permissions: [], isActive: true })
+  Object.assign(form, { name: '', email: '', password: '', role: 'STAFF', title: '', salary: '', permissions: [], isActive: true })
   formError.value = ''
   showModal.value = true
 }
@@ -79,6 +81,7 @@ function openEdit(user: AdminUserRow) {
     name: user.name,
     email: user.email,
     password: '',
+    role: user.role || 'STAFF',
     title: user.title || '',
     salary: user.salary ?? '',
     permissions: [...user.permissions],
@@ -105,140 +108,101 @@ interface ResourceDef {
 // "Manage" checkbox instead of misleading per-action boxes.
 const RESOURCE_DEFS: ResourceDef[] = [
   {
-    group: 'dashboard',
+    group: 'bookings',
     actions: [
-      { key: 'view', en: 'View (financial figures)', ar: 'عرض (الأرقام المالية)', permission: 'dashboard.financials.view' },
-    ],
-  },
-  {
-    group: 'products',
-    actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'products.view' },
-      { key: 'create', en: 'Create', ar: 'إنشاء', permission: 'products.create' },
-      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'products.edit' },
-      { key: 'delete', en: 'Delete', ar: 'حذف', permission: 'products.delete' },
-    ],
-  },
-  {
-    group: 'categories',
-    actions: [
-      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'categories.manage' },
-    ],
-  },
-  {
-    group: 'orders',
-    actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'orders.view' },
-      { key: 'update', en: 'Update (status)', ar: 'تعديل (الحالة)', permission: 'orders.manage' },
-    ],
-  },
-  {
-    group: 'quotes',
-    actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'quotes.view' },
-      { key: 'create', en: 'Create', ar: 'إنشاء', permission: 'quotes.manage' },
-      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'quotes.manage' },
-    ],
-  },
-  {
-    group: 'invoices',
-    actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'invoices.view' },
-      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'invoices.manage' },
-    ],
-  },
-  {
-    group: 'inventory',
-    actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'inventory.view' },
+      { key: 'view_all', en: 'View All', ar: 'عرض الكل', permission: 'bookings.view_all' },
+      { key: 'view_own', en: 'View Own', ar: 'عرض الخاص بي', permission: 'bookings.view_own' },
+      { key: 'assign', en: 'Assign', ar: 'تعيين', permission: 'bookings.assign' },
+      { key: 'cancel_own', en: 'Cancel Own', ar: 'إلغاء الخاص بي', permission: 'bookings.cancel_own' },
+      { key: 'refund_handle', en: 'Handle Refunds', ar: 'معالجة الاسترداد', permission: 'bookings.refund_handle' },
+      { key: 'complete', en: 'Complete', ar: 'إكمال', permission: 'bookings.complete' },
     ],
   },
   {
     group: 'services',
     actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'services.view' },
-      { key: 'update', en: 'Manage (requests)', ar: 'إدارة (الطلبات)', permission: 'services.manage' },
-      { key: 'configure', en: 'Configure', ar: 'تهيئة', permission: 'services.config' },
+      { key: 'manage', en: 'Manage Services', ar: 'إدارة الخدمات', permission: 'services.manage' },
     ],
   },
   {
-    group: 'financials',
+    group: 'schedule',
     actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'financials.view' },
-      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'financials.manage' },
+      { key: 'manage', en: 'Manage Schedule', ar: 'إدارة ساعات العمل', permission: 'schedule.manage' },
+    ],
+  },
+  {
+    group: 'products',
+    actions: [
+      { key: 'view', en: 'View Products', ar: 'عرض المنتجات', permission: 'products.view' },
+      { key: 'manage', en: 'Manage Products', ar: 'إدارة المنتجات', permission: 'products.manage' },
+    ],
+  },
+  {
+    group: 'categories',
+    actions: [
+      { key: 'manage', en: 'Manage Categories', ar: 'إدارة الفئات', permission: 'categories.manage' },
+    ],
+  },
+  {
+    group: 'inbox',
+    actions: [
+      { key: 'manage', en: 'Manage Inbox', ar: 'إدارة البريد الوارد', permission: 'inbox.manage' },
     ],
   },
   {
     group: 'banners',
     actions: [
-      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'banners.manage' },
+      { key: 'manage', en: 'Manage Banners', ar: 'إدارة البنرات', permission: 'banners.manage' },
     ],
   },
   {
     group: 'settings',
     actions: [
-      { key: 'view', en: 'View', ar: 'عرض', permission: 'settings.view' },
-      { key: 'update', en: 'Update', ar: 'تعديل', permission: 'settings.manage' },
+      { key: 'business', en: 'Salon & Business', ar: 'إعدادات الصالون', permission: 'settings.business' },
+      { key: 'payment', en: 'Payment Gateways', ar: 'بوابات الدفع', permission: 'settings.payment' },
+      { key: 'meta', en: 'Meta Pixel & CAPI', ar: 'تكامل ميتا', permission: 'settings.meta' },
     ],
   },
   {
     group: 'users',
     actions: [
-      { key: 'manage', en: 'Manage (full access)', ar: 'إدارة (صلاحية كاملة)', permission: 'users.manage' },
+      { key: 'manage', en: 'Manage Users', ar: 'إدارة المستخدمين', permission: 'users.manage' },
+    ],
+  },
+  {
+    group: 'notifications',
+    actions: [
+      { key: 'view', en: 'View Notifications', ar: 'عرض الإشعارات', permission: 'notifications.view' },
     ],
   },
 ]
 
 const ROLE_PRESETS = [
   {
-    id: 'sales',
-    labelAr: 'مدير مبيعات',
-    labelEn: 'Sales Manager',
-    permissions: [
-      'orders.view', 'orders.manage',
-      'quotes.view', 'quotes.manage',
-      'invoices.view', 'invoices.manage',
-      'products.view',
-      'categories.manage',
-      'inbox.view', 'inbox.manage',
-    ],
+    id: 'staff',
+    labelAr: 'موظف صالون (افتراضي)',
+    labelEn: 'Salon Staff (Default)',
+    role: 'STAFF',
+    permissions: [],
   },
   {
-    id: 'warehouse',
-    labelAr: 'أمين مخزن',
-    labelEn: 'Warehouse Staff',
-    permissions: [
-      'inventory.view',
-      'products.view', 'products.create', 'products.edit',
-      'orders.view',
-    ],
+    id: 'manager',
+    labelAr: 'مدير الصالون',
+    labelEn: 'Salon Manager',
+    role: 'MANAGER',
+    permissions: [],
   },
   {
-    id: 'support',
-    labelAr: 'دعم فني',
-    labelEn: 'Tech Support',
-    permissions: [
-      'services.view', 'services.manage',
-      'inbox.view', 'inbox.manage',
-      'orders.view',
-      'products.view',
-    ],
-  },
-  {
-    id: 'accountant',
-    labelAr: 'محاسب',
-    labelEn: 'Accountant',
-    permissions: [
-      'financials.view', 'financials.manage',
-      'dashboard.financials.view',
-      'invoices.view', 'invoices.manage',
-      'orders.view',
-      'inventory.view',
-    ],
+    id: 'admin',
+    labelAr: 'مسؤول نظام',
+    labelEn: 'Administrator',
+    role: 'ADMIN',
+    permissions: [],
   },
 ]
 
 function applyRolePreset(preset: typeof ROLE_PRESETS[number]) {
+  form.role = preset.role
   form.permissions = [...preset.permissions]
 }
 
@@ -278,6 +242,7 @@ async function save() {
         body: {
           name: form.name.trim(),
           title: form.title || null,
+          role: form.role,
           ...(isSuperAdmin.value ? { salary: form.salary === '' ? null : Number(form.salary) } : {}),
           isActive: form.isActive,
           permissions: form.permissions,
@@ -291,6 +256,7 @@ async function save() {
           name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
+          role: form.role,
           title: form.title || null,
           ...(isSuperAdmin.value ? { salary: form.salary === '' ? null : Number(form.salary) } : {}),
           permissions: form.permissions,
@@ -362,18 +328,16 @@ function getUserInitials(name: string) {
 }
 
 const groupLabels: Record<string, { en: string, ar: string }> = {
-  dashboard: { en: 'Dashboard', ar: 'لوحة التحكم' },
+  bookings: { en: 'Salon Bookings', ar: 'حجوزات الصالون' },
+  services: { en: 'Services', ar: 'الخدمات' },
+  schedule: { en: 'Working Hours', ar: 'ساعات العمل' },
   products: { en: 'Products Management', ar: 'إدارة المنتجات' },
   categories: { en: 'Catalog Categories', ar: 'إدارة الأقسام' },
-  orders: { en: 'Orders & Fulfillment', ar: 'إدارة الطلبات' },
-  quotes: { en: 'Price Quotations', ar: 'عروض السعر' },
-  invoices: { en: 'Invoices', ar: 'الفواتير' },
-  inventory: { en: 'Inventory', ar: 'المخزون' },
-  services: { en: 'Engineering Services', ar: 'الخدمات' },
-  financials: { en: 'Financial Accounts', ar: 'الحسابات المالية (Financials)' },
-  banners: { en: 'Notifications & Banners', ar: 'الإشعارات والبنرات' },
+  inbox: { en: 'Contact Inbox', ar: 'صندوق الوارد' },
+  banners: { en: 'Banners & Announcements', ar: 'البنرات والإعلانات' },
+  settings: { en: 'Settings (Business, Payment, Meta)', ar: 'الإعدادات' },
   users: { en: 'User Management', ar: 'إدارة المستخدمين' },
-  settings: { en: 'Platform Settings', ar: 'الإعدادات' },
+  notifications: { en: 'Notifications', ar: 'الإشعارات' },
 }
 
 const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
@@ -437,6 +401,12 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
                         class="rounded-full bg-[#F5CC07]/20 px-2 py-0.2 text-[10px] font-bold tracking-wide text-amber-900 dark:text-[#F5CC07]"
                       >
                         Super Admin
+                      </span>
+                      <span
+                        v-else
+                        class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      >
+                        {{ user.role }}
                       </span>
                     </div>
                   </div>
@@ -572,7 +542,28 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
           <label v-if="!editing" class="block">
             <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address *</span>
-            <input v-model="form.email" type="email" required placeholder="admin@mango-electronics.com" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.email" type="email" required placeholder="admin@amir.com" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+
+          <!-- Role -->
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Role *</span>
+            <select
+              v-model="form.role"
+              :disabled="editing && editing.id === currentUser?.userId"
+              :class="inputCls"
+              :style="{ borderColor: 'var(--color-border)' }"
+            >
+              <option value="STAFF">STAFF</option>
+              <option value="MANAGER">MANAGER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+            <span class="mt-1 block text-[11px] text-slate-400">
+              Role defines default permissions. Checkboxes below add extra grants.
+              <span v-if="editing && editing.id === currentUser?.userId" class="text-amber-600 block">
+                (You cannot change your own role)
+              </span>
+            </span>
           </label>
 
           <!-- Job Title (right after email) -->
@@ -592,14 +583,14 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           <!-- Monthly Salary (Super Admin only, confidential) -->
           <label v-if="isSuperAdmin" class="block">
             <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {{ locale === 'ar' ? 'الراتب الشهري' : 'Monthly Salary' }}
+              {{ locale === 'de' ? 'Monatsgehalt' : 'Monthly Salary' }}
             </span>
             <div class="relative">
-              <input v-model.number="form.salary" type="number" min="0" step="0.01" placeholder="0 جنيه" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" class="pe-12" />
-              <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">{{ locale === 'ar' ? 'جنيه' : 'EGP' }}</span>
+              <input v-model.number="form.salary" type="number" min="0" step="0.01" placeholder="0.00" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" class="pe-12" />
+              <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EUR</span>
             </div>
             <span class="mt-1 block text-xs font-medium text-rose-500 dark:text-rose-400">
-              {{ locale === 'ar' ? '🔒 هذه المعلومة سرية — تظهر فقط لك كـ Super Admin' : '🔒 Confidential — visible only to you as Super Admin' }}
+              {{ locale === 'de' ? '🔒 Vertraulich — nur für Super-Administratoren sichtbar' : '🔒 Confidential — visible only to you as Super Admin' }}
             </span>
           </label>
 
@@ -609,10 +600,13 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           </label>
 
           <div v-if="editing" class="pt-1">
-            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
-              <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
+            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300" :class="{ 'opacity-50 cursor-not-allowed': editing.id === currentUser?.userId }">
+              <input v-model="form.isActive" type="checkbox" :disabled="editing.id === currentUser?.userId" class="h-4 w-4 rounded accent-[#2B71AE]" />
               <span>{{ locale === 'ar' ? 'حساب المسؤول نشط ويمكنه تسجيل الدخول' : 'Account active and permitted to login' }}</span>
             </label>
+            <span v-if="editing.id === currentUser?.userId" class="text-amber-600 text-[11px] block mt-0.5">
+              (You cannot deactivate yourself)
+            </span>
           </div>
 
           <!-- Role Presets Shortcuts -->

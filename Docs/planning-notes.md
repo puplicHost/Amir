@@ -1,11 +1,11 @@
 # Planning Notes
-## Mango Electronics
+## Amir
 
 ---
 
 ## Project Summary
 
-**Client:** Mango Electronics
+**Client:** Amir
 **Tagline:** Do It Right, Do It Smart
 **Type:** Bilingual (AR/EN) B2C + B2B e-commerce and engineering services platform
 **Stack:** Nuxt 3 / Nitro / Prisma / PostgreSQL / shadcn-vue / Tailwind / Docker
@@ -64,7 +64,7 @@ From brief + client materials:
 
 These do not block planning but should be confirmed before or during relevant phases:
 
-1. **Stock management:** Does Mango Electronics need stock quantity tracking per product? (Phase 3 assumption: no stock tracking in V1 — all products assumed available)
+1. **Stock management:** Does Amir need stock quantity tracking per product? (Phase 3 assumption: no stock tracking in V1 — all products assumed available)
 
 2. **Product landing page for inactive products:** Do inactive products return 404 on `/p/[slug]`? Assumed: YES.
 

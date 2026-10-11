@@ -1,4 +1,4 @@
-# PROJECT STATUS REPORT — Mango Electronics
+# PROJECT STATUS REPORT — Amir
 
 Date: 2026-10-06 · Source: read-only audit of `app/pages/`, `server/api/`, components, Prisma schema, Dockerfile/compose.
 

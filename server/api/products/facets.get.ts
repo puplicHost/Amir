@@ -22,10 +22,6 @@ export default defineEventHandler(async (event) => {
     ]
   }
 
-  if (q.offers === 'true' || q.discounted === 'true') {
-    where.compareAtPrice = { not: null, gt: 0 }
-  }
-
   const [priceAgg, rawAttributes] = await Promise.all([
     prisma.product.aggregate({
       where,
@@ -89,8 +85,8 @@ export default defineEventHandler(async (event) => {
   // Remaining groups keep their natural order (stable sort).
   function facetPriority(keyEn: string, keyAr: string): number {
     const k = `${keyEn} ${keyAr}`
-    if (/volt|فولت|جهد/i.test(k)) return 0
-    if (/brand|manufacturer|العلامة|الماركة|الشركة المصنعة/i.test(k)) return 1
+    if (/volt/i.test(k)) return 0
+    if (/brand|marke|hersteller|manufacturer/i.test(k)) return 1
     return 2
   }
   attributes.sort((a, b) => facetPriority(a.keyEn, a.keyAr) - facetPriority(b.keyEn, b.keyAr))

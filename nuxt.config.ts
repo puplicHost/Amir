@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const isLaunchMode = process.env.NUXT_PUBLIC_LAUNCH_MODE === 'true'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -6,8 +8,6 @@ export default defineNuxtConfig({
   vite: {
     server: {
       // Allow Cloudflare Quick Tunnel hostnames in dev (public demo URLs).
-      // Vite blocks unknown Host headers by default; this wildcard covers
-      // all *.trycloudflare.com tunnels. Dev-server only.
       allowedHosts: ['.trycloudflare.com'],
     },
   },
@@ -18,6 +18,7 @@ export default defineNuxtConfig({
     // Server-only. Min 32 chars; enforced in server/utils/auth.ts.
     sessionPassword: '',
     public: {
+      launchMode: isLaunchMode,
       // Firebase web config (public keys only). Overridden by
       // NUXT_PUBLIC_FIREBASE_* env vars. Empty = push disabled (graceful).
       firebaseApiKey: '',
@@ -25,8 +26,7 @@ export default defineNuxtConfig({
       firebaseMessagingSenderId: '',
       firebaseAppId: '',
       firebaseVapidKey: '',
-      // Canonical public site URL (e.g. https://mango-electronics.com).
-      // Used for Meta domain verification display + CAPI event_source_url.
+      // Canonical public site URL (e.g. https://amir.com).
       siteUrl: '',
     },
   },
@@ -43,21 +43,25 @@ export default defineNuxtConfig({
     classSuffix: '',
     preference: 'light',
     fallback: 'light',
-    storageKey: 'mango-color-mode',
+    storageKey: 'amir-color-mode',
   },
 
   i18n: {
     vueI18n: './i18n.config.ts',
-    locales: [
-      { code: 'en', language: 'en-US', name: 'English', dir: 'ltr' },
-      { code: 'ar', language: 'ar-EG', name: 'العربية', dir: 'rtl' },
-    ],
-    defaultLocale: 'en',
-    strategy: 'prefix_except_default',
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'i18n_redirected',
-      redirectOn: 'root',
-    },
+    locales: isLaunchMode
+      ? [{ code: 'de', language: 'de-DE', name: 'Deutsch', dir: 'ltr' }]
+      : [
+          { code: 'en', language: 'en-US', name: 'English', dir: 'ltr' },
+          { code: 'de', language: 'de-DE', name: 'Deutsch', dir: 'ltr' },
+        ],
+    defaultLocale: isLaunchMode ? 'de' : 'en',
+    strategy: isLaunchMode ? 'no_prefix' : 'prefix_except_default',
+    detectBrowserLanguage: isLaunchMode
+      ? false
+      : {
+          useCookie: true,
+          cookieKey: 'i18n_redirected',
+          redirectOn: 'root',
+        },
   },
 })

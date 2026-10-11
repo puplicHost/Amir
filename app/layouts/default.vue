@@ -8,7 +8,7 @@ const { data: metaPublic } = await useAsyncData('meta-pixel-public', () =>
 )
 // The admin login page also uses the default layout — exclude it explicitly.
 const isAdminRoute = computed(() =>
-  route.path.replace(/^\/(en|ar)(?=\/|$)/, '').startsWith('/admin'),
+  route.path.replace(/^\/(en|de)(?=\/|$)/, '').startsWith('/admin'),
 )
 </script>
 
@@ -23,5 +23,6 @@ const isAdminRoute = computed(() =>
       <slot />
     </main>
     <AppFooter />
+    <AppConsentBanner v-if="!isAdminRoute" />
   </div>
 </template>

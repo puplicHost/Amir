@@ -1,9 +1,11 @@
 import { isKnownPermission } from '../../../../shared/permissions'
+import { ADMIN_ROLES } from '../../../../shared/booking'
 
 interface CreateUserBody {
   name?: unknown
   email?: unknown
   password?: unknown
+  role?: unknown
   title?: unknown
   salary?: unknown
   permissions?: unknown
@@ -36,11 +38,16 @@ export default defineEventHandler(async (event) => {
   const salaryRaw = actor.isSuper ? Number(body.salary) : NaN
   const salary = Number.isFinite(salaryRaw) && salaryRaw >= 0 ? salaryRaw : null
 
+  const role = (typeof body.role === 'string' && ADMIN_ROLES.includes(body.role as any))
+    ? body.role
+    : 'STAFF'
+
   const user = await prisma.adminUser.create({
     data: {
       name,
       email,
       passwordHash: await hashPassword(password),
+      role,
       title,
       salary,
       permissions: { create: permissions.map(permission => ({ permission })) },
@@ -49,6 +56,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       email: true,
       name: true,
+      role: true,
       title: true,
       salary: true,
       isSuper: true,
@@ -63,9 +71,9 @@ export default defineEventHandler(async (event) => {
     relatedEntityId: user.id,
     url: '/admin/users',
     titleEn: `New staff account: ${user.name}`,
-    titleAr: `حساب إداري جديد: ${user.name}`,
+    titleAr: `Neues Mitarbeiterkonto: ${user.name}`,
     bodyEn: `${user.email} · by ${actor.name}`,
-    bodyAr: `${user.email} · بواسطة ${actor.name}`,
+    bodyAr: `${user.email} · von ${actor.name}`,
   })
 
   return {

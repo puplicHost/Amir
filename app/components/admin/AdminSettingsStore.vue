@@ -10,7 +10,7 @@ const {
   key: 'settings-store',
   endpoint: '/api/admin/settings',
   defaults: {
-    defaultCurrency: 'EGP',
+    defaultCurrency: 'EUR',
     productsPerPage: 16,
   },
   saveEndpoint: '/api/admin/settings/store',
@@ -35,8 +35,8 @@ const {
       <div class="grid max-w-xl gap-4 sm:grid-cols-2">
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Default Currency Code</span>
-          <input v-model="form.defaultCurrency" type="text" placeholder="EGP" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
-          <span class="mt-1 block text-[11px] text-slate-400">Default currency displayed across product pricing and checkout.</span>
+          <input v-model="form.defaultCurrency" type="text" placeholder="EUR" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <span class="mt-1 block text-[11px] text-slate-400">Default currency displayed across product pricing.</span>
         </label>
 
         <label class="block">

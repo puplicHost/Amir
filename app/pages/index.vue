@@ -1,59 +1,13 @@
 <script setup lang="ts">
 import {
-  Activity,
-  AlertTriangle,
   ArrowRight,
-  Battery,
   Boxes,
-  CheckCircle,
-  Clock,
-  Cpu,
-  Database,
-  Flame,
-  GitBranch,
-  Hammer,
-  Layers,
-  Monitor,
-  Package,
-  Phone,
-  Radio,
-  Server,
-  Settings,
-  Shield,
-  ShoppingCart,
-  Wifi,
-  Wind,
   Wrench,
-  Zap
 } from 'lucide-vue-next'
-
-// Icon registry for DB-driven service card icons (saved as names via the admin icon picker)
-const serviceIconMap: Record<string, any> = {
-  Wrench,
-  Settings,
-  Zap,
-  Cpu,
-  Radio,
-  Wind,
-  Flame,
-  Shield,
-  Hammer,
-  Monitor,
-  Server,
-  Database,
-  Wifi,
-  Battery,
-  GitBranch,
-  Layers,
-  Package,
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-}
+import { centsToEur } from '~~/shared/booking'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
-const cartStore = useCartStore()
 
 const { data: general } = await useAsyncData('home-general', () => $fetch<any>('/api/settings/general'))
 const { data: contact } = await useAsyncData('home-contact', () => $fetch<any>('/api/settings/contact'))
@@ -75,43 +29,24 @@ const displayServices = computed(() => {
   // Strictly DB-driven: only services managed in the Admin Panel (/api/services
   // already returns active ones only). No hardcoded fallback anywhere.
   return (services.value || []).map((srv: any) => {
-    const name = locale.value === 'ar'
-      ? (srv.nameAr || srv.nameEn)
-      : (srv.nameEn || srv.nameAr)
-    const description = locale.value === 'ar'
-      ? (srv.descriptionAr || srv.descriptionEn)
-      : (srv.descriptionEn || srv.descriptionAr)
-    const pill = locale.value === 'ar'
-      ? (srv.tagAr || srv.tagEn)
-      : (srv.tagEn || srv.tagAr)
     return {
       id: srv.id,
-      name: name || '',
-      description: description || '',
-      icon: (srv.iconName && serviceIconMap[srv.iconName]) || Wrench,
-      iconPath: srv.iconPath || null,
-      cardColor: srv.cardColor || '#FFFFFF',
-      pill: pill || '',
-      isFeatured: Boolean(srv.isFeatured),
+      slug: srv.slug || '',
+      section: srv.section || '',
+      name: srv.name || '',
+      description: srv.description || '',
+      priceAbCents: Number(srv.priceAbCents || 0),
+      durationMin: Number(srv.durationMin || 0),
     }
   })
 })
 
 const flagshipService = computed(() => {
-  // API orders featured-first, so the first eligible service leads.
   return displayServices.value[0] || null
 })
 
 const standardServices = computed(() => {
-  const list = displayServices.value.filter(s => s.id !== flagshipService.value?.id)
-  let sponsoredSlots = 0
-  return list
-    .map(s => {
-      const showSponsored = s.isFeatured && sponsoredSlots < 2
-      if (showSponsored) sponsoredSlots++
-      return { ...s, showSponsored }
-    })
-    .sort((a, b) => (b.showSponsored ? 1 : 0) - (a.showSponsored ? 1 : 0))
+  return displayServices.value.filter(s => s.id !== flagshipService.value?.id)
 })
 
 const siteSeo = await useSiteSeo()
@@ -129,7 +64,7 @@ useHead(() => {
           "@context": "https://schema.org",
           "@type": "Organization",
           "name": siteName,
-          "url": "https://mango-electronics.com",
+          "url": "https://amir.com",
           "logo": general.value?.logoPath || "",
           ...(geoDescription ? { description: geoDescription } : {}),
           "contactPoint": {
@@ -235,7 +170,7 @@ catch { /* state not registered yet — mount layout already ran */ }
     <!-- Dynamic promo banners: below_hero slot (managed in /admin/banners) -->
     <AppHomeBanners placement="below_hero" />
 
-    <!-- 3. Engineering Solutions (Bento Grid with Asymmetric Rhythm & Background Diversity) -->
+    <!-- 3. Featured Services -->
     <!-- Shown while loading or when at least one eligible service exists; hidden on empty/error -->
     <section v-if="servicesPending || displayServices.length" class="py-16 sm:py-24 px-4 bg-bg transition-colors">
       <div class="mx-auto max-w-7xl">
@@ -277,16 +212,14 @@ catch { /* state not registered yet — mount layout already ran */ }
           <!-- Unified Service Card: flagship entry (same style as all cards) -->
           <div
             v-if="flagshipService"
-            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-[var(--card-bg)] dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
-            :style="{ '--card-bg': flagshipService.cardColor || '#FFFFFF' }"
+            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-white dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
           >
             <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
               <div class="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300">
-                <img v-if="flagshipService.iconPath" :src="flagshipService.iconPath" :alt="flagshipService.name" class="h-5 w-5 object-contain" loading="lazy" />
-                <component v-else :is="flagshipService.icon" class="h-5 w-5" aria-hidden="true" />
+                <Wrench class="h-5 w-5" aria-hidden="true" />
               </div>
-              <span v-if="flagshipService.pill" class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
-                {{ flagshipService.pill }}
+              <span class="font-mono text-xs sm:text-sm font-bold text-primary">
+                {{ t('services.priceAb') }} {{ centsToEur(flagshipService.priceAbCents) }}
               </span>
             </div>
 
@@ -299,7 +232,7 @@ catch { /* state not registered yet — mount layout already ran */ }
             </p>
 
             <NuxtLink
-              :to="localePath(`/services/${flagshipService.id}`)"
+              :to="localePath(`/booking/${flagshipService.slug}`)"
               class="mt-auto flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 hover:bg-yellow-400 active:scale-[0.98] transition-colors"
             >
               <span>{{ t('home.serviceAction') }}</span>
@@ -308,29 +241,19 @@ catch { /* state not registered yet — mount layout already ran */ }
           </div>
 
           <!-- Unified Service Cards -->
-          <NuxtLink
+          <div
             v-for="(srv, i) in standardServices"
             :key="srv.id"
-            :to="localePath(`/services/${srv.id}`)"
-            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-[var(--card-bg)] dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
-            :style="{ '--reveal-delay': `${(i + 1) * 70}ms`, '--card-bg': srv.cardColor || '#FFFFFF' }"
+            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-white dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
+            :style="{ '--reveal-delay': `${(i + 1) * 70}ms` }"
           >
             <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
               <div class="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300">
-                <img v-if="srv.iconPath" :src="srv.iconPath" :alt="srv.name" class="h-5 w-5 object-contain" loading="lazy" />
-                <component v-else :is="srv.icon" class="h-5 w-5" aria-hidden="true" />
+                <Wrench class="h-5 w-5" aria-hidden="true" />
               </div>
-              <div class="flex items-center gap-1.5">
-                <span v-if="srv.pill" class="inline-flex items-center border border-border text-xs rounded-full px-2 py-0.5 text-muted">
-                  {{ srv.pill }}
-                </span>
-                <span
-                  v-if="srv.showSponsored"
-                  class="inline-flex items-center rounded-full border border-[#F5CC07]/60 bg-[#F5CC07]/10 px-2 py-0.5 text-xs font-bold text-[#7a6200] dark:text-[#F5CC07]"
-                >
-                  {{ locale === 'ar' ? 'مميز' : 'Featured' }}
-                </span>
-              </div>
+              <span class="font-mono text-xs sm:text-sm font-bold text-primary">
+                {{ t('services.priceAb') }} {{ centsToEur(srv.priceAbCents) }}
+              </span>
             </div>
 
             <h3 class="font-heading text-base font-bold text-text line-clamp-2 mb-1.5 leading-snug">
@@ -341,13 +264,14 @@ catch { /* state not registered yet — mount layout already ran */ }
               {{ srv.description }}
             </p>
 
-            <span
+            <NuxtLink
+              :to="localePath(`/booking/${srv.slug}`)"
               class="mt-auto flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 group-hover:bg-yellow-400 active:scale-[0.98] transition-colors"
             >
               <span>{{ t('home.serviceAction') }}</span>
               <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-            </span>
-          </NuxtLink>
+            </NuxtLink>
+          </div>
         </div>
 
       </div>
@@ -461,7 +385,7 @@ catch { /* state not registered yet — mount layout already ran */ }
       </div>
     </section>
 
-    <!-- 6. Precision Engineering Workflow (No Generic 'Step 1' Labels) -->
+    <!-- 6. Salon Experience -->
     <section class="py-16 sm:py-24 px-4 bg-surface border-t border-border">
       <div class="mx-auto max-w-7xl">
         <div class="reveal mb-12 text-center max-w-3xl mx-auto">

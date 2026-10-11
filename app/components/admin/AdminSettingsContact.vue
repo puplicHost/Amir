@@ -60,7 +60,7 @@ const missingAddressAr = computed(() => !!form.contactAddressEn.trim() && !form.
         </label>
         <label class="block">
           <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Official Email</span>
-          <input v-model="form.contactEmail" type="email" placeholder="info@mango-electronics.com" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.contactEmail" type="email" placeholder="info@amir.com" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { ALL_PERMISSIONS } from '../../../../shared/permissions'
+import { ALL_PERMISSIONS, getEffectivePermissions } from '../../../../shared/permissions'
 
 interface LoginBody {
   email?: unknown
@@ -35,10 +35,11 @@ export default defineEventHandler(async (event) => {
     userId: user!.id,
     email: user!.email,
     name: user!.name,
+    role: user!.role,
     isSuper: user!.isSuper,
     permissions: user!.isSuper
       ? [...ALL_PERMISSIONS]
-      : user!.permissions.map(p => p.permission),
+      : getEffectivePermissions(user!.role, user!.permissions.map(p => p.permission)),
   }
   await createSession(event, sessionUser)
 

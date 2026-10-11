@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     }),
   ])
 
-  // Latest audit entry per listed product (for the "آخر تعديل" column).
+  // Latest audit entry per listed product (for the "Last modified" column).
   const ids = products.map(p => p.id)
   const recentLogs = ids.length
     ? await prisma.auditLog.findMany({

@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const email = (process.env.SEED_ADMIN_EMAIL || 'admin@mango-electronics.com').trim().toLowerCase()
-  const password = process.env.SEED_ADMIN_PASSWORD || 'MangoAdmin123!'
+  const email = (process.env.SEED_ADMIN_EMAIL || 'admin@amir.com').trim().toLowerCase()
+  const password = process.env.SEED_ADMIN_PASSWORD || 'AmirAdmin123!'
   if (password.length < 8) throw new Error('SEED_ADMIN_PASSWORD must be at least 8 characters')
 
   await prisma.adminUser.upsert({
@@ -25,13 +25,13 @@ async function main() {
   if (!existingSettings) {
     await prisma.siteSettings.create({
       data: {
-        siteNameAr: 'مانجو إلكترونيكس',
-        siteNameEn: 'Mango Electronics',
+        siteNameAr: 'أمير',
+        siteNameEn: 'Amir',
         taglineAr: 'اعملها صح، اعملها بذكاء',
         taglineEn: 'Do It Right, Do It Smart',
         contactPhone1: '01000000000',
         contactWhatsapp: '01000000000',
-        contactEmail: 'info@mango-electronics.com',
+        contactEmail: 'info@amir.com',
         bannerTextAr: 'خصم 20% على جميع خدمات الصيانة',
         bannerTextEn: '20% off all maintenance services',
         bannerButtonTextAr: 'احجز الآن',
@@ -45,7 +45,7 @@ async function main() {
       data: {
         contactPhone1: '01000000000',
         contactWhatsapp: '01000000000',
-        contactEmail: 'info@mango-electronics.com',
+        contactEmail: 'info@amir.com',
         bannerTextAr: 'خصم 20% على جميع خدمات الصيانة',
         bannerTextEn: '20% off all maintenance services',
         bannerButtonTextAr: 'احجز الآن',

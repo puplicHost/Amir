@@ -1,8 +1,8 @@
-# Mango Electronics — Master Implementation Plan
+# Amir — Master Implementation Plan
 
 ## 1. Executive Summary
 
-**Project:** Mango Electronics (Bilingual AR/EN B2C + B2B E-commerce & Engineering Services Platform)
+**Project:** Amir (Bilingual AR/EN B2C + B2B E-commerce & Engineering Services Platform)
 **Tagline:** Do It Right, Do It Smart
 **Stack:** Nuxt 3, Nitro, Prisma, PostgreSQL, shadcn-vue, Tailwind CSS, Docker.
 **Design Source of Truth:** Google Stitch (must be completed and provided before Phase 3 frontend implementation).

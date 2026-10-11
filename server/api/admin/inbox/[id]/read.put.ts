@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'inbox.view')
+  await requirePermission(event, 'inbox.manage')
 
   const id = event.context.params?.id
   if (!id) throw createError({ statusCode: 400, message: 'Missing message id' })

@@ -6,12 +6,9 @@ import {
   Cpu, 
   Download, 
   FileText, 
-  Minus, 
   Play, 
-  Plus, 
   Share2, 
   ShieldCheck, 
-  ShoppingCart, 
   Truck, 
   Video 
 } from 'lucide-vue-next'
@@ -29,7 +26,6 @@ interface LandingProduct {
   descriptionAr: string | null
   descriptionEn: string | null
   price: string | number
-  compareAtPrice: string | number | null
   category: { slug: string, nameAr: string, nameEn: string }
   images: { path: string, altAr: string | null, altEn: string | null }[]
   attributes: { keyAr: string, keyEn: string, valueAr: string, valueEn: string }[]
@@ -52,18 +48,8 @@ const desc = computed(() => (locale.value === 'ar' ? p.value.descriptionAr : p.v
 const cover = computed(() => p.value.images[0]?.path || null)
 const activeImage = ref(0)
 const copied = ref(false)
-const added = ref(false)
-const quantity = ref(1)
 
-const pageUrl = computed(() => `https://mango-electronics.com/p/${p.value.slug}`)
-
-const discountPercent = computed(() => {
-  const price = Number(p.value.price)
-  const compare = Number(p.value.compareAtPrice)
-  if (!compare || !Number.isFinite(price) || !Number.isFinite(compare)) return 0
-  if (!(compare > price)) return 0
-  return Math.round(((compare - price) / compare) * 100)
-})
+const pageUrl = computed(() => `https://amir.com/p/${p.value.slug}`)
 
 useHead(() => ({
   script: [
@@ -73,15 +59,14 @@ useHead(() => ({
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": name.value,
-        "image": p.value.images.map(i => "https://mango-electronics.com" + i.path),
+        "image": p.value.images.map(i => "https://amir.com" + i.path),
         "description": desc.value || "",
         "sku": p.value.slug,
         "offers": {
           "@type": "Offer",
-          "url": "https://mango-electronics.com/p/" + p.value.slug,
-          "priceCurrency": "EGP",
-          "price": String(p.value.price),
-          "availability": "https://schema.org/InStock"
+          "url": "https://amir.com/p/" + p.value.slug,
+          "priceCurrency": "EUR",
+          "price": String(p.value.price)
         }
       })
     }
@@ -110,28 +95,6 @@ useHead(() => {
     ],
   }
 })
-
-const cart = useCartStore()
-
-function handleAddToCart() {
-  cart.addItem({
-    productId: p.value.id || p.value.slug,
-    slug: p.value.slug,
-    nameAr: p.value.nameAr,
-    nameEn: p.value.nameEn,
-    price: Number(p.value.price),
-    coverImage: cover.value,
-    quantity: quantity.value,
-  })
-  added.value = true
-  setTimeout(() => {
-    added.value = false
-  }, 2200)
-}
-
-function updateQty(delta: number) {
-  quantity.value = Math.max(1, quantity.value + delta)
-}
 
 async function copyLink() {
   try {
@@ -205,13 +168,6 @@ function getEmbedUrl(url: string, type?: string): string {
             <div v-else class="text-xs text-slate-400">
               {{ t('common.noImage') }}
             </div>
-            <span
-              v-if="discountPercent > 0"
-              class="absolute left-[10px] top-[10px] inline-flex items-center rounded-full bg-error px-[10px] py-[4px] text-[12px] font-bold text-white shadow-xs"
-              style="border-radius: 20px;"
-            >
-              {{ locale === 'ar' ? `خصم ${discountPercent}%` : `${discountPercent}% OFF` }}
-            </span>
           </div>
         </div>
 
@@ -272,20 +228,7 @@ function getEmbedUrl(url: string, type?: string): string {
           <!-- Price Display -->
           <div class="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-border">
             <span class="text-3xl sm:text-4xl font-black text-primary">
-              {{ p.price }} <span class="text-base font-bold">EGP</span>
-            </span>
-            <span 
-              v-if="p.compareAtPrice" 
-              class="text-base sm:text-lg text-slate-400 line-through"
-            >
-              {{ p.compareAtPrice }} EGP
-            </span>
-            <span
-              v-if="discountPercent > 0"
-              class="inline-flex items-center rounded-full bg-error/10 border border-error/30 px-3 py-1.5 text-sm font-bold text-error"
-              style="border-radius: 20px;"
-            >
-              {{ locale === 'ar' ? `وفّر ${discountPercent}%` : `Save ${discountPercent}%` }}
+              {{ p.price }} <span class="text-base font-bold">€</span>
             </span>
           </div>
 
@@ -296,45 +239,8 @@ function getEmbedUrl(url: string, type?: string): string {
             v-html="desc"
           />
 
-          <!-- Purchasing Actions -->
+          <!-- Sharing Actions -->
           <div class="space-y-4 mb-8">
-            <div class="flex flex-wrap items-center gap-3">
-              <!-- Quantity Stepper -->
-              <div class="flex h-12 items-center rounded-xl border border-border bg-surface px-2">
-                <button
-                  type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-border transition-colors"
-                  :aria-label="locale === 'ar' ? 'تقليل الكمية' : 'Decrease quantity'"
-                  @click="updateQty(-1)"
-                >
-                  <Minus class="h-3.5 w-3.5" />
-                </button>
-                <span class="w-10 text-center font-mono text-sm font-bold text-text">
-                  {{ quantity }}
-                </span>
-                <button
-                  type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-border transition-colors"
-                  :aria-label="locale === 'ar' ? 'زيادة الكمية' : 'Increase quantity'"
-                  @click="updateQty(1)"
-                >
-                  <Plus class="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              <!-- Add to Cart Primary CTA -->
-              <button 
-                type="button" 
-                class="flex-1 min-w-[200px] h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold shadow-lg shadow-accent/10 active:scale-[0.98] transition-all"
-                :class="added ? 'bg-emerald-600 text-white' : 'bg-accent hover:bg-accent-hover text-on-accent'"
-                @click="handleAddToCart"
-              >
-                <Check v-if="added" class="h-4 w-4" />
-                <ShoppingCart v-else class="h-4 w-4" />
-                <span>{{ added ? (locale === 'ar' ? 'تمت الإضافة للسلة' : 'Added to Cart') : (locale === 'ar' ? 'إضافة إلى السلة' : 'Add to Cart') }}</span>
-              </button>
-            </div>
-
             <!-- Secondary Sharing Actions -->
             <div class="flex flex-wrap items-center gap-2.5 pt-2">
               <a 

@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const page = Math.max(1, Number(query.page) || 1)
   const limit = Math.min(50, Math.max(1, Number(query.limit) || 7))
-  const entityTypes = ['product', 'category', 'service']
+  const entityTypes = ['product', 'category', 'service', 'booking']
   const actions = ['created', 'updated', 'deleted', 'media']
   const where: Record<string, unknown> = {}
   if (typeof query.entityType === 'string' && entityTypes.includes(query.entityType)) {

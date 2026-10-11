@@ -29,7 +29,6 @@ export default defineEventHandler(async (event) => {
         nameAr: true,
         nameEn: true,
         price: true,
-        compareAtPrice: true,
         category: {
           select: {
             slug: true,
@@ -52,7 +51,6 @@ export default defineEventHandler(async (event) => {
     nameAr: p.nameAr,
     nameEn: p.nameEn,
     price: Number(p.price),
-    compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
     category: p.category,
     coverImage: p.images[0]?.path || null,
   }))

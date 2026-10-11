@@ -1,35 +1,43 @@
+import { requirePermission } from '../../../utils/auth'
 import { encryptData } from '../../../utils/encryption'
+import { parseBody, paymentSettingsSchema } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
-  const body = await readBody(event)
-  
-  const existing = await prisma.siteSettings.findFirst()
-  const id = existing?.id || 1
-
+  await requirePermission(event, 'settings.payment')
+  const body = await parseBody(event, paymentSettingsSchema)
   const data: Record<string, unknown> = {}
-  if (typeof body.codEnabled === 'boolean') data.paymentCodEnabled = body.codEnabled
-  if (typeof body.onlineEnabled === 'boolean') data.paymentOnlineEnabled = body.onlineEnabled
-  if (typeof body.gatewayName === 'string') data.paymentGatewayName = body.gatewayName.trim()
-  if (typeof body.gatewayMode === 'string') {
-    data.paymentGatewayMode = ['sandbox', 'production'].includes(body.gatewayMode) ? body.gatewayMode : 'sandbox'
-  }
-  
-  if (body.credentials && typeof body.credentials === 'object') {
-    // We expect { apiKey: string, secretKey: string } or similar
-    const credString = JSON.stringify(body.credentials)
-    data.paymentGatewayCredentials = encryptData(credString)
-  }
 
+  if (body.stripeEnabled !== undefined) data.stripeEnabled = body.stripeEnabled
+  if (body.stripePublishableKey !== undefined) {
+    data.stripePublishableKey = body.stripePublishableKey?.trim() ? body.stripePublishableKey.trim() : null
+  }
+  if (typeof body.stripeSecretKey === 'string' && body.stripeSecretKey.trim()) {
+    data.stripeSecretKey = encryptData(body.stripeSecretKey.trim())
+  }
+  if (typeof body.stripeWebhookSecret === 'string' && body.stripeWebhookSecret.trim()) {
+    data.stripeWebhookSecret = encryptData(body.stripeWebhookSecret.trim())
+  }
+  if (body.paypalEnabled !== undefined) data.paypalEnabled = body.paypalEnabled
+  if (body.paypalClientId !== undefined) {
+    data.paypalClientId = body.paypalClientId?.trim() ? body.paypalClientId.trim() : null
+  }
+  if (typeof body.paypalSecret === 'string' && body.paypalSecret.trim()) {
+    data.paypalSecret = encryptData(body.paypalSecret.trim())
+  }
+  if (typeof body.paypalWebhookId === 'string' && body.paypalWebhookId.trim()) {
+    data.paypalWebhookId = encryptData(body.paypalWebhookId.trim())
+  }
+  if (body.paypalMode !== undefined) data.paypalMode = body.paypalMode
+
+  const existing = await prisma.siteSettings.findFirst()
   await prisma.siteSettings.upsert({
-    where: { id },
+    where: { id: existing?.id || 1 },
     update: data,
     create: {
-      taglineAr: '...',
-      taglineEn: '...',
+      siteNameAr: 'AMIR',
+      siteNameEn: 'Amir',
       ...data,
     },
   })
-
-  return { ok: true }
+  return { success: true }
 })

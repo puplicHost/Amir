@@ -10,11 +10,6 @@ export default defineEventHandler(async (event) => {
         { slug: id },
       ],
     },
-    include: {
-      formFields: {
-        orderBy: { sortOrder: 'asc' },
-      },
-    },
   })
   if (!service) throw createError({ statusCode: 404, message: 'Service not found or inactive' })
   return service

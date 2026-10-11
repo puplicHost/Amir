@@ -3,7 +3,7 @@ import { requirePermission } from '../../../utils/auth'
 import { storeFile } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'products.edit')
+  await requirePermission(event, 'products.manage')
   const formData = await readMultipartFormData(event)
   if (!formData || !formData.length) {
     throw createError({ statusCode: 400, message: 'No file provided' })

@@ -3,7 +3,7 @@ import { requirePermission } from '../../../utils/auth'
 import { prisma } from '../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.view')
+  await requirePermission(event, 'banners.manage')
 
   const [items, settings, products, services] = await Promise.all([
     prisma.announcementItem.findMany({
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     }),
     prisma.service.findMany({
       where: { isActive: true },
-      select: { id: true, nameAr: true, nameEn: true },
+      select: { id: true, name: true },
       orderBy: { sortOrder: 'asc' },
     }),
   ])

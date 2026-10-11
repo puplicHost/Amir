@@ -33,12 +33,9 @@ const { data: bannersData, refresh: refreshBanners } = await useAsyncData('admin
 const banners = computed(() => bannersData.value?.banners || [])
 const deleting = ref('')
 
-// ── Live link-target options (products, categories, services, static) ──
+// ── Live link-target options (products, categories, static) ──
 const { data: catsData } = await useAsyncData('banner-form-categories', () =>
   fetch<{ categories: { slug: string, nameAr: string, nameEn: string }[] }>('/api/categories'),
-)
-const { data: servicesData } = await useAsyncData('banner-form-services', () =>
-  fetch<any[]>('/api/services'),
 )
 const { data: productsData } = await useAsyncData('banner-form-products', () =>
   fetch<{ products: { id: string, slug: string, nameAr: string, nameEn: string }[] }>('/api/products?limit=100'),
@@ -46,12 +43,6 @@ const { data: productsData } = await useAsyncData('banner-form-products', () =>
 
 const linkOptions = computed(() => [
   ...BANNER_STATIC_LINKS.map(l => ({ ...l })),
-  {
-    type: 'static',
-    value: '/products/offers',
-    labelEn: 'Deals & Offers Page',
-    labelAr: 'صفحة العروض والخصومات',
-  },
   ...(catsData.value?.categories || []).map(c => ({
     type: 'category',
     value: `/products/${c.slug}`,
@@ -63,12 +54,6 @@ const linkOptions = computed(() => [
     value: `/p/${p.slug}`,
     labelEn: `Product: ${p.nameEn}`,
     labelAr: `منتج: ${p.nameAr}`,
-  })),
-  ...(servicesData.value || []).map((s: any) => ({
-    type: 'service',
-    value: `/services/${s.id}`,
-    labelEn: `Service: ${s.nameEn}`,
-    labelAr: `خدمة: ${s.nameAr}`,
   })),
 ])
 
@@ -404,7 +389,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Ticker Text (EN)</span>
-            <input v-model="tickerForm.textEn" type="text" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" placeholder="Free delivery on orders over 1000 EGP" />
+            <input v-model="tickerForm.textEn" type="text" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" placeholder="Willkommen im AMIR Studio" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Ticker Text (AR)</span>

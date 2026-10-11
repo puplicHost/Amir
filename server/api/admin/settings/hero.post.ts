@@ -4,7 +4,7 @@ import { prisma } from '../../../utils/prisma'
 import { storeFile } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
+  await requirePermission(event, 'settings.business')
   const formData = await readMultipartFormData(event)
   if (!formData || !formData.length) throw createError({ statusCode: 400, message: 'No file provided' })
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const settings = await prisma.siteSettings.upsert({
     where: { id: 1 },
     update: { heroImagePath: relativePath },
-    create: { siteNameAr: 'مانجو إلكترونيكس', siteNameEn: 'Mango Electronics', heroImagePath: relativePath }
+    create: { siteNameAr: 'AMIR', siteNameEn: 'Amir', heroImagePath: relativePath }
   })
   return { success: true, path: relativePath }
 })

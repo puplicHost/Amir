@@ -2,7 +2,7 @@ import { requirePermission } from '../../../utils/auth'
 
 // Returns Meta config with the access token masked (never raw).
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.view')
+  await requirePermission(event, 'settings.meta')
   const settings = await prisma.siteSettings.findFirst()
   const config = useRuntimeConfig(event).public as Record<string, string>
 

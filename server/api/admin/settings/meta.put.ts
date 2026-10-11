@@ -4,7 +4,7 @@ import { prisma } from '../../../utils/prisma'
 import { encryptData } from '../../../utils/encryption'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
+  await requirePermission(event, 'settings.meta')
   const body = (await readBody(event)) || {}
   const data: Record<string, unknown> = {}
 
@@ -30,8 +30,8 @@ export default defineEventHandler(async (event) => {
     where: { id: existing?.id || 1 },
     update: data,
     create: {
-      siteNameAr: 'مانجو إلكترونيكس',
-      siteNameEn: 'Mango Electronics',
+      siteNameAr: 'AMIR',
+      siteNameEn: 'Amir',
       ...data,
     },
   })

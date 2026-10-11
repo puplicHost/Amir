@@ -7,7 +7,7 @@ import { prisma } from '../../../utils/prisma'
 const REQUIRED_FIELDS = ['siteNameAr', 'siteNameEn'] as const
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
+  await requirePermission(event, 'settings.business')
   const body = (await readBody(event)) || {}
   for (const field of REQUIRED_FIELDS) {
     if (field in body && typeof body[field] === 'string' && !body[field].trim()) {
@@ -42,8 +42,8 @@ export default defineEventHandler(async (event) => {
       ...colorUpdate,
     },
     create: {
-      siteNameAr: body.siteNameAr || 'مانجو إلكترونيكس',
-      siteNameEn: body.siteNameEn || 'Mango Electronics',
+      siteNameAr: body.siteNameAr || 'AMIR',
+      siteNameEn: body.siteNameEn || 'Amir',
     }
   })
   return { success: true }

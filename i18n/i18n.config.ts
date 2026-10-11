@@ -1,10 +1,13 @@
 import en from './locales/en.json'
-import ar from './locales/ar.json'
+import de from './locales/de.json'
 
-export default defineI18nConfig(() => ({
-  legacy: false,
-  globalInjection: true,
-  locale: 'en',
-  fallbackLocale: 'en',
-  messages: { en, ar },
-}))
+export default defineI18nConfig(() => {
+  const isLaunch = process.env.NUXT_PUBLIC_LAUNCH_MODE === 'true'
+  return {
+    legacy: false,
+    globalInjection: true,
+    locale: isLaunch ? 'de' : 'en',
+    fallbackLocale: isLaunch ? 'de' : 'en',
+    messages: { en, de },
+  }
+})

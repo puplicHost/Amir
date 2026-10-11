@@ -1,13 +1,8 @@
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'services.view')
+  await requirePermission(event, 'services.manage')
   const services = await prisma.service.findMany({
     orderBy: { sortOrder: 'asc' },
-    include: {
-      _count: {
-        select: { formFields: true, requests: true }
-      }
-    }
   })
   return services
 })

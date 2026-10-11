@@ -66,10 +66,6 @@ interface Existing {
   descriptionAr: string | null
   descriptionEn: string | null
   price: string | number
-  compareAtPrice: string | number | null
-  costPrice?: string | number | null
-  stock?: number
-  minStock?: number
   categoryId: string
   isActive: boolean
   attributes: Attr[]
@@ -104,10 +100,6 @@ const form = reactive({
   descriptionEn: props.existing?.descriptionEn || '',
   isActive: props.existing?.isActive ?? true,
   price: props.existing ? String(props.existing.price) : '',
-  compareAtPrice: props.existing?.compareAtPrice ? String(props.existing.compareAtPrice) : '',
-  costPrice: props.existing?.costPrice !== undefined && props.existing?.costPrice !== null ? String(props.existing.costPrice) : '',
-  stock: props.existing?.stock ?? 0,
-  minStock: props.existing?.minStock ?? 5,
   attributes: (props.existing?.attributes || []).map(a => ({ ...a })),
   metaTitleAr: props.existing?.seo?.metaTitleAr || '',
   metaTitleEn: props.existing?.seo?.metaTitleEn || '',
@@ -197,33 +189,6 @@ function validateStep(s: number, silent = false): boolean {
     const price = Number(form.price)
     if (!form.price || !Number.isFinite(price) || price < 0) {
       const msg = locale.value === 'ar' ? 'يرجى إدخال سعر صحيح للمنتج.' : 'Valid price is required.'
-      stepErrors.value[2] = msg
-      if (!silent) error.value = msg
-      return false
-    }
-    if (form.compareAtPrice !== '') {
-      const c = Number(form.compareAtPrice)
-      if (!Number.isFinite(c) || c <= price) {
-        const msg = locale.value === 'ar' ? 'سعر المقارنة (قبل الخصم) يجب أن يكون أكبر من السعر الفعلي.' : 'Compare-at price must be greater than active price.'
-        stepErrors.value[2] = msg
-        if (!silent) error.value = msg
-        return false
-      }
-    }
-    if (form.costPrice !== '' && (Number.isNaN(Number(form.costPrice)) || Number(form.costPrice) < 0)) {
-      const msg = locale.value === 'ar' ? 'يرجى إدخال سعر شراء صحيح.' : 'Valid cost price is required.'
-      stepErrors.value[2] = msg
-      if (!silent) error.value = msg
-      return false
-    }
-    if (!Number.isInteger(Number(form.stock)) || Number(form.stock) < 0) {
-      const msg = locale.value === 'ar' ? 'يرجى إدخال كمية مخزون صحيحة.' : 'Valid stock quantity is required.'
-      stepErrors.value[2] = msg
-      if (!silent) error.value = msg
-      return false
-    }
-    if (!Number.isInteger(Number(form.minStock)) || Number(form.minStock) < 0) {
-      const msg = locale.value === 'ar' ? 'يرجى إدخال حد أدنى صحيح للمخزون.' : 'Valid minimum stock is required.'
       stepErrors.value[2] = msg
       if (!silent) error.value = msg
       return false
@@ -457,10 +422,6 @@ async function saveAll() {
       descriptionEn: form.descriptionEn || null,
       isActive: form.isActive,
       price: Number(form.price),
-      compareAtPrice: form.compareAtPrice === '' ? null : Number(form.compareAtPrice),
-      costPrice: form.costPrice === '' ? null : Number(form.costPrice),
-      stock: Math.max(0, Math.floor(Number(form.stock) || 0)),
-      minStock: Math.max(0, Math.floor(Number(form.minStock) || 0)),
       attributes: form.attributes.filter(a => (a.keyEn.trim() || a.keyAr.trim()) && (a.valueEn.trim() || a.valueAr.trim())),
       seo: {
         metaTitleAr: form.metaTitleAr || null,
@@ -757,72 +718,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
       :style="{ borderColor: 'var(--color-border)' }"
     >
       <h2 class="mb-1 font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
-        {{ locale === 'ar' ? 'التسعير والعروض' : 'Pricing & Discounts' }}
+        {{ locale === 'de' ? 'Preise' : 'Pricing' }}
       </h2>
       <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
-        {{ locale === 'ar' ? 'أدخل السعر الحالي بالجنيه المصري وسعر المقارنة في حال وجود تخفيض.' : 'Set current retail price in EGP and optional original compare-at price.' }}
+        {{ locale === 'de' ? 'Aktuellen Verkaufspreis in EUR festlegen.' : 'Set current retail price in EUR.' }}
       </p>
 
       <div class="grid max-w-xl gap-4 sm:grid-cols-2">
         <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Price (EGP) *</span>
+          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Price (EUR) *</span>
           <div class="relative">
             <input v-model="form.price" type="number" min="0" step="0.01" required placeholder="0.00" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
-            <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EGP</span>
+            <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EUR</span>
           </div>
         </label>
-
-        <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Compare-at price (Optional strike-through)</span>
-          <div class="relative">
-            <input v-model="form.compareAtPrice" type="number" min="0" step="0.01" placeholder="0.00" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
-            <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EGP</span>
-          </div>
-        </label>
-      </div>
-
-      <!-- Inventory: purchase cost + stock levels (internal only) -->
-      <div class="mt-6 border-t pt-5" :style="{ borderColor: 'var(--color-border)' }">
-        <h3 class="mb-1 font-heading text-sm font-bold text-slate-900 dark:text-slate-100">
-          {{ locale === 'ar' ? 'المخزون والتكلفة' : 'Inventory & Cost' }}
-        </h3>
-        <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
-          {{ locale === 'ar' ? 'بيانات داخلية لإدارة المخزون — لا تظهر للعملاء.' : 'Internal inventory data — never shown to customers.' }}
-        </p>
-        <div class="grid max-w-xl gap-4 sm:grid-cols-3">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {{ locale === 'ar' ? 'سعر الشراء (تكلفة الوحدة)' : 'Cost Price (per unit)' }}
-            </span>
-            <div class="relative">
-              <input v-model="form.costPrice" type="number" min="0" step="0.01" placeholder="0.00 جنيه" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
-              <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EGP</span>
-            </div>
-            <span class="mt-1 block text-[11px] text-slate-400">
-              {{ locale === 'ar' ? 'للاستخدام الداخلي فقط — لا يظهر للعملاء' : 'Internal use only — hidden from customers' }}
-            </span>
-          </label>
-
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {{ locale === 'ar' ? 'الكمية بالمخزون' : 'Stock Quantity' }}
-            </span>
-            <input v-model.number="form.stock" type="number" min="0" step="1" placeholder="0" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
-            <span class="mt-1 block text-[11px] text-slate-400">
-              {{ locale === 'ar' ? 'عدد القطع المتاحة حالياً' : 'Currently available units' }}
-            </span>
-          </label>
-
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {{ locale === 'ar' ? 'الحد الأدنى للمخزون' : 'Minimum Stock Alert' }}
-            </span>
-            <input v-model.number="form.minStock" type="number" min="0" step="1" placeholder="5" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
-            <span class="mt-1 block text-[11px] text-slate-400">
-              {{ locale === 'ar' ? 'ستصلك إشعار عندما يصل المخزون لهذا الرقم أو أقل' : 'Alert triggers at or below this level' }}
-            </span>
-          </label>
-        </div>
       </div>
     </div>
 
@@ -1161,11 +1070,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title (EN)</span>
-            <input v-model="form.metaTitleEn" type="text" placeholder="e.g. Arduino Uno R3 | Mango Electronics" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.metaTitleEn" type="text" placeholder="e.g. Arduino Uno R3 | Amir" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title (AR)</span>
-            <input v-model="form.metaTitleAr" type="text" placeholder="مثال: لوحة أردوينو أونو | مانجو إلكترونيكس" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <input v-model="form.metaTitleAr" type="text" placeholder="مثال: لوحة أردوينو أونو | أمير" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
 

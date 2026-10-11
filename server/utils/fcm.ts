@@ -40,9 +40,11 @@ export function getAdminMessaging(): Messaging | null {
   }
 }
 
+import { getEffectivePermissions } from '../../shared/permissions'
+
 export interface AdminPushPayload {
-  /** Permission gating who receives the push (e.g. 'orders.view'). */
-  permission: string
+  /** Permission(s) gating who receives the push (e.g. 'bookings.assign' or ['bookings.assign', 'bookings.view_all']). */
+  permission: string | string[]
   title: string
   body: string
   /** Deep-link path opened when the notification is clicked. */
@@ -55,16 +57,20 @@ const INVALID_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
 ])
 
-/** Find active admins holding `permission` (super admins hold all permissions). */
-export async function findEligibleAdminIds(permission: string): Promise<string[]> {
-  const admins = await prisma.adminUser.findMany({
-    where: {
-      isActive: true,
-      OR: [{ isSuper: true }, { permissions: { some: { permission } } }],
-    },
-    select: { id: true },
+/** Find active admin users holding any of `permissions` (via role defaults or extra grants). */
+export async function findEligibleAdminUsers(permissions: string | string[]) {
+  const perms = Array.isArray(permissions) ? permissions : [permissions]
+  const users = await prisma.adminUser.findMany({
+    where: { isActive: true },
+    include: { permissions: true },
   })
-  return admins.map(a => a.id)
+  return users.filter(u => u.isSuper || getEffectivePermissions(u.role, u.permissions.map(p => p.permission)).some(p => perms.includes(p)))
+}
+
+/** Find active admin IDs holding any of `permissions`. */
+export async function findEligibleAdminIds(permissions: string | string[]): Promise<string[]> {
+  const users = await findEligibleAdminUsers(permissions)
+  return users.map(u => u.id)
 }
 
 export async function sendPushToAdmins(payload: AdminPushPayload): Promise<{ sent: number, failed: number }> {
@@ -117,4 +123,41 @@ export async function sendPushToAdmins(payload: AdminPushPayload): Promise<{ sen
     result.failed += tokens.length
   }
   return result
+}
+
+export async function sendPushToUser(adminUserId: string, payload: Omit<AdminPushPayload, 'permission'>): Promise<void> {
+  const messaging = getAdminMessaging()
+  if (!messaging) return
+  const user = await prisma.adminUser.findUnique({
+    where: { id: adminUserId },
+    select: { isActive: true },
+  })
+  if (!user || !user.isActive) return
+  const tokens = await prisma.adminDeviceToken.findMany({
+    where: { adminUserId },
+    select: { fcmToken: true },
+  })
+  if (!tokens.length) return
+  try {
+    const response = await messaging.sendEach(
+      tokens.map(t => ({
+        token: t.fcmToken,
+        notification: { title: payload.title, body: payload.body },
+        data: { url: payload.url, type: payload.type },
+        webpush: { fcmOptions: { link: payload.url } },
+      })),
+    )
+    const stale: string[] = []
+    response.responses.forEach((r, i) => {
+      if (!r.success && r.error && INVALID_TOKEN_CODES.has(r.error.code)) {
+        stale.push(tokens[i]!.fcmToken)
+      }
+    })
+    if (stale.length) {
+      await prisma.adminDeviceToken.deleteMany({ where: { fcmToken: { in: stale } } })
+    }
+  }
+  catch {
+    console.warn('[fcm] Direct push send failed.')
+  }
 }

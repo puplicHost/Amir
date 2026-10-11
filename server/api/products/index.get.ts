@@ -26,9 +26,6 @@ export default defineEventHandler(async (event) => {
     ]
   }
 
-  if (q.offers === 'true' || q.discounted === 'true') {
-    where.compareAtPrice = { not: null, gt: 0 }
-  }
   const price: Record<string, number> = {}
   if (q.minPrice !== undefined && q.minPrice !== '') price.gte = Number(q.minPrice)
   if (q.maxPrice !== undefined && q.maxPrice !== '') price.lte = Number(q.maxPrice)
@@ -97,7 +94,6 @@ export default defineEventHandler(async (event) => {
         nameAr: true,
         nameEn: true,
         price: true,
-        compareAtPrice: true,
         category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
         images: { where: { isCover: true }, take: 1, select: { path: true } },
       },

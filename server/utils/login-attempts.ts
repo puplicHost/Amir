@@ -37,9 +37,9 @@ export async function recordFailedLogin(email: string): Promise<void> {
         relatedEntityId: key,
         url: '/admin/users',
         titleEn: `Repeated failed logins: ${key}`,
-        titleAr: `محاولات دخول فاشلة متكررة: ${key}`,
+        titleAr: `Wiederholte fehlgeschlagene Logins: ${key}`,
         bodyEn: `${record.failures.length} failed attempts in 10 minutes`,
-        bodyAr: `${record.failures.length} محاولات فاشلة خلال ١٠ دقائق`,
+        bodyAr: `${record.failures.length} fehlgeschlagene Versuche innerhalb von 10 Minuten`,
       })
     }
   }

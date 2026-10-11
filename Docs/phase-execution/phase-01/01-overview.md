@@ -8,7 +8,7 @@
 - **Position in overall project:** 1st phase. This sets up the foundational skeleton that all subsequent phases build upon.
 
 ## Objective
-Establish the complete project skeleton: Nuxt 3, Nitro, Prisma, PostgreSQL, Docker, configured for bilingual RTL/LTR support, light/dark mode, shadcn-vue, Tailwind with the Mango Electronics design system tokens, and Nuxt i18n. This phase produces a running, correctly structured base with no business features.
+Establish the complete project skeleton: Nuxt 3, Nitro, Prisma, PostgreSQL, Docker, configured for bilingual RTL/LTR support, light/dark mode, shadcn-vue, Tailwind with the Amir design system tokens, and Nuxt i18n. This phase produces a running, correctly structured base with no business features.
 
 ## Scope
 - Project scaffolding (Nuxt 3, Nitro, Prisma, PostgreSQL, Docker)

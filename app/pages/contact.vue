@@ -33,7 +33,7 @@ async function submitMessage() {
     formError.value = t('contact.errorRequired')
     return
   }
-  if (!/^01[0125][0-9]{8}$/.test(form.phone.trim())) {
+  if (!/^\+?[0-9][0-9\s\-/]{5,19}$/.test(form.phone.trim())) {
     formError.value = t('contact.errorPhone')
     return
   }
@@ -51,7 +51,7 @@ async function submitMessage() {
     form.name = ''
     form.phone = ''
     form.message = ''
-    showToast('success', locale.value === 'ar' ? 'تم إرسال رسالتك بنجاح — سنتواصل معك قريباً ✓' : 'Message sent successfully — we will contact you soon ✓')
+    showToast('success', t('contact.success'))
   }
   catch {
     formError.value = t('contact.errorFailed')

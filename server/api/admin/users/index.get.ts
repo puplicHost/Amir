@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
       name: true,
       title: true,
       salary: true,
+      role: true,
       isSuper: true,
       isActive: true,
       lastLoginAt: true,

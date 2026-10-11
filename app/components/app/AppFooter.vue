@@ -15,13 +15,14 @@ const { data: contact } = await useAsyncData('footer-contact', () =>
 )
 
 const year = new Date().getFullYear()
+const { openBanner: openConsentBanner } = useCookieConsent()
 
 const siteDisplayName = computed(() => {
   if (locale.value === 'ar') {
     return general.value?.siteNameAr || t('brand.name')
   }
   const name = general.value?.siteNameEn || t('brand.name')
-  return name === 'Mango' ? 'Mango Electronics' : name
+  return name
 })
 
 const tagline = computed(() => {
@@ -47,7 +48,7 @@ const tagline = computed(() => {
               class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" 
             />
             <div v-else class="flex items-center gap-2.5">
-              <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain shadow-xs" loading="lazy" />
+              <img src="/logo.png" alt="Amir" class="h-9 w-9 rounded object-contain shadow-xs" loading="lazy" />
               <span class="font-heading text-xl font-bold tracking-tight text-white group-hover:text-cream transition-colors">
                 {{ siteDisplayName }}
               </span>
@@ -58,8 +59,8 @@ const tagline = computed(() => {
             {{ tagline }}
           </p>
 
-          <p class="text-sm leading-relaxed text-slate-400 max-w-sm">
-            {{ locale === 'ar' ? 'حلول هندسية متطورة، توريد قطع أصلية معتمدة، وبرمجة وصيانة خطوط الإنتاج والأنظمة الذكية في مصر.' : 'Specialized engineering automation, genuine industrial components, and rapid diagnostic support across Egypt.' }}
+          <p class="text-sm leading-relaxed text-muted max-w-sm">
+            Schloßstr. 2c, 86405 Meitingen. {{ locale === 'de' ? 'Ihr Friseur- und Kosmetikstudio für meisterhafte Haarpflege, brillante Colorationen und verwöhnende Kosmetik.' : 'Your salon for hair styling, luminous color, and relaxing cosmetic treatments.' }}
           </p>
 
           <!-- Social Links (only configured platforms render; empty = hidden) -->
@@ -91,9 +92,18 @@ const tagline = computed(() => {
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink :to="localePath('/cart')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
-                <span>{{ t('nav.cart') }}</span>
+              <NuxtLink :to="localePath('/contact')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
+                <span>{{ t('nav.contact') }}</span>
               </NuxtLink>
+            </li>
+            <li>
+              <button
+                type="button"
+                class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5 cursor-pointer"
+                @click="openConsentBanner"
+              >
+                <span>{{ t('consent.cookieSettings') }}</span>
+              </button>
             </li>
           </ul>
         </div>

@@ -1,18 +1,24 @@
+import { ALL_PERMISSIONS, getEffectivePermissions } from '../../shared/permissions.ts'
+
 // Fan-out of in-app admin notifications + push. Never throws: notification
-// failures must never break the public checkout / request / quote flows.
-export const NOTIFICATION_PERMISSION: Record<string, string> = {
-  new_order: 'orders.view',
-  new_service_request: 'services.view',
-  new_quote: 'quotes.view',
+// failures must never break the public request flows.
+export const NOTIFICATION_PERMISSION: Record<string, string | string[]> = {
+  new_booking: ['bookings.assign', 'bookings.view_all'],
+  booking_cancelled_by_staff: ['bookings.assign', 'bookings.view_all'],
+  payment_needs_refund: ['bookings.assign', 'bookings.view_all', 'bookings.refund_handle'],
+  booking_assigned: 'bookings.view_own',
+  booking_reassigned: 'bookings.view_own',
   new_staff_user: 'users.manage',
   staff_updated: 'users.manage',
   failed_logins: 'users.manage',
 }
 
 export type AdminNotificationType =
-  | 'new_order'
-  | 'new_service_request'
-  | 'new_quote'
+  | 'new_booking'
+  | 'payment_needs_refund'
+  | 'booking_cancelled_by_staff'
+  | 'booking_assigned'
+  | 'booking_reassigned'
   | 'new_staff_user'
   | 'staff_updated'
   | 'failed_logins'
@@ -20,11 +26,31 @@ export type AdminNotificationType =
 export interface NotifyAdminsInput {
   type: AdminNotificationType
   relatedEntityId: string
-  url: string
+  url?: string
   titleEn: string
   titleAr: string
   bodyEn: string
   bodyAr: string
+}
+
+export function resolveNotificationUrl(
+  user: { isSuper: boolean, role: string, permissions: { permission: string }[] },
+  input: NotifyAdminsInput,
+): string {
+  const isBookingNotif = input.type.startsWith('booking_') || input.type === 'new_booking' || input.type === 'payment_needs_refund'
+  if (!isBookingNotif) {
+    return input.url || '/admin/notifications'
+  }
+  const perms = user.isSuper
+    ? ALL_PERMISSIONS
+    : getEffectivePermissions(user.role, user.permissions.map(p => p.permission))
+  if (perms.includes('bookings.view_all') || perms.includes('bookings.assign')) {
+    return input.relatedEntityId ? `/admin/bookings/${input.relatedEntityId}` : '/admin/bookings'
+  }
+  if (perms.includes('bookings.view_own')) {
+    return '/admin/my-bookings'
+  }
+  return '/admin/notifications'
 }
 
 export async function notifyAdmins(input: NotifyAdminsInput): Promise<void> {
@@ -32,31 +58,65 @@ export async function notifyAdmins(input: NotifyAdminsInput): Promise<void> {
     const permission = NOTIFICATION_PERMISSION[input.type]
     if (!permission) return
 
-    const adminIds = await findEligibleAdminIds(permission)
-    if (!adminIds.length) return
+    const eligibleUsers = await findEligibleAdminUsers(permission)
+    if (!eligibleUsers.length) return
 
-    await prisma.adminNotification.createMany({
-      data: adminIds.map(adminUserId => ({
-        adminUserId,
+    for (const u of eligibleUsers) {
+      const userUrl = resolveNotificationUrl(u, input)
+      await prisma.adminNotification.create({
+        data: {
+          adminUserId: u.id,
+          type: input.type,
+          titleEn: input.titleEn,
+          titleAr: input.titleAr,
+          bodyEn: input.bodyEn,
+          bodyAr: input.bodyAr,
+          relatedEntityId: input.relatedEntityId,
+          url: userUrl,
+        },
+      })
+      await sendPushToUser(u.id, {
+        title: input.titleEn,
+        body: input.bodyEn,
+        url: userUrl,
+        type: input.type,
+      }).catch(() => null)
+    }
+  }
+  catch (e) {
+    console.error('[notifications] Fan-out failed:', (e as Error)?.message || e)
+  }
+}
+
+export async function notifyUser(userId: string, input: NotifyAdminsInput): Promise<void> {
+  try {
+    const user = await prisma.adminUser.findUnique({
+      where: { id: userId },
+      include: { permissions: true },
+    })
+    if (!user || !user.isActive) return
+
+    const userUrl = resolveNotificationUrl(user, input)
+    await prisma.adminNotification.create({
+      data: {
+        adminUserId: user.id,
         type: input.type,
         titleEn: input.titleEn,
         titleAr: input.titleAr,
         bodyEn: input.bodyEn,
         bodyAr: input.bodyAr,
         relatedEntityId: input.relatedEntityId,
-        url: input.url,
-      })),
+        url: userUrl,
+      },
     })
-
-    await sendPushToAdmins({
-      permission,
+    await sendPushToUser(user.id, {
       title: input.titleEn,
       body: input.bodyEn,
-      url: input.url,
+      url: userUrl,
       type: input.type,
-    })
+    }).catch(() => null)
   }
   catch (e) {
-    console.error('[notifications] Fan-out failed:', (e as Error)?.message || e)
+    console.error('[notifications] Direct notify failed:', (e as Error)?.message || e)
   }
 }

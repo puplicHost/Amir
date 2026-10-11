@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'inbox.view')
+  await requirePermission(event, 'inbox.manage')
 
   const query = getQuery(event)
   const page = Math.max(1, Number(query.page) || 1)

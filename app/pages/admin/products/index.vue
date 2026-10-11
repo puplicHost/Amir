@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Copy, Filter, Loader2, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User, Wallet } from 'lucide-vue-next'
+import { Copy, Filter, Loader2, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'products.view' })
 
@@ -9,9 +9,6 @@ interface Row {
   nameAr: string
   nameEn: string
   price: string | number
-  compareAtPrice: string | number | null
-  stock: number
-  minStock: number
   isActive: boolean
   category: { id: string, slug: string, nameAr: string, nameEn: string }
   images: { path: string }[]
@@ -47,20 +44,6 @@ const { data, refresh, pending } = await useAsyncData('admin-products', () => fe
     limit: String(limit),
   })}`,
 ), { watch: [page] })
-
-const { data: inventorySummary, refresh: refreshInventorySummary } = await useAsyncData('admin-products-inventory-summary', () =>
-  fetch<{ totalValue: number, activeCount: number, lowCount: number, totalCount: number }>('/api/admin/inventory/summary'),
-)
-
-const inventoryCards = computed(() => inventorySummary.value || { totalValue: 0, activeCount: 0, lowCount: 0, totalCount: 0 })
-
-function formatInventoryMoney(n: number): string {
-  const f = (Number(n) || 0).toLocaleString(locale.value === 'ar' ? 'ar-EG' : 'en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-  return locale.value === 'ar' ? `${f} ج.م` : `${f} EGP`
-}
 
 const hasFilters = computed(() => !!(search.value || categoryId.value || status.value))
 
@@ -113,7 +96,6 @@ async function toggleProductActive(p: Row) {
       body: { isActive: next },
     })
     p.isActive = next
-    await refreshInventorySummary()
     toast.success(
       locale.value === 'ar' ? 'تم تحديث الحالة' : 'Status Updated',
       locale.value === 'ar' ? `المنتج "${p.nameAr || p.nameEn}" أصبح ${next ? 'نشطاً' : 'معطلاً'}.` : `Product is now ${next ? 'active' : 'inactive'}.`,
@@ -165,7 +147,6 @@ async function removeProduct(p: Row) {
   try {
     await $fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
     await refresh()
-    await refreshInventorySummary()
     toast.success(
       locale.value === 'ar' ? 'تم حذف المنتج' : 'Product Deleted',
       locale.value === 'ar' ? `تم حذف المنتج "${p.nameAr || p.nameEn}" بنجاح.` : `"${p.nameEn}" has been removed.`,
@@ -232,53 +213,6 @@ async function shareProduct(p: Row) {
         </NuxtLink>
       </template>
     </AdminPageHeader>
-
-    <!-- Inventory Summary -->
-    <div
-      class="mb-4 grid gap-4 rounded-md border bg-white p-5 shadow-xs sm:grid-cols-3 dark:bg-[#162032]"
-      :style="{ borderColor: 'var(--color-border)' }"
-    >
-      <div class="flex items-center gap-3">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/20 dark:text-blue-300">
-          <Wallet class="h-5 w-5" aria-hidden="true" />
-        </div>
-        <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {{ locale === 'ar' ? 'إجمالي قيمة المخزون' : 'Total inventory value' }}
-          </p>
-          <p class="font-heading text-xl font-extrabold text-[#2B71AE] dark:text-[#F5CC07]">
-            {{ formatInventoryMoney(inventoryCards.totalValue) }}
-          </p>
-          <p class="text-[11px] text-slate-400">{{ locale === 'ar' ? '(سعر شراء × كمية)' : '(cost × qty)' }}</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3 border-t pt-4 sm:border-t-0 sm:border-s sm:ps-4 sm:pt-0" :style="{ borderColor: 'var(--color-border)' }">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
-          <Package class="h-5 w-5" aria-hidden="true" />
-        </div>
-        <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {{ locale === 'ar' ? 'عدد المنتجات النشطة' : 'Active products' }}
-          </p>
-          <p class="font-heading text-xl font-extrabold text-slate-900 dark:text-slate-100">
-            {{ locale === 'ar' ? `${inventoryCards.activeCount} منتج` : `${inventoryCards.activeCount} products` }}
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3 border-t pt-4 sm:border-t-0 sm:border-s sm:ps-4 sm:pt-0" :style="{ borderColor: 'var(--color-border)' }">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
-          <AlertTriangle class="h-5 w-5" aria-hidden="true" />
-        </div>
-        <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {{ locale === 'ar' ? 'عدد المنتجات المنخفضة' : 'Low-stock products' }}
-          </p>
-          <p class="font-heading text-xl font-extrabold text-rose-600 dark:text-rose-400">
-            {{ locale === 'ar' ? `${inventoryCards.lowCount} منتجات` : `${inventoryCards.lowCount} products` }}
-          </p>
-        </div>
-      </div>
-    </div>
 
     <!-- Filter Toolbar -->
     <div
@@ -368,7 +302,6 @@ async function shareProduct(p: Row) {
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'السعر' : 'Price' }}</th>
               <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'آخر تعديل' : 'Last Modified' }}</th>
-              <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'المخزون' : 'Stock' }}</th>
               <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
             </tr>
           </thead>
@@ -428,13 +361,7 @@ async function shareProduct(p: Row) {
               <td class="px-4 py-3">
                 <div class="flex items-baseline gap-1.5">
                   <span class="font-bold text-slate-900 dark:text-slate-100">{{ p.price }}</span>
-                  <span class="text-xs text-slate-500 font-medium">EGP</span>
-                  <span
-                    v-if="p.compareAtPrice"
-                    class="ms-1 text-xs text-slate-400 line-through"
-                  >
-                    {{ p.compareAtPrice }} EGP
-                  </span>
+                  <span class="text-xs text-slate-500 font-medium">€</span>
                 </div>
               </td>
 
@@ -483,26 +410,6 @@ async function shareProduct(p: Row) {
                   </div>
                 </div>
                 <span v-else class="text-xs text-slate-400">—</span>
-              </td>
-
-              <!-- Stock Level -->
-              <td class="px-4 py-3 text-center">
-                <span
-                  v-if="(p.stock ?? 0) === 0"
-                  class="inline-block rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs"
-                >
-                  {{ locale === 'ar' ? 'نفد المخزون' : 'Out' }}
-                </span>
-                <span
-                  v-else-if="(p.stock ?? 0) <= (p.minStock ?? 0)"
-                  class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400"
-                >
-                  <span aria-hidden="true">⚠️</span>
-                  <span>{{ p.stock }}</span>
-                </span>
-                <span v-else class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  {{ p.stock }}
-                </span>
               </td>
 
               <!-- Actions -->

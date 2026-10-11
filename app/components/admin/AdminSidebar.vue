@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import {
+  CalendarCheck,
+  CalendarClock,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  FileText,
   FolderTree,
   LayoutDashboard,
   LogOut,
   Mail,
   Megaphone,
+  Package,
   Settings,
-  ShoppingCart,
   Users,
-  Wallet,
   Wrench,
   X,
 } from 'lucide-vue-next'
@@ -30,21 +31,27 @@ const localePath = useLocalePath()
 const route = useRoute()
 const { data } = useAdminSession()
 
-const collapsed = useCookie<boolean>('mango_admin_sidebar_collapsed', { default: () => false })
+const collapsed = useCookie<boolean>('amir_admin_sidebar_collapsed', { default: () => false })
 function toggleCollapse() {
   collapsed.value = !collapsed.value
 }
 
+const canBookingsViewAll = useAdminCan('bookings.view_all')
+const canBookingsViewOwn = useAdminCan('bookings.view_own')
 const canProductsView = useAdminCan('products.view')
+const canProductsManage = useAdminCan('products.manage')
 const canCategoriesManage = useAdminCan('categories.manage')
-const canOrdersView = useAdminCan('orders.view')
-const canQuotesManage = useAdminCan('quotes.view')
-const canServicesView = useAdminCan('services.view')
+const canServicesManage = useAdminCan('services.manage')
+const canScheduleManage = useAdminCan('schedule.manage')
 const canUsersManage = useAdminCan('users.manage')
-const canSettingsView = useAdminCan('settings.view')
+const canSettingsBusiness = useAdminCan('settings.business')
+const canSettingsPayment = useAdminCan('settings.payment')
+const canSettingsMeta = useAdminCan('settings.meta')
 const canBannersManage = useAdminCan('banners.manage')
-const canFinancialsView = useAdminCan('financials.view')
-const canInboxView = useAdminCan('inbox.view')
+const canInboxManage = useAdminCan('inbox.manage')
+
+const canDashboard = computed(() => canBookingsViewAll.value || canServicesManage.value || canProductsManage.value || Boolean(data.value?.user?.isSuper))
+const canSettings = computed(() => canSettingsBusiness.value || canSettingsPayment.value || canSettingsMeta.value || Boolean(data.value?.user?.isSuper))
 
 const fetch = useRequestFetch()
 const { data: inboxUnread, refresh: refreshInboxUnread } = await useAsyncData('admin-inbox-unread', () =>
@@ -52,8 +59,6 @@ const { data: inboxUnread, refresh: refreshInboxUnread } = await useAsyncData('a
   { server: false, lazy: true },
 )
 watch(() => route.fullPath, () => refreshInboxUnread())
-
-const canQuotesView = computed(() => canQuotesManage.value || canServicesView.value || canOrdersView.value || data.value?.user.isSuper)
 
 interface SidebarItem {
   label: string
@@ -64,17 +69,17 @@ interface SidebarItem {
 }
 
 const items = computed<SidebarItem[]>(() => [
-  { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, show: true },
-  { label: t('admin.products'), to: '/admin/products', icon: ShoppingCart, show: canProductsView.value },
+  { label: t('admin.dashboard'), to: '/admin', icon: LayoutDashboard, show: canDashboard.value },
+  { label: t('admin.myBookings'), to: '/admin/my-bookings', icon: CalendarCheck, show: canBookingsViewOwn.value },
+  { label: t('admin.bookings'), to: '/admin/bookings', icon: CalendarDays, show: canBookingsViewAll.value },
+  { label: t('admin.products'), to: '/admin/products', icon: Package, show: canProductsView.value || canProductsManage.value },
   { label: t('admin.categories'), to: '/admin/categories', icon: FolderTree, show: canCategoriesManage.value },
-  { label: t('admin.orders'), to: '/admin/orders', icon: ShoppingCart, show: canOrdersView.value },
-  { label: locale.value === 'ar' ? 'عروض الأسعار' : 'Quote Requests', to: '/admin/quotes', icon: FileText, show: canQuotesView.value },
-  { label: locale.value === 'ar' ? 'المالية والمصاريف' : 'Financials', to: '/admin/financials', icon: Wallet, show: canFinancialsView.value },
-  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesView.value },
-  { label: locale.value === 'ar' ? 'صندوق الوارد' : 'Inbox', to: '/admin/inbox', icon: Mail, show: canInboxView.value, badge: inboxUnread.value?.unreadCount || 0 },
+  { label: t('admin.services'), to: '/admin/services', icon: Wrench, show: canServicesManage.value },
+  { label: t('admin.schedule'), to: '/admin/schedule', icon: CalendarClock, show: canScheduleManage.value },
+  { label: locale.value === 'ar' ? 'صندوق الوارد' : 'Inbox', to: '/admin/inbox', icon: Mail, show: canInboxManage.value, badge: inboxUnread.value?.unreadCount || 0 },
   { label: locale.value === 'ar' ? 'البنرات' : 'Banners', to: '/admin/banners', icon: Megaphone, show: canBannersManage.value },
   { label: t('admin.users'), to: '/admin/users', icon: Users, show: canUsersManage.value },
-  { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettingsView.value },
+  { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettings.value },
 ])
 
 function isItemActive(path: string) {
@@ -124,7 +129,7 @@ const userInitials = computed(() => {
             class="flex items-center gap-2.5 focus-visible:outline-none min-w-0"
             @click="$emit('close-mobile')"
           >
-            <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 shrink-0 rounded object-contain shadow-xs" width="36" height="36" />
+            <img src="/logo.png" alt="Amir" class="h-9 w-9 shrink-0 rounded object-contain shadow-xs" width="36" height="36" />
             <div class="leading-tight min-w-0">
               <span class="font-heading text-sm font-bold tracking-tight text-white block truncate">{{ t('brand.name') }}</span>
               <span class="block text-[10px] font-medium tracking-wider text-slate-400 uppercase">Admin Panel</span>
@@ -139,7 +144,7 @@ const userInitials = computed(() => {
             :title="t('brand.name')"
             @click="$emit('close-mobile')"
           >
-            <img src="/logo.png" alt="Mango Electronics" class="h-9 w-9 rounded object-contain shadow-xs" width="36" height="36" />
+            <img src="/logo.png" alt="Amir" class="h-9 w-9 rounded object-contain shadow-xs" width="36" height="36" />
           </NuxtLink>
 
           <!-- Desktop Collapse / Expand Toggle Button -->

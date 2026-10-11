@@ -2,7 +2,7 @@ import { unlink } from 'node:fs/promises'
 import { logAudit } from '../../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const actor = await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.manage')
   const imageId = getRouterParam(event, 'imageId')
   const image = await prisma.productImage.findUnique({ where: { id: imageId || '' } })
   if (!image) throw createError({ statusCode: 404, statusMessage: 'Image not found' })
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     entityId: image.productId,
     entityName: product ? `${product.nameAr} / ${product.nameEn}` : image.productId,
     action: 'media',
-    details: 'غيّر الصور',
+    details: 'Removed image',
     user: actor,
   })
   return { ok: true }

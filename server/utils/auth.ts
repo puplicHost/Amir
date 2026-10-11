@@ -1,10 +1,11 @@
 import type { H3Event } from 'h3'
-import { ALL_PERMISSIONS } from '../../shared/permissions'
+import { ALL_PERMISSIONS, getEffectivePermissions } from '../../shared/permissions'
 
 export interface SessionUser {
   userId: string
   email: string
   name: string
+  role: string
   isSuper: boolean
   permissions: string[]
 }
@@ -30,7 +31,7 @@ function sessionConfig(event: H3Event) {
   }
   const isHttps = isHttpsRequest(event)
   return {
-    name: 'mango_admin_session',
+    name: 'amir_admin_session',
     password,
     maxAge: 60 * 60 * 24 * 7, // 7 days (sets iron-seal TTL and cookie expires)
     cookie: {
@@ -60,10 +61,11 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
     userId: user.id,
     email: user.email,
     name: user.name,
+    role: user.role,
     isSuper: user.isSuper,
     permissions: user.isSuper
       ? [...ALL_PERMISSIONS]
-      : user.permissions.map(p => p.permission),
+      : getEffectivePermissions(user.role, user.permissions.map(p => p.permission)),
   }
 }
 
@@ -75,9 +77,11 @@ export async function requireAuth(event: H3Event): Promise<SessionUser> {
   return user
 }
 
-export async function requirePermission(event: H3Event, permission: string): Promise<SessionUser> {
+export async function requirePermission(event: H3Event, permission: string | string[]): Promise<SessionUser> {
   const user = await requireAuth(event)
-  if (!user.permissions.includes(permission)) {
+  const required = Array.isArray(permission) ? permission : [permission]
+  const ok = user.isSuper || required.some(p => user.permissions.includes(p))
+  if (!ok) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
   return user

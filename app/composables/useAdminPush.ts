@@ -62,7 +62,7 @@ export async function useAdminPush() {
     const { push } = useAdminToast()
     const tick = useAdminNotifTick()
     onMessage(messaging, (payload) => {
-      const title = payload.notification?.title || (payload.data?.title as string) || 'Mango Electronics'
+      const title = payload.notification?.title || (payload.data?.title as string) || 'AMIR'
       const body = payload.notification?.body || (payload.data?.body as string) || ''
       const url = (payload.data?.url as string) || '/admin'
       push({ title, body, url })

@@ -16,8 +16,8 @@ export default defineEventHandler(async (event) => {
   // Notify admins — never fail the request if push is unavailable.
   try {
     await sendPushToAdmins({
-      permission: 'inbox.view',
-      title: 'رسالة جديدة من العملاء',
+      permission: 'inbox.manage',
+      title: 'Neue Kundenanfrage',
       body: body.message.slice(0, 60),
       url: '/admin/inbox',
       type: 'new_contact_message',

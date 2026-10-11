@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
+  Building2,
   CreditCard,
-  FileText,
   Globe,
   Megaphone,
   Phone,
@@ -16,7 +16,7 @@ const route = useRoute()
 const router = useRouter()
 const settingsDirty = useSettingsDirtyFlag()
 
-const VALID_TABS = ['general', 'announcements', 'contact', 'seo', 'store', 'payment', 'meta', 'quotes'] as const
+const VALID_TABS = ['general', 'announcements', 'contact', 'seo', 'store', 'payment', 'booking', 'meta'] as const
 
 const activeTab = ref(
   VALID_TABS.includes(route.query.tab as any) ? String(route.query.tab) : 'general',
@@ -35,9 +35,9 @@ const tabs = computed(() => [
   { id: 'contact', label: locale.value === 'ar' ? 'التواصل والموقع' : 'Contact & Social', icon: Phone },
   { id: 'seo', label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI Discovery', icon: Globe },
   { id: 'store', label: locale.value === 'ar' ? 'تهيئة المتجر' : 'Store Config', icon: Store },
-  { id: 'payment', label: locale.value === 'ar' ? 'بوابات الدفع' : 'Payment Gateways', icon: CreditCard },
+  { id: 'payment', label: t('payment.title'), icon: CreditCard },
+  { id: 'booking', label: t('salon.title'), icon: Building2 },
   { id: 'meta', label: locale.value === 'ar' ? 'تكامل ميتا' : 'Meta Integration', icon: Megaphone },
-  { id: 'quotes', label: locale.value === 'ar' ? 'شروط عروض الأسعار' : 'Quote Terms', icon: FileText },
 ])
 
 const { confirm: confirmDialog } = useAdminConfirm()
@@ -65,7 +65,7 @@ async function switchTab(id: string) {
     <!-- Header -->
     <AdminPageHeader
       :title="t('admin.settings')"
-      :description="locale === 'ar' ? 'تخصيص هوية المنصة، بيانات الاتصال، إعدادات محركات البحث، وطرق الدفع.' : 'Configure brand identity, contact channels, search indexing metadata, and payment gateways.'"
+      :description="locale === 'ar' ? 'تخصيص هوية المنصة، بيانات الاتصال، وإعدادات محركات البحث.' : 'Configure brand identity, contact channels, and search indexing metadata.'"
     />
 
     <!-- Tabs Navigation Bar -->
@@ -119,11 +119,11 @@ async function switchTab(id: string) {
       <div v-else-if="activeTab === 'payment'" role="tabpanel">
         <AdminSettingsPayment />
       </div>
+      <div v-else-if="activeTab === 'booking'" role="tabpanel">
+        <AdminSettingsBooking />
+      </div>
       <div v-else-if="activeTab === 'meta'" role="tabpanel">
         <AdminSettingsMeta />
-      </div>
-      <div v-else-if="activeTab === 'quotes'" role="tabpanel">
-        <AdminSettingsQuotes />
       </div>
     </div>
   </div>

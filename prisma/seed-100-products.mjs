@@ -307,14 +307,14 @@ async function main() {
       await prisma.productSeo.upsert({
         where: { productId: product.id },
         update: {
-          metaTitleEn: `${item.en} | Mango Electronics`,
-          metaTitleAr: `${item.ar} | مانجو إلكترونيكس`,
+          metaTitleEn: `${item.en} | Amir`,
+          metaTitleAr: `${item.ar} | أمير`,
         },
         create: {
           productId: product.id,
-          metaTitleEn: `${item.en} | Mango Electronics`,
-          metaTitleAr: `${item.ar} | مانجو إلكترونيكس`,
-          keywords: `${item.en}, ${item.ar}, Egypt, Mango Electronics`,
+          metaTitleEn: `${item.en} | Amir`,
+          metaTitleAr: `${item.ar} | أمير`,
+          keywords: `${item.en}, ${item.ar}, Egypt, Amir`,
         },
       })
 

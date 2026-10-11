@@ -1,4 +1,4 @@
-# Test Plan — Mango Electronics
+# Test Plan — Amir
 
 ## How to use this plan
 - Test each item manually in the browser.

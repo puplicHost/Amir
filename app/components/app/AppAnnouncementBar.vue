@@ -28,7 +28,7 @@ let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   if (typeof window !== 'undefined') {
     // Clear legacy dismiss flag so it doesn't cause a disappearing flash on refresh
-    try { sessionStorage.removeItem('mango_announcement_dismissed') } catch {}
+    try { sessionStorage.removeItem('amir_announcement_dismissed') } catch {}
   }
   startTimer()
 })
@@ -53,7 +53,7 @@ function linkOf(item: AnnouncementItem | null) {
   if (!item || item.linkType === 'none' || !item.linkValue) return null
   if (item.linkType === 'url') return item.linkValue
   if (item.linkType === 'product') return localePath(`/p/${item.linkValue}`)
-  if (item.linkType === 'service') return localePath(`/services/${item.linkValue}`)
+  if (item.linkType === 'service') return localePath('/services')
   return item.linkValue
 }
 

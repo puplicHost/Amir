@@ -12,31 +12,13 @@ export default <Partial<Config>>{
   theme: {
     extend: {
       colors: {
-        // Layer 1: raw palette (fixed hex, for always-dark surfaces like hero/footer)
-        navy: {
-          DEFAULT: '#1C2940',
-          dark: '#141E30',
-          surface: '#243550',
-          light: '#2D3F5E',
+        // Base brand triad: Black #050808, White #FFFFFF, Gray #808080
+        brand: {
+          black: '#050808',
+          white: '#FFFFFF',
+          gray: '#808080',
         },
-        yellow: {
-          DEFAULT: '#F5CC07',
-          hover: '#D9B406',
-          light: '#FFD933',
-        },
-        silver: {
-          DEFAULT: '#C4C4C4',
-          light: '#E0E0E0',
-          dark: '#9E9E9E',
-        },
-        cream: {
-          DEFAULT: '#F5F0E8',
-          light: '#FAF7F2',
-          dark: '#E8E1D5',
-        },
-        'dark-text': '#1A1A1A',
-
-        // Layer 2: semantic tokens (mode-aware via CSS vars) — components use these
+        // Semantic mode-aware tokens (powered by CSS variables)
         bg: 'rgb(var(--bg) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         text: 'rgb(var(--text) / <alpha-value>)',
@@ -48,20 +30,29 @@ export default <Partial<Config>>{
         'accent-hover': 'rgb(var(--accent-hover) / <alpha-value>)',
         'on-accent': 'rgb(var(--on-accent) / <alpha-value>)',
 
-        // Status tokens (fixed in both modes)
-        success: '#22C55E',
-        error: '#EF4444',
-        warning: '#F59E0B',
-        info: '#1C2940',
-
-        // Legacy bindings (kept so untouched files keep working)
-        'primary-dark': '#1C2940',
+        // Restrained accessible status tokens (WCAG AA compliant)
+        success: {
+          DEFAULT: '#166534',
+          dark: '#86EFAC',
+        },
+        warning: {
+          DEFAULT: '#92400E',
+          dark: '#FCD34D',
+        },
+        error: {
+          DEFAULT: '#991B1B',
+          dark: '#FCA5A5',
+        },
+        info: {
+          DEFAULT: '#525252',
+          dark: '#A3A3A3',
+        },
       },
       fontFamily: {
-        // "Archive" is the brand heading font; Archivo is the metrically
-        // compatible Google Fonts fallback until the brand file is supplied.
-        heading: ['Archive', 'Archivo', 'Cairo', 'sans-serif'],
-        body: ['Inter', 'Cairo', 'sans-serif'],
+        heading: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       fontSize: {
         xs: '12px',
@@ -70,14 +61,25 @@ export default <Partial<Config>>{
         lg: '18px',
         xl: '20px',
         '2xl': '24px',
-        '3xl': '30px',
-        '4xl': '36px',
+        '3xl': '32px',
+        '4xl': '40px',
+        '5xl': '52px',
+        'fluid-h1': ['clamp(2.5rem, 6vw, 5rem)', { lineHeight: '1.08', letterSpacing: '-0.02em' }],
+        'fluid-h2': ['clamp(2rem, 4.5vw, 3.5rem)', { lineHeight: '1.12', letterSpacing: '-0.015em' }],
+        'subline': ['11px', { lineHeight: '1.2', letterSpacing: '0.16em' }],
+      },
+      letterSpacing: {
+        widest: '0.2em',
+        subline: '0.18em',
       },
       borderRadius: {
-        sm: '4px',
-        DEFAULT: '6px',
-        md: '8px',
-        lg: '12px',
+        none: '0px',
+        sm: '2px',
+        DEFAULT: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '12px',
+        full: '9999px',
       },
     },
   },

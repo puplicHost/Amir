@@ -186,7 +186,7 @@ Documented in Section 5.
 ## 8. UI Requirements
 
 ### Login Page
-- Centered card, 400px wide, Mango Electronics logo/name at top
+- Centered card, 400px wide, Amir logo/name at top
 - Clean minimal layout — no decorative elements
 - Email + Password inputs, styled per design system
 - Submit button: full width, primary style

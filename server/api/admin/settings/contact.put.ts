@@ -23,7 +23,7 @@ function cleanUrl(v: unknown): string | null | undefined {
 }
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
+  await requirePermission(event, 'settings.business')
   const body = await readBody(event)
   const social: Record<string, string | null | undefined> = {}
   for (const f of SOCIAL_FIELDS) social[f] = cleanUrl(body[f])
@@ -40,8 +40,8 @@ export default defineEventHandler(async (event) => {
       googleMapsEmbedUrl: body.googleMapsEmbedUrl,
     },
     create: {
-      siteNameAr: 'مانجو إلكترونيكس',
-      siteNameEn: 'Mango Electronics',
+      siteNameAr: 'AMIR',
+      siteNameEn: 'Amir',
     }
   })
   return { success: true }

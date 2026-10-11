@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     entityId: existing.id,
     entityName: `${category.nameAr} / ${category.nameEn}`,
     action: 'updated',
-    details: 'عدّل القسم',
+    details: 'Updated category',
     user: actor,
   })
   return { category }

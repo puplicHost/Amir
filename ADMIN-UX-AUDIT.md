@@ -1,6 +1,6 @@
-# Admin Panel UX Audit — Mango Electronics
+# Admin Panel UX Audit — Amir
 
-An in-depth user experience audit of the Mango Electronics Admin Panel (`/admin`). This audit identifies friction points, redundant navigation steps, missing shortcuts, and areas where routine administrative workflows require excessive clicks.
+An in-depth user experience audit of the Amir Admin Panel (`/admin`). This audit identifies friction points, redundant navigation steps, missing shortcuts, and areas where routine administrative workflows require excessive clicks.
 
 ---
 

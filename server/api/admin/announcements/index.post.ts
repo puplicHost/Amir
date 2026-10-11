@@ -3,7 +3,7 @@ import { requirePermission } from '../../../utils/auth'
 import { prisma } from '../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.manage')
+  await requirePermission(event, 'banners.manage')
   const body = await readBody(event)
 
   if (!body.textAr?.trim()) {

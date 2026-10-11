@@ -2,7 +2,7 @@ import { generateSlug, uniqueSlug } from '../../../../../shared/slug'
 import { logAudit } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const actor = await requirePermission(event, 'products.create')
+  const actor = await requirePermission(event, 'products.manage')
   const id = event.context.params?.id
   if (!id) throw createError({ statusCode: 400, message: 'Missing product ID' })
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const duplicated = await prisma.product.create({
     data: {
-      nameAr: `${orig.nameAr} (نسخة)`,
+      nameAr: `${orig.nameAr || orig.nameEn} (Kopie)`,
       nameEn: `${orig.nameEn} (Copy)`,
       slug: newSlug,
       sku: newSku,
@@ -38,10 +38,6 @@ export default defineEventHandler(async (event) => {
       subtitleAr: orig.subtitleAr,
       subtitleEn: orig.subtitleEn,
       price: orig.price,
-      compareAtPrice: orig.compareAtPrice,
-      costPrice: orig.costPrice,
-      stock: orig.stock,
-      minStock: orig.minStock,
       categoryId: orig.categoryId,
       isActive: false, // default draft for safety
       isFeatured: false,
@@ -85,7 +81,7 @@ export default defineEventHandler(async (event) => {
     entityId: duplicated.id,
     entityName: `${duplicated.nameAr} / ${duplicated.nameEn}`,
     action: 'created',
-    details: `نسخ من المنتج ${orig.nameAr}`,
+    details: `Copied from product ${orig.nameEn || orig.nameAr}`,
     user: actor,
   })
 

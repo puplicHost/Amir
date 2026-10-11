@@ -1,24 +1,18 @@
-
 import { deletedLabel, logAudit } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const actor = await requirePermission(event, 'services.config')
-  const id = event.context.params?.id
-
-  const requestsCount = await prisma.serviceRequest.count({ where: { serviceId: id } })
-  if (requestsCount > 0) {
-    throw createError({ statusCode: 400, message: 'Cannot delete service with existing requests.' })
-  }
-
-  const existing = await prisma.service.findUnique({ where: { id }, select: { nameAr: true, nameEn: true } })
-  await prisma.service.delete({ where: { id } })
+  const actor = await requirePermission(event, 'services.manage')
+  const id = getRouterParam(event, 'id')
+  const existing = await prisma.service.findUnique({ where: { id: id || '' } })
+  if (!existing) throw createError({ statusCode: 404, statusMessage: 'Service not found' })
+  await prisma.service.delete({ where: { id: existing.id } })
   await logAudit({
     entityType: 'service',
-    entityId: String(id),
-    entityName: existing ? `${existing.nameAr} / ${existing.nameEn}` : String(id),
+    entityId: existing.id,
+    entityName: existing.name,
     action: 'deleted',
     details: deletedLabel('service'),
     user: actor,
   })
-  return { success: true }
+  return { ok: true }
 })

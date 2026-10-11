@@ -1,128 +1,112 @@
 import { z } from 'zod'
 import type { H3Event } from 'h3'
+import {
+  ADMIN_ROLES,
+  BOOKING_STATUSES,
+  PAYMENT_PROVIDERS,
+  PAYMENT_STATUSES,
+  SERVICE_SECTIONS,
+} from '../../shared/booking'
 
-export const egyptPhone = z.string().trim().regex(/^01[0125][0-9]{8}$/, 'Invalid Egyptian phone number')
+// German/international phone: optional +, digits/spaces/dashes, 6–20 chars.
+export const salonPhone = z.string().trim().regex(/^\+?[0-9][0-9\s\-/]{5,19}$/, 'Invalid phone number')
 
-const idString = z.string().trim().min(1).max(100)
-
-// ── Orders ──
-export const orderItemSchema = z.object({
-  productId: idString,
-  quantity: z.coerce.number().int().min(1).max(100),
-})
-
-export const orderCreateSchema = z.object({
-  customer: z.object({
-    name: z.string().trim().min(2).max(120),
-    phone: egyptPhone,
-    governorate: z.string().trim().min(2).max(80),
-    address: z.string().trim().max(500).nullish(),
-    email: z.string().trim().email().max(160).nullish().or(z.literal('')),
-  }),
-  items: z.array(orderItemSchema).min(1).max(50),
-  paymentMethod: z.enum(['COD', 'ONLINE']).default('COD'),
-})
-
-export const orderStatusSchema = z.object({
-  status: z.enum(['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded']),
-})
-
-export const refundReasonSchema = z.enum(['customer_request', 'damaged', 'wrong_item', 'other'])
-
-// ── Quotes ──
-export const quoteItemSchema = z.object({
-  productId: idString.nullish(),
-  quantity: z.coerce.number().int().min(1).max(100).default(1),
-  isCustom: z.boolean().nullish(),
-  name: z.string().trim().max(160).nullish(),
-  nameEn: z.string().trim().max(160).nullish(),
-  nameAr: z.string().trim().max(160).nullish(),
-  price: z.coerce.number().min(0).max(100_000_000).nullish(),
-  notes: z.string().trim().max(1000).nullish(),
-  imagePath: z.string().trim().max(500).nullish(),
-  coverImage: z.string().trim().max(500).nullish(),
-})
-
-export const quoteCreateSchema = z.object({
-  companyName: z.string().trim().min(2).max(160),
-  contactName: z.string().trim().min(2).max(120),
-  contactTitle: z.string().trim().max(120).nullish(),
-  phone: egyptPhone,
-  email: z.string().trim().email().max(160).nullish().or(z.literal('')),
-  notes: z.string().trim().max(2000).nullish(),
-  governorate: z.string().trim().max(80).nullish(),
-  locale: z.enum(['ar', 'en']).nullish(),
-  discountType: z.enum(['none', 'percentage', 'fixed']).nullish(),
-  discountValue: z.coerce.number().min(0).max(100_000_000).nullish(),
-  items: z.array(quoteItemSchema).min(1).max(50),
-})
-
-export const quoteUpdateSchema = z.object({
-  companyName: z.string().trim().min(2).max(160).optional(),
-  contactName: z.string().trim().min(2).max(120).optional(),
-  contactTitle: z.string().trim().max(120).nullable().optional(),
-  phone: egyptPhone.optional(),
-  email: z.string().trim().email().max(160).nullable().optional(),
-  notes: z.string().trim().max(2000).nullable().optional(),
-  governorate: z.string().trim().max(80).nullable().optional(),
-  adminNotes: z.string().trim().max(2000).nullable().optional(),
-  expiresAt: z.string().trim().max(40).nullable().optional(),
-  status: z.enum(['New', 'Reviewed', 'Closed', 'Pending', 'Accepted', 'Rejected', 'Expired']).optional(),
-  useDefaultTerms: z.boolean().optional(),
-  customTermsAr: z.string().max(20000).nullable().optional(),
-  customTermsEn: z.string().max(20000).nullable().optional(),
-  discountType: z.enum(['none', 'percentage', 'fixed']).optional(),
-  discountValue: z.coerce.number().min(0).max(100_000_000).optional(),
-  items: z.array(quoteItemSchema).min(1).max(50).optional(),
-})
-
-export const quoteStatusSchema = z.object({
-  status: z.enum(['New', 'Reviewed', 'Closed', 'Pending', 'Accepted', 'Rejected', 'Expired']),
-})
+// ── Booking domain enums (no free-form status strings from any endpoint) ──
+export const serviceSectionEnum = z.enum(SERVICE_SECTIONS)
+export const paymentProviderEnum = z.enum(PAYMENT_PROVIDERS)
+export const paymentStatusEnum = z.enum(PAYMENT_STATUSES)
+export const bookingStatusEnum = z.enum(BOOKING_STATUSES)
+export const adminRoleEnum = z.enum(ADMIN_ROLES)
 
 // ── Contact inbox ──
 export const contactMessageSchema = z.object({
   name: z.string().trim().min(2).max(100),
-  phone: z.string().trim().regex(/^01[0125][0-9]{8}$/),
+  phone: salonPhone,
   message: z.string().trim().min(1).max(1000),
 })
 
-// ── Services ──
+// ── Services (salon shape, Phase 2b: German-only content) ──
 export const serviceCreateSchema = z.object({
   slug: z.string().trim().max(120).nullish(),
-  nameAr: z.string().trim().min(2).max(160),
-  nameEn: z.string().trim().min(2).max(160),
-  descriptionAr: z.string().max(10000).nullish(),
-  descriptionEn: z.string().max(10000).nullish(),
-  iconPath: z.string().trim().max(500).nullish(),
-  iconName: z.string().trim().max(60).nullish(),
-  cardColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
-  tagAr: z.string().trim().max(20).nullish(),
-  tagEn: z.string().trim().max(20).nullish(),
+  section: serviceSectionEnum,
+  name: z.string().trim().min(2).max(160),
+  description: z.string().max(10000).nullish(),
+  priceAbCents: z.coerce.number().int().min(0).max(100_000_000),
+  durationMin: z.coerce.number().int().min(5).max(1440).nullish(),
+  needsDurationReview: z.boolean().nullish(),
   sortOrder: z.coerce.number().int().min(0).max(100000).nullish(),
   isActive: z.boolean().nullish(),
-  isFeatured: z.boolean().nullish(),
 })
 
 export const serviceUpdateSchema = serviceCreateSchema.partial()
 
-export const serviceFieldCreateSchema = z.object({
-  labelAr: z.string().trim().min(1).max(160),
-  labelEn: z.string().trim().min(1).max(160),
-  fieldType: z.enum(['text', 'textarea', 'number', 'phone', 'email', 'select', 'file', 'date']),
-  isRequired: z.boolean().nullish(),
-  sortOrder: z.coerce.number().int().min(0).max(100000).nullish(),
-  options: z.array(z.string().trim().max(160)).max(50).nullish(),
+// ── Working hours (Phase 2b) ──
+export const workingHoursDaySchema = z.object({
+  weekday: z.coerce.number().int().min(0).max(6),
+  openMin: z.coerce.number().int().min(0).max(1439),
+  closeMin: z.coerce.number().int().min(1).max(1440),
+  isClosed: z.boolean().nullish(),
+}).refine(d => d.isClosed || d.closeMin > d.openMin, {
+  message: 'closeMin must be after openMin unless closed',
 })
 
-export const serviceFieldUpdateSchema = serviceFieldCreateSchema.partial()
-
-export const serviceOrderSchema = z.object({
-  fieldIds: z.array(idString).min(1).max(100),
+export const workingHoursUpdateSchema = z.object({
+  days: z.array(workingHoursDaySchema).min(1).max(7),
 })
 
-export const serviceRequestStatusSchema = z.object({
-  status: z.enum(['pending', 'reviewed', 'contacted', 'closed']),
+// ── Salon booking (Phase 2c, guest) ──
+export const bookingCreateSchema = z.object({
+  serviceSlug: z.string().trim().min(1).max(160),
+  customerName: z.string().trim().min(2).max(120),
+  customerPhone: salonPhone,
+  customerEmail: z.string().trim().email().max(160).nullish().or(z.literal('')),
+  startsAt: z.string().trim().datetime({ offset: true }),
+  note: z.string().trim().max(1000).nullish(),
+  idempotencyKey: z.string().trim().uuid().nullish(),
+  marketingConsent: z.boolean().optional(),
+  fbp: z.string().trim().max(100).regex(/^[a-zA-Z0-9._-]+$/).nullable().optional(),
+  fbc: z.string().trim().max(100).regex(/^[a-zA-Z0-9._-]+$/).nullable().optional(),
+})
+
+export const bookingPaySchema = z.object({
+  provider: paymentProviderEnum,
+})
+
+// ── Admin booking management schemas (Phase 2d) ──
+export const bookingAssignSchema = z.object({
+  staffId: z.string().trim().min(1).max(100),
+})
+
+export const staffCancelSchema = z.object({
+  bookingIds: z.array(z.string().trim().min(1).max(100)).min(1).max(50),
+  reason: z.string().trim().max(500).optional(),
+})
+
+export const refundHandledSchema = z.object({
+  note: z.string().trim().max(500).optional(),
+})
+
+// ── Salon booking/payment settings (Phase 2b) ──
+export const paymentSettingsSchema = z.object({
+  stripeEnabled: z.boolean().optional(),
+  stripePublishableKey: z.string().trim().max(200).nullable().optional(),
+  stripeSecretKey: z.string().trim().max(500).nullable().optional(),
+  stripeWebhookSecret: z.string().trim().max(500).nullable().optional(),
+  paypalEnabled: z.boolean().optional(),
+  paypalClientId: z.string().trim().max(200).nullable().optional(),
+  paypalSecret: z.string().trim().max(500).nullable().optional(),
+  paypalWebhookId: z.string().trim().max(200).nullable().optional(),
+  paypalMode: z.enum(['sandbox', 'live']).optional(),
+})
+
+export const bookingSettingsSchema = z.object({
+  whatsappNumber: z.string().trim().max(40).nullable().optional(),
+  businessName: z.string().trim().max(160).nullable().optional(),
+  businessAddress: z.string().trim().max(500).nullable().optional(),
+  slotStepMin: z.coerce.number().int().min(5).max(120).optional(),
+  holdTtlMin: z.coerce.number().int().min(5).max(120).optional(),
+  depositPercent: z.coerce.number().int().min(1).max(100).optional(),
+  timezone: z.string().trim().max(60).optional(),
 })
 
 // ── Helper ──
@@ -135,22 +119,4 @@ export async function parseBody<T extends z.ZodTypeAny>(event: H3Event, schema: 
     throw createError({ statusCode: 400, statusMessage: `Invalid request body: ${first?.message || 'validation failed'}${where}` })
   }
   return parsed.data
-}
-
-/** Quote mutations are restricted to quotes.manage (plus super-admins). */
-export async function requireQuotesManage(event: H3Event) {
-  const user = await requireAuth(event)
-  if (!user.isSuper && !user.permissions.includes('quotes.manage')) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
-  }
-  return user
-}
-
-/** Quote reads allow view or manage (plus super-admins). */
-export async function requireQuotesView(event: H3Event) {
-  const user = await requireAuth(event)
-  if (!user.isSuper && !user.permissions.includes('quotes.view') && !user.permissions.includes('quotes.manage')) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
-  }
-  return user
 }

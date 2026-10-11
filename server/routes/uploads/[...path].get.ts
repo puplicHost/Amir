@@ -16,9 +16,11 @@ export default defineEventHandler(async (event) => {
   // Nitro [...path] param arrives joined; split back into segments.
   const scope = parts[0] || ''
 
-  // Sensitive scopes: quote PDFs contain customer PII; service-request files
-  // may contain customer uploads. Never serve them anonymously.
-  if (scope === 'quotes' || scope === 'service-requests') {
+  // Public media scopes. Every other scope (service-request uploads,
+  // legacy private files) requires an admin session and is never served
+  // anonymously.
+  const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings'])
+  if (!PUBLIC_SCOPES.has(scope)) {
     let sessionUser = null
     try {
       sessionUser = await getSessionUser(event)
@@ -26,10 +28,8 @@ export default defineEventHandler(async (event) => {
     catch {
       sessionUser = null
     }
-    const need = scope === 'quotes' ? 'quotes.view' : 'services.view'
     const ok = !!sessionUser && (sessionUser.isSuper
-      || sessionUser.permissions.includes(need)
-      || sessionUser.permissions.includes('quotes.manage')
+      || sessionUser.permissions.includes('services.view')
       || sessionUser.permissions.includes('services.manage'))
     if (!ok) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })

@@ -2,6 +2,7 @@ export interface AdminSessionUser {
   userId: string
   email: string
   name: string
+  role: string
   isSuper: boolean
   permissions: string[]
 }

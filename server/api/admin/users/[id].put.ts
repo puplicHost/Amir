@@ -1,9 +1,11 @@
 import { isKnownPermission } from '../../../../shared/permissions'
+import { ADMIN_ROLES } from '../../../../shared/booking'
 
 interface UpdateUserBody {
   name?: unknown
   title?: unknown
   salary?: unknown
+  role?: unknown
   isActive?: unknown
   permissions?: unknown
 }
@@ -23,7 +25,48 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<UpdateUserBody>(event)
-  const data: { name?: string, title?: string | null, salary?: number | null, isActive?: boolean } = {}
+  const data: { name?: string, title?: string | null, salary?: number | null, role?: string, isActive?: boolean } = {}
+
+  // 1. Role validation & self-change prevention
+  if (body.role !== undefined) {
+    if (typeof body.role !== 'string' || !ADMIN_ROLES.includes(body.role as any)) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid role' })
+    }
+    if (id === actor.userId && body.role !== actor.role) {
+      throw createError({ statusCode: 400, statusMessage: 'You cannot change your own role' })
+    }
+    data.role = body.role
+  }
+
+  // 2. Active status & self-deactivation prevention
+  if (body.isActive !== undefined) {
+    if (typeof body.isActive !== 'boolean') {
+      throw createError({ statusCode: 400, statusMessage: 'isActive must be boolean' })
+    }
+    if (id === actor.userId && body.isActive === false) {
+      throw createError({ statusCode: 400, statusMessage: 'You cannot deactivate yourself' })
+    }
+    data.isActive = body.isActive
+  }
+
+  // 3. Last active ADMIN protection
+  const isTargetActiveAdmin = target.isActive && target.role === 'ADMIN' && !target.isSuper
+  const willLoseAdmin = (body.isActive === false) || (data.role !== undefined && data.role !== 'ADMIN')
+  if (isTargetActiveAdmin && willLoseAdmin) {
+    const activeAdminsCount = await prisma.adminUser.count({
+      where: {
+        isActive: true,
+        role: 'ADMIN',
+        isSuper: false,
+      },
+    })
+    if (activeAdminsCount <= 1) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Cannot demote or deactivate the last active administrator',
+      })
+    }
+  }
 
   if (body.name !== undefined) {
     const name = typeof body.name === 'string' ? body.name.trim() : ''
@@ -43,15 +86,6 @@ export default defineEventHandler(async (event) => {
       if (!Number.isFinite(salary) || salary < 0) throw createError({ statusCode: 400, statusMessage: 'Valid salary is required' })
       data.salary = salary
     }
-  }
-  if (body.isActive !== undefined) {
-    if (typeof body.isActive !== 'boolean') {
-      throw createError({ statusCode: 400, statusMessage: 'isActive must be boolean' })
-    }
-    if (id === actor.userId && body.isActive === false) {
-      throw createError({ statusCode: 403, statusMessage: 'You cannot deactivate yourself' })
-    }
-    data.isActive = body.isActive
   }
 
   let permissions: string[] | undefined
@@ -84,6 +118,7 @@ export default defineEventHandler(async (event) => {
       name: true,
       title: true,
       salary: true,
+      role: true,
       isSuper: true,
       isActive: true,
       lastLoginAt: true,
@@ -102,20 +137,20 @@ export default defineEventHandler(async (event) => {
     const changesAr: string[] = []
     if (permsChanged) {
       changesEn.push(`permissions: ${newPerms || 'none'}`)
-      changesAr.push(`الصلاحيات: ${newPerms || 'لا يوجد'}`)
+      changesAr.push(`Berechtigungen: ${newPerms || 'keine'}`)
     }
     if (activeChanged) {
       changesEn.push(user.isActive ? 'reactivated' : 'deactivated')
-      changesAr.push(user.isActive ? 'تم التفعيل' : 'تم التعطيل')
+      changesAr.push(user.isActive ? 'aktiviert' : 'deaktiviert')
     }
     await notifyAdmins({
       type: 'staff_updated',
       relatedEntityId: user.id,
       url: '/admin/users',
       titleEn: `Staff updated: ${user.name}`,
-      titleAr: `تعديل حساب إداري: ${user.name}`,
+      titleAr: `Mitarbeiter aktualisiert: ${user.name}`,
       bodyEn: `${user.email} · ${changesEn.join(' · ')} · by ${actor.name}`,
-      bodyAr: `${user.email} · ${changesAr.join(' · ')} · بواسطة ${actor.name}`,
+      bodyAr: `${user.email} · ${changesAr.join(' · ')} · von ${actor.name}`,
     })
   }
 

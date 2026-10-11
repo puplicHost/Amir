@@ -1,7 +1,7 @@
 import { deletedLabel, logAudit } from '../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const actor = await requirePermission(event, 'products.delete')
+  const actor = await requirePermission(event, 'products.manage')
   const id = getRouterParam(event, 'id')
   const existing = await prisma.product.findUnique({ where: { id: id || '' } })
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Product not found' })

@@ -2,7 +2,7 @@ import { saveProductDocument } from '../../../../utils/storage'
 import { logAudit } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const actor = await requirePermission(event, 'products.edit')
+  const actor = await requirePermission(event, 'products.manage')
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'Missing product id' })
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const document = await prisma.productDocument.create({
     data: {
       productId: id,
-      labelAr: labelAr || 'كتيب المواصفات',
+      labelAr: labelAr || 'Dokument',
       labelEn: labelEn || 'Datasheet',
       filePath: relativePath,
       fileType: 'pdf',
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     entityId: id,
     entityName: `${product.nameAr} / ${product.nameEn}`,
     action: 'media',
-    details: 'غيّر المستندات',
+    details: 'Updated documents',
     user: actor,
   })
   return { document }

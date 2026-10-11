@@ -1,4 +1,4 @@
 User-Agent: *
 Disallow:
 
-Sitemap: https://mango-electronics.com/sitemap.xml
+Sitemap: https://amir.com/sitemap.xml

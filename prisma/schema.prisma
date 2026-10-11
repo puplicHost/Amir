@@ -21,14 +21,18 @@ model AdminUser {
   phone        String?
   isSuper      Boolean  @default(false)
   isActive     Boolean  @default(true)
+  role         String   @default("STAFF") // 'ADMIN' | 'MANAGER' | 'STAFF' (Phase 2e; isSuper bypasses role checks)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   permissions   AdminPermission[]
-  statusChanges OrderStatusHistory[]
   deviceTokens  AdminDeviceToken[]
   notifications AdminNotification[]
+
+  // Salon bookings assigned to this staff member.
+  assignedBookings Booking[]           @relation("BookingAssignee")
+  staffAssignments BookingAssignment[]
 }
 
 model AdminPermission {
@@ -71,11 +75,8 @@ model Product {
   descriptionAr  String?  @db.Text
   descriptionEn  String?  @db.Text
   price          Decimal  @db.Decimal(10, 2)
-  compareAtPrice Decimal? @db.Decimal(10, 2)
-  costPrice      Decimal? @db.Decimal(10, 2)
-  stock          Int      @default(0)
-  minStock       Int      @default(5)
   categoryId     String
+  brand          String? // free text (Phase 2a)
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -84,18 +85,14 @@ model Product {
   images     ProductImage[]
   attributes ProductAttribute[]
   seo        ProductSeo?
-  orderItems OrderItem[]
-  quoteItems QuoteRequestItem[]
   video      ProductVideo?
   documents  ProductDocument[]
-  movements  StockMovement[]
 
   @@index([categoryId])
   @@index([isActive])
   @@index([createdAt])
   @@index([nameAr])
   @@index([nameEn])
-  @@index([stock])
 }
 
 model ProductImage {
@@ -163,198 +160,97 @@ model ProductDocument {
   @@index([productId])
 }
 
-// ─── Orders ────────────────────────────────────────────────────
+// ─── Services & salon bookings ───────────────────────────────
+// All timestamps stored in UTC; Europe/Berlin conversion happens at the edges.
 
-model Order {
-  id                 String   @id @default(cuid())
-  orderNumber        String   @unique
-  customerName       String
-  customerPhone      String
-  customerEmail      String?
-  customerAddress    String?  @db.Text
-  customerGovernorat String
-  totalAmount        Decimal  @db.Decimal(10, 2)
-  paymentMethod      String   @default("COD")
-  status             String   @default("Pending")
-  stockDeducted      Boolean  @default(false)
-  refundReason       String? // 'customer_request' | 'damaged' | 'wrong_item' | 'other'
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  items         OrderItem[]
-  statusHistory OrderStatusHistory[]
-  invoice       Invoice?
-
-  @@index([status])
-  @@index([createdAt])
-  @@index([customerPhone])
+enum ServiceSection {
+  DAMEN
+  HERREN
+  KINDER
+  KOSMETIK
 }
-
-model OrderItem {
-  id                   String   @id @default(cuid())
-  orderId              String
-  productId            String?
-  productNameSnapshot  String
-  productPriceSnapshot Decimal  @db.Decimal(10, 2)
-  productCostSnapshot  Decimal? @db.Decimal(10, 2)
-  quantity             Int
-  subtotal             Decimal  @db.Decimal(10, 2)
-
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@index([orderId])
-}
-
-model OrderStatusHistory {
-  id              String   @id @default(cuid())
-  orderId         String
-  status          String
-  changedAt       DateTime @default(now())
-  changedByUserId String?
-
-  order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  changedBy   AdminUser? @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
-
-  @@index([orderId])
-}
-
-// ─── Price Quotes ──────────────────────────────────────────────
-
-model QuoteRequest {
-  id              String   @id @default(cuid())
-  quoteNumber     String   @unique
-  companyName     String
-  contactName     String
-  contactTitle    String?
-  phone           String
-  email           String?
-  notes           String?  @db.Text
-  subtotalAmount  Decimal  @default(0) @db.Decimal(10, 2)
-  discountType    String?  @default("none") // 'percentage' | 'fixed' | 'none'
-  discountValue   Decimal? @default(0) @db.Decimal(10, 2)
-  discountAmount  Decimal? @default(0) @db.Decimal(10, 2)
-  totalAmount     Decimal  @default(0) @db.Decimal(10, 2)
-  status          String   @default("New")
-  pdfPath         String?
-  pdfPathEn       String?
-  pdfPathAr       String?
-  accountRepEmail String?
-  accountRepPhone String?
-  governorate    String?
-  expiresAt      DateTime?
-  customTermsAr  String?  @db.Text
-  customTermsEn  String?  @db.Text
-  useDefaultTerms Boolean @default(true)
-  adminNotes     String? @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  items   QuoteRequestItem[]
-  invoice Invoice?
-
-  @@index([status])
-  @@index([createdAt])
-  @@index([phone])
-}
-
-model QuoteRequestItem {
-  id                    String  @id @default(cuid())
-  quoteRequestId        String
-  productId             String?
-  productNameSnapshot   String
-  productNameArSnapshot String?
-  productNameEnSnapshot String?
-  imagePath             String?
-  notes                 String? @db.Text
-  isCustom              Boolean @default(false)
-  priceSnapshot         Decimal @db.Decimal(10, 2)
-  quantity              Int     @default(1)
-
-  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
-  product      Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@index([quoteRequestId])
-  @@index([productId])
-}
-
-// ─── Services ──────────────────────────────────────────────────
 
 model Service {
-  id            String   @id @default(cuid())
-  slug          String?  @unique
-  nameAr        String
-  nameEn        String
-  descriptionAr String?  @db.Text
-  descriptionEn String?  @db.Text
-  iconPath      String?
-  iconName      String?
-  cardColor     String?
-  tagAr         String?
-  tagEn         String?
-  isActive      Boolean  @default(true)
-  isFeatured    Boolean  @default(false)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String         @id @default(cuid())
+  slug                String         @unique
+  section             ServiceSection
+  name                String // German only
+  description         String?        @db.Text // German only
+  priceAbCents        Int // listed "ab" price in EUR cents
+  durationMin         Int            @default(30)
+  needsDurationReview Boolean        @default(true)
+  isActive            Boolean        @default(true)
+  sortOrder           Int            @default(0)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
-  formFields ServiceFormField[]
-  requests   ServiceRequest[]
+  bookings Booking[]
 
-  @@index([isActive])
-  @@index([isFeatured])
+  @@index([section, isActive, sortOrder])
 }
 
-model ServiceFormField {
-  id         String  @id @default(cuid())
-  serviceId  String
-  labelAr    String
-  labelEn    String
-  fieldType  String
-  isRequired Boolean @default(false)
-  sortOrder  Int     @default(0)
-  options    Json?
+model WorkingHours {
+  id       String  @id @default(cuid())
+  weekday  Int // 0=Sunday … 6=Saturday (JS getDay convention), salon-local Europe/Berlin
+  openMin  Int // minutes since midnight, salon-local
+  closeMin Int // minutes since midnight, salon-local
+  isClosed Boolean @default(false)
 
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  @@index([serviceId])
+  @@unique([weekday])
 }
 
-model ServiceRequest {
-  id          String   @id @default(cuid())
-  serviceId   String
-  status      String   @default("New")
-  submittedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Booking {
+  id                  String    @id @default(cuid())
+  bookingNumber       String    @unique
+  serviceId           String
+  customerName        String
+  customerPhone       String
+  customerEmail       String?
+  startsAt            DateTime // UTC
+  durationMinSnapshot Int
+  priceSnapshotCents  Int
+  depositCents        Int // 50% of price snapshot, rounded half-up to cents
+  paymentProvider     String // 'stripe' | 'paypal'
+  paymentStatus       String    @default("PENDING") // PENDING | PAID | FAILED | EXPIRED
+  providerRef         String?   @unique
+  idempotencyKey      String    @unique
+  publicToken         String    @unique // unguessable public lookup key (success/failed pages)
+  status              String    @default("UNASSIGNED") // UNASSIGNED | ASSIGNED | CANCELLED_BY_STAFF | COMPLETED
+  assignedStaffId     String?
+  notes               String?   @db.Text
+  holdExpiresAt       DateTime? // PENDING bookings hold the slot until this UTC instant
+  needsRefund         Boolean   @default(false) // verified money that could not be honored: admin attention, manual refund (no auto-refunds)
+  marketingConsent    Boolean   @default(false) // Phase 2f: user granted marketing cookie consent
+  fbp                 String? // Meta browser cookie _fbp (read only when marketing consent is true)
+  fbc                 String? // Meta click cookie _fbc (read only when marketing consent is true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  service     Service                  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  values      ServiceRequestValue[]
-  attachments ServiceRequestAttachment[]
+  service       Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  assignedStaff AdminUser?          @relation("BookingAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  assignments   BookingAssignment[]
 
-  @@index([serviceId])
+  @@index([serviceId, startsAt])
+  @@index([assignedStaffId, startsAt])
+  @@index([paymentStatus])
   @@index([status])
+  @@index([holdExpiresAt])
 }
 
-model ServiceRequestValue {
-  id        String  @id @default(cuid())
-  requestId String
-  fieldId   String
-  value     String? @db.Text
+model BookingAssignment {
+  id           String    @id @default(cuid())
+  bookingId    String
+  staffId      String
+  assignedById String // AdminUser id (no FK: history survives user deletion)
+  assignedAt   DateTime  @default(now())
+  unassignedAt DateTime?
+  reason       String?   @db.Text
 
-  request ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  booking Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  staff   AdminUser @relation(fields: [staffId], references: [id], onDelete: Restrict)
 
-  @@index([requestId])
-}
-
-model ServiceRequestAttachment {
-  id           String @id @default(cuid())
-  requestId    String
-  filePath     String
-  originalName String
-
-  request ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  @@index([requestId])
+  @@index([bookingId])
+  @@index([staffId])
 }
 
 // ─── Admin push notifications & notification center ────────────
@@ -374,7 +270,7 @@ model AdminDeviceToken {
 model AdminNotification {
   id              String   @id @default(cuid())
   adminUserId     String
-  type            String // 'new_order' | 'new_service_request' | 'new_quote'
+  type            String // 'new_service_request' | 'payment_needs_refund' | 'new_staff_user' | 'staff_updated' | 'failed_logins'
   titleEn         String
   titleAr         String
   bodyEn          String
@@ -436,8 +332,8 @@ model AnnouncementItem {
 model SiteSettings {
   id Int @id @default(autoincrement())
 
-  siteNameAr String  @default("مانجو إلكترونيكس")
-  siteNameEn String  @default("Mango Electronics")
+  siteNameAr String  @default("أمير")
+  siteNameEn String  @default("Amir")
   taglineAr  String? @db.Text
   taglineEn  String? @db.Text
   logoPath   String?
@@ -479,7 +375,7 @@ model SiteSettings {
   seoKeywords            String?
   geoDescription         String? @db.Text
 
-  defaultCurrency String @default("EGP")
+  defaultCurrency String @default("EUR")
   productsPerPage Int    @default(16)
 
   tickerTextAr String? @db.Text
@@ -488,27 +384,33 @@ model SiteSettings {
   tickerSpeed  Int     @default(30)
 
   // Meta (Facebook) Pixel + Conversions API — access token stored AES-256-GCM
-  // encrypted, mirroring paymentGatewayCredentials. Never returned raw.
+  // encrypted. Never returned raw.
   metaPixelId      String?
   metaCapiToken    String? @db.Text
   metaTestEventCode String?
   metaEnabled      Boolean @default(false)
 
-  // Configurable Terms & Conditions for Price Quotations
-  quoteTermsAr        String?   @db.Text
-  quoteTermsEn        String?   @db.Text
-  quoteTermsUpdatedAt DateTime?
-  quoteTermsUpdatedBy String?
-  quoteSequenceNext   Int       @default(1000)
-  quoteValidityDays   Int       @default(30)
-  quoteAutoMessage    String?   @db.Text
-  invoiceSequenceNext Int       @default(1)
+  // ── Salon booking settings (Phase 2a) ──
+  // Gateway secrets are AES-256-GCM encrypted via server/utils/encryption.ts.
+  // Admin GET endpoints expose only hasCredentials booleans, never raw secrets.
+  stripeEnabled        Boolean @default(false)
+  stripePublishableKey String?
+  stripeSecretKey      String? @db.Text
+  stripeWebhookSecret  String? @db.Text
+  paypalEnabled        Boolean @default(false)
+  paypalClientId       String?
+  paypalSecret         String? @db.Text
+  paypalWebhookId      String? @db.Text
+  paypalMode           String  @default("sandbox") // 'sandbox' | 'live'
 
-  paymentCodEnabled           Boolean @default(true)
-  paymentOnlineEnabled        Boolean @default(false)
-  paymentGatewayName          String?
-  paymentGatewayMode          String?
-  paymentGatewayCredentials   String? @db.Text // AES-256-GCM encrypted JSON, never returned raw
+  whatsappNumber String?
+  businessName   String?
+  businessAddress String? @db.Text
+
+  slotStepMin    Int    @default(15) // slot grid step in minutes
+  holdTtlMin     Int    @default(20) // PENDING payment hold TTL in minutes
+  depositPercent Int    @default(50)
+  timezone       String @default("Europe/Berlin")
 
   updatedAt DateTime @updatedAt
 }
@@ -528,99 +430,6 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
-}
-
-// ─── Invoices ────────────────────────────────────────────────────
-
-model Invoice {
-  id                String   @id @default(cuid())
-  invoiceNumber     String   @unique
-  customerName      String
-  customerPhone     String
-  customerGovernorat String?
-  customerAddress   String?  @db.Text
-  notes             String?  @db.Text
-  paymentMethod     String   @default("COD")
-  status            String   @default("Pending") // Paid | Pending | Cancelled
-  subtotalAmount    Decimal  @default(0) @db.Decimal(10, 2)
-  taxAmount         Decimal  @default(0) @db.Decimal(10, 2)
-  totalAmount       Decimal  @default(0) @db.Decimal(10, 2)
-  type              String   @default("manual") // order | quote | manual
-  orderId           String?  @unique
-  order             Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  quoteId           String?  @unique
-  quoteRequest      QuoteRequest? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  createdById       String?
-  createdByName     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  items InvoiceItem[]
-
-  @@index([status])
-  @@index([type])
-  @@index([createdAt])
-}
-
-model InvoiceItem {
-  id        String  @id @default(cuid())
-  invoiceId String
-  name      String
-  quantity  Int     @default(1)
-  unitPrice Decimal @db.Decimal(10, 2)
-  subtotal  Decimal @db.Decimal(10, 2)
-
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([invoiceId])
-}
-
-// ─── Inventory stock movements (audit trail for stock additions) ──
-
-model StockMovement {
-  id        String   @id @default(cuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity  Int // +added / −deducted
-  costPrice Decimal? @db.Decimal(10, 2)
-  reason    String   @default("adjustment") // 'initial' | 'adjustment' | 'delivery'
-  userId    String?
-  userName  String?
-  createdAt DateTime @default(now())
-
-  @@index([productId])
-  @@index([createdAt])
-}
-
-// ─── Financials: expenses ────────────────────────────────────────
-
-model Expense {
-  id          String   @id @default(cuid())
-  category    String
-  description String?  @db.Text
-  amount      Decimal  @db.Decimal(10, 2)
-  month       Int
-  year        Int
-  recurring   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  @@index([year, month])
-}
-
-// ─── Customer PII access tokens ────────────────────────────────
-// Short-lived, single-resource tokens issued at order/quote creation.
-// A valid token (or an admin session) is required to read order/quote PII.
-
-model CustomerAccessToken {
-  id           String   @id @default(cuid())
-  tokenHash    String   @unique
-  resourceType String   // 'order' | 'quote'
-  resourceId   String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-
-  @@index([resourceType, resourceId])
-  @@index([expiresAt])
 }
 
 // ─── Contact inbox ─────────────────────────────────────────────

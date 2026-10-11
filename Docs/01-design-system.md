@@ -1,12 +1,12 @@
 # 01 — Design System
-## Mango Electronics
+## Amir
 
 ---
 
 ## 1. Brand Identity
 
 ### Brand Name
-**Mango Electronics**
+**Amir**
 Tagline: *Do It Right, Do It Smart*
 
 ### Brand Personality

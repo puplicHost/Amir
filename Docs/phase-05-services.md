@@ -6,7 +6,7 @@ Build the dynamic services system: Admin configures services and their forms, cu
 
 ## 2. Objective
 
-All 7 Mango Electronics services are configurable from the Admin Panel with their exact form fields. The public `/services` page renders each service with its dynamic form. Submitted requests appear in the Admin Panel and can be tracked through a status lifecycle.
+All 7 Amir services are configurable from the Admin Panel with their exact form fields. The public `/services` page renders each service with its dynamic form. Submitted requests appear in the Admin Panel and can be tracked through a status lifecycle.
 
 ## 3. Scope
 
