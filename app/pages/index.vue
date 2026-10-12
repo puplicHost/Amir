@@ -57,11 +57,39 @@ function measureHeroAspect() {
 }
 
 // Homepage section card images come from the bundled /public/service folder.
+// Served dynamically via /api/service-images so new files (e.g. Beauty.jpeg)
+// are picked up automatically; the map below is the offline fallback.
 const SECTION_IMAGES: Record<string, string | null> = {
   DAMEN: '/service/women.png',
   HERREN: '/service/men.png',
   KINDER: '/service/kids.png',
-  KOSMETIK: null,
+  KOSMETIK: '/service/Beauty.jpeg',
+}
+
+const SECTION_FILE_KEYWORDS: Record<string, string[]> = {
+  DAMEN: ['damen', 'women', 'woman'],
+  HERREN: ['herren', 'men'],
+  KINDER: ['kinder', 'kids', 'kid'],
+  KOSMETIK: ['kosmetik', 'beauty', 'cosmetic', 'makeup', 'make-up'],
+}
+
+const { data: serviceImageData } = await useAsyncData('home-service-images', () =>
+  $fetch<{ images: { name: string, url: string }[] }>('/api/service-images'),
+)
+
+function sectionCardImage(section: string): string | null {
+  const files = serviceImageData.value?.images || []
+  const keywords = SECTION_FILE_KEYWORDS[section] || []
+  const match = files.find((f) => {
+    const base = f.name.toLowerCase()
+    return keywords.some((k) => {
+      if (!base.includes(k)) return false
+      // "women" contains "men": only HERREN's bare "men" must not match it.
+      if (section === 'HERREN' && k === 'men' && base.includes('women')) return false
+      return true
+    })
+  })
+  return match?.url || SECTION_IMAGES[section] || null
 }
 
 const sectionCards = computed(() => {
@@ -74,7 +102,7 @@ const sectionCards = computed(() => {
     return {
       section,
       title: sectionDisplayTitle(section),
-      image: SECTION_IMAGES[section] || null,
+      image: sectionCardImage(section),
       priceCents: Math.min(...items.map((srv: any) => Number(srv.priceAbCents || 0))),
       count: items.length,
     }
