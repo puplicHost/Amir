@@ -16,6 +16,10 @@ export function storageRoot(): string {
   return resolve(process.cwd(), 'storage')
 }
 
+export function heroDir(): string {
+  return join(storageRoot(), 'hero')
+}
+
 export function productDir(productId: string): string {
   return join(storageRoot(), 'products', productId)
 }
@@ -93,9 +97,99 @@ export async function saveCategoryCover(categoryId: string, data: Buffer, mime: 
   return `/uploads/categories/${categoryId}/${filename}`
 }
 
+export function serviceDir(serviceId: string): string {
+  return join(storageRoot(), 'services', serviceId)
+}
+
+/** Per-service card cover (like category covers): capped 1200px WebP. */
+export async function saveServiceCover(serviceId: string, data: Buffer, mime: string): Promise<string> {
+  assertSafeId(serviceId)
+  assertImagePart({ type: mime, data })
+  const dir = serviceDir(serviceId)
+  await mkdir(dir, { recursive: true })
+  const filename = `cover-${randomUUID()}.webp`
+  const buffer = await sharp(data).rotate().resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer()
+  await writeFile(join(dir, filename), buffer)
+  return `/uploads/services/${serviceId}/${filename}`
+}
+
+/** Delete a previously stored service cover file (by public path). */
+export async function deleteServiceCoverFile(imagePath: string): Promise<void> {
+  const parts = (imagePath || '').replace(/^\/uploads\//, '').split('/')
+  const full = resolveUploadPath(parts)
+  if (!full) return
+  // Only ever delete inside services/.
+  if (!full.startsWith(join(storageRoot(), 'services') + sep)) return
+  await rm(full, { force: true })
+}
+
+export async function deleteServiceDir(serviceId: string): Promise<void> {
+  assertSafeId(serviceId)
+  await rm(serviceDir(serviceId), { recursive: true, force: true })
+}
+
 export async function deleteProductDir(productId: string): Promise<void> {
   assertSafeId(productId)
   await rm(productDir(productId), { recursive: true, force: true })
+}
+
+// ─── Homepage hero slideshow ─────────────────────────────────────
+// Two variants per slide (2400px + 1200px WebP) derived by naming convention:
+// `/uploads/hero/<uuid>.webp` and `/uploads/hero/<uuid>-1200.webp`.
+// Slides backfilled from the legacy single hero image keep their old path and
+// simply reuse it as their small variant.
+
+export const MAX_HERO_SLIDES = 8
+export const MAX_HERO_BYTES = 5 * 1024 * 1024
+export const MIN_HERO_WIDTH = 800
+const HERO_FORMATS = new Set(['jpeg', 'png', 'webp'])
+
+/** Validate actual file content via sharp (never trust extensions or MIME). */
+export async function assertHeroImage(data: Buffer): Promise<void> {
+  if (data.length > MAX_HERO_BYTES) {
+    throw createError({ statusCode: 400, statusMessage: 'Image exceeds 5MB limit' })
+  }
+  let meta
+  try {
+    meta = await sharp(data).metadata()
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid image file' })
+  }
+  if (!meta.format || !HERO_FORMATS.has(meta.format)) {
+    throw createError({ statusCode: 400, statusMessage: 'Only JPG, PNG, WEBP images allowed' })
+  }
+  if (!meta.width || meta.width < MIN_HERO_WIDTH) {
+    throw createError({ statusCode: 400, statusMessage: 'Image must be at least 800 px wide' })
+  }
+}
+
+/** Auto-rotate, strip metadata, cap width at 2400px, write both WebP variants. */
+export async function saveHeroSlide(data: Buffer): Promise<string> {
+  const id = randomUUID()
+  const dir = heroDir()
+  await mkdir(dir, { recursive: true })
+  const base = sharp(data).rotate()
+  await base.clone().resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 82 }).toFile(join(dir, `${id}.webp`))
+  await base.clone().resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 80 }).toFile(join(dir, `${id}-1200.webp`))
+  return `/uploads/hero/${id}.webp`
+}
+
+/** Small-variant URL by convention; legacy paths fall back to the same URL. */
+export function heroVariant1200(imagePath: string): string {
+  const m = /^\/uploads\/hero\/([A-Za-z0-9-]+)\.webp$/.exec(imagePath)
+  return m ? `/uploads/hero/${m[1]}-1200.webp` : imagePath
+}
+
+/** Delete ONLY the slide's own files (both variants); never anything else. */
+export async function deleteHeroSlideFiles(imagePath: string): Promise<void> {
+  const targets = [...new Set([imagePath, heroVariant1200(imagePath)])]
+  for (const target of targets) {
+    const parts = target.replace(/^\/uploads\//, '').split('/')
+    const full = resolveUploadPath(parts)
+    if (!full) continue
+    await rm(full, { force: true })
+  }
 }
 
 export function resolveUploadPath(parts: string[]): string | null {

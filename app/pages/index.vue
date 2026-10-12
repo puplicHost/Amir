@@ -4,8 +4,17 @@ import {
 } from 'lucide-vue-next'
 import { SERVICE_SECTIONS } from '~~/shared/booking'
 
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 const localePath = useLocalePath()
+
+function sectionDisplayTitle(section: string): string {
+  const key = `serviceSections.${section}`
+  try {
+    if (te(key)) return t(key)
+  }
+  catch { /* fallback below */ }
+  return section.charAt(0) + section.slice(1).toLowerCase()
+}
 
 const { data: general } = await useAsyncData('home-general', () => $fetch<any>('/api/settings/general'))
 const { data: contact } = await useAsyncData('home-contact', () => $fetch<any>('/api/settings/contact'))
@@ -23,6 +32,38 @@ const featuredProducts = computed(() => {
   return productData.value?.products || []
 })
 
+// Homepage hero slideshow (multi-image, managed in Settings).
+// Zero slides: the classic graphic hero below stays exactly as it is.
+const heroSlides = computed(() => general.value?.heroSlides || [])
+const heroIntervalSec = computed(() => Number(general.value?.heroSlideIntervalSec) || 6)
+
+// Mobile hero: height derived from the first backdrop's natural aspect
+// plus extra (~35%) for a taller hero; the image fills it exactly (cover).
+// Desktop keeps the full-height hero.
+const HERO_MOBILE_PAD = 1.5
+const heroAspect = ref('4 / 7.5')
+function measureHeroAspect() {
+  if (typeof window === 'undefined') return
+  const url = heroSlides.value?.[0]?.url || general.value?.heroImagePath
+  if (!url) return
+  const img = new Image()
+  img.decoding = 'async'
+  img.src = url
+  img.onload = () => {
+    if (img.naturalWidth && img.naturalHeight) {
+      heroAspect.value = `${img.naturalWidth} / ${Math.round(img.naturalHeight * HERO_MOBILE_PAD)}`
+    }
+  }
+}
+
+// Homepage section card images come from the bundled /public/service folder.
+const SECTION_IMAGES: Record<string, string | null> = {
+  DAMEN: '/service/women.png',
+  HERREN: '/service/men.png',
+  KINDER: '/service/kids.png',
+  KOSMETIK: null,
+}
+
 const sectionCards = computed(() => {
   // Home shows one card per service section (Damen/Herren/Kinder/Kosmetik)
   // with the minimum "ab" price and the service count. Sections without
@@ -32,7 +73,8 @@ const sectionCards = computed(() => {
     if (!items.length) return null
     return {
       section,
-      title: section.charAt(0) + section.slice(1).toLowerCase(),
+      title: sectionDisplayTitle(section),
+      image: SECTION_IMAGES[section] || null,
       priceCents: Math.min(...items.map((srv: any) => Number(srv.priceAbCents || 0))),
       count: items.length,
     }
@@ -83,12 +125,18 @@ function layoutHero() {
     return el.offsetHeight || 0
   }
   const offset = h(q('[data-site-announce]')) + h(q('[data-site-header]')) + h(q('[data-site-ticker]'))
+  // Exact centering in the visible hero area: the top `offset` px hide
+  // behind the header, so padTop = offset + arch and padBottom = arch puts
+  // the text center exactly at the visible-area center on both axes.
+  const arch = window.innerWidth < 640 ? 56 : 110
   heroSection.value.style.marginTop = offset ? `${-offset}px` : ''
-  heroContent.value.style.paddingTop = offset ? `${offset}px` : ''
+  heroContent.value.style.paddingTop = `${offset + arch}px`
+  heroContent.value.style.paddingBottom = `${arch}px`
 }
 
 onMounted(() => {
   layoutHero()
+  measureHeroAspect()
   window.addEventListener('resize', layoutHero, { passive: true })
 })
 
@@ -98,7 +146,9 @@ onBeforeUnmount(() => {
 
 // Re-measure when the locale changes (ticker/announcement copy may wrap)
 // or when the ticker is dismissed (shared state with AppTicker).
+// Re-measure the backdrop aspect once settings/slides arrive (async).
 watch(locale, () => nextTick(() => layoutHero()))
+watch(() => [heroSlides.value?.length, general.value?.heroImagePath], () => measureHeroAspect())
 try {
   watch(() => useState('ticker-dismissed').value, () => nextTick(() => layoutHero()))
 }
@@ -108,52 +158,56 @@ catch { /* state not registered yet — mount layout already ran */ }
 <template>
   <div class="space-y-0 selection:bg-accent selection:text-on-accent">
 
-    <!-- 1. Hero Section (image + dark overlay + arch curve; content vertically centered) -->
+    <!-- 1. Hero Section (mobile: height fits the backdrop image aspect so it shows fully; desktop: full hero; slideshow/full background + dark overlay + arch curve; content vertically centered) -->
     <section
       ref="heroSection"
-      class="relative flex min-h-[calc(100vh-4rem)] supports-[height:100svh]:min-h-[calc(100svh-4rem)] flex-col justify-center overflow-hidden bg-navy bg-cover bg-center px-4 pt-16 pb-16 text-center sm:pt-20 sm:pb-20"
-      :style="general?.heroImagePath ? `background-image: url('${general.heroImagePath}')` : ''"
+      class="relative flex min-h-0 flex-col justify-center overflow-hidden bg-navy bg-cover bg-center bg-no-repeat px-4 pt-12 pb-14 text-center [aspect-ratio:var(--hero-aspect)] sm:aspect-auto sm:min-h-[calc(100vh-4rem)] sm:pt-20 sm:pb-20 supports-[height:100svh]:sm:min-h-[calc(100svh-4rem)]"
+      :style="[(!heroSlides.length && general?.heroImagePath) ? `background-image: url('${general.heroImagePath}')` : '', `--hero-aspect: ${heroAspect}`]"
     >
-      <!-- Dark overlay -->
-      <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.5), rgba(13,27,46,0.75))"></div>
+      <!-- Slideshow as full section background (crossfading images) -->
+      <div v-if="heroSlides.length" class="absolute inset-0">
+        <HeroSlideshow
+          :slides="heroSlides"
+          :interval-sec="heroIntervalSec"
+        />
+      </div>
+
+      <!-- Transparent dim layer over the images so the text reads better -->
+      <div class="pointer-events-none absolute inset-0 bg-[#050808]/35" aria-hidden="true"></div>
+
+      <!-- Dark overlay (strong full cover for maximum text contrast) -->
+      <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(to bottom, rgba(5,8,8,0.55), rgba(5,8,8,0.8))"></div>
+
+      <!-- Text scrim: gentle center lift behind headline, subline and CTA -->
+      <div class="pointer-events-none absolute inset-0" style="background: radial-gradient(ellipse 90% 70% at 50% 42%, rgba(5,8,8,0.35), transparent 70%)" aria-hidden="true"></div>
 
       <!-- Arch curve: page background rises into the hero at the bottom center -->
-      <svg class="absolute bottom-0 left-0 h-[72px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
+      <svg class="pointer-events-none absolute bottom-0 left-0 h-[56px] w-full sm:h-[110px]" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" style="filter: drop-shadow(0 -10px 24px rgba(13,27,46,0.35))">
         <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
       </svg>
 
-      <div ref="heroContent" class="relative z-10 mx-auto w-full max-w-5xl pb-20 sm:pb-24">
+      <div ref="heroContent" class="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-2 pb-16 text-center sm:max-w-5xl sm:px-0 sm:pb-24">
         <!-- Tagline divider centered above the headline -->
         <div
-          class="hero-anim mx-auto mb-5 flex items-center justify-center gap-4"
+          class="hero-anim mx-auto mb-3 flex max-w-md items-center justify-center gap-3 sm:mb-4 sm:max-w-none sm:gap-4"
           style="animation-delay: 0ms"
         >
-          <span class="h-px max-w-[80px] flex-1 bg-white/30" aria-hidden="true"></span>
-          <span class="text-white text-[14px] font-light uppercase tracking-[0.2em] drop-shadow-lg">{{ t('brand.tagline') }}</span>
-          <span class="h-px max-w-[80px] flex-1 bg-white/30" aria-hidden="true"></span>
+          <span class="h-px w-10 bg-white/40 sm:w-auto sm:max-w-[80px] sm:flex-1" aria-hidden="true"></span>
+          <span class="whitespace-nowrap text-white text-[11px] font-medium uppercase tracking-[0.22em] drop-shadow-lg sm:text-[14px] sm:font-light sm:tracking-[0.2em]">{{ t('brand.tagline') }}</span>
+          <span class="h-px w-10 bg-white/40 sm:w-auto sm:max-w-[80px] sm:flex-1" aria-hidden="true"></span>
         </div>
 
         <!-- Headline (max 2 lines) -->
-        <h1 class="hero-anim font-heading text-3xl font-extrabold tracking-tight text-balance text-white sm:text-4xl lg:text-[3.5rem] mb-4 leading-tight" style="animation-delay: 100ms">
+        <h1 class="hero-anim font-heading text-[1.5rem] font-extrabold tracking-tight text-balance text-white drop-shadow-lg sm:text-4xl lg:text-[3.5rem] mb-2.5 sm:mb-4 leading-[1.2]" style="animation-delay: 100ms">
           <span class="block">{{ t('home.heroTitleLine1') }}</span>
-          <span class="block">{{ t('home.heroTitleLine2') }}</span>
+          <span class="block text-accent">{{ t('home.heroTitleLine2') }}</span>
         </h1>
 
-        <!-- Subheadline (1 line) -->
-        <p class="hero-anim mb-8 text-base text-white/80 sm:text-lg max-w-3xl mx-auto leading-relaxed text-pretty" style="animation-delay: 200ms">
+        <!-- Subheadline -->
+        <p class="hero-anim mb-5 text-[13px] text-white/85 drop-shadow-md sm:text-lg max-w-xl mx-auto leading-relaxed text-pretty sm:mb-8 sm:max-w-3xl" style="animation-delay: 200ms">
           {{ t('home.heroSubtitle') }}
         </p>
 
-        <!-- Single primary CTA -->
-        <div class="hero-anim flex items-center justify-center" style="animation-delay: 300ms">
-          <NuxtLink
-            :to="localePath('/products')"
-            class="h-12 sm:h-13 inline-flex items-center justify-center gap-2.5 rounded-lg bg-accent px-8 text-base font-bold text-on-accent shadow-lg shadow-accent/20 hover:bg-accent-hover active:scale-[0.98] transition-all"
-          >
-            <span>{{ t('home.shopCta') }}</span>
-            <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-          </NuxtLink>
-        </div>
       </div>
     </section>
 
@@ -162,19 +216,16 @@ catch { /* state not registered yet — mount layout already ran */ }
 
     <!-- 3. Service Sections (one card per section, links to /services#SECTION) -->
     <!-- Shown while loading or when at least one section has active services -->
-    <section v-if="servicesPending || sectionCards.length" class="py-16 sm:py-24 px-5 bg-bg transition-colors">
+    <section v-if="servicesPending || sectionCards.length" class="py-10 sm:py-24 px-5 bg-bg transition-colors">
       <div class="mx-auto max-w-7xl">
         <!-- Section Header -->
         <div class="reveal mb-8 max-w-3xl">
           <p class="mb-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.12em] text-muted">
             {{ t('home.servicesEyebrow') }}
           </p>
-          <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text mb-3 text-balance">
+          <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text text-balance">
             {{ t('home.servicesTitle') }} <em class="italic">{{ t('home.servicesTitleAccent') }}</em>
           </h2>
-          <p class="text-[15px] sm:text-base text-muted leading-relaxed max-w-[65ch] text-pretty">
-            {{ t('home.servicesSubtitle') }}
-          </p>
         </div>
 
         <!-- Loading skeleton (same card footprint, no fake content) -->
@@ -206,6 +257,7 @@ catch { /* state not registered yet — mount layout already ran */ }
             :key="card.section"
             :section="card.section"
             :title="card.title"
+            :image="card.image"
             :price-cents="card.priceCents"
             :count="card.count"
             :to="localePath('/services') + '#' + card.section"

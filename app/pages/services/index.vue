@@ -5,8 +5,24 @@ import {
 } from 'lucide-vue-next'
 import { SERVICE_SECTIONS } from '~~/shared/booking'
 
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 const localePath = useLocalePath()
+
+/** Translated display name for a service (DB stores German; EN comes from i18n). */
+function serviceDisplayName(srv: any): string {
+  const slug = srv?.slug || ''
+  const fallback = srv?.name || ''
+  if (!slug) return fallback
+  const key = `serviceNames.${slug}`
+  try {
+    if (te(key)) {
+      const translated = t(key)
+      if (translated && translated !== key) return translated
+    }
+  }
+  catch { /* fallback to DB name */ }
+  return fallback
+}
 const { trackViewContent } = useMetaEvents()
 
 onMounted(() => {
@@ -54,6 +70,7 @@ const grouped = computed(() => SERVICE_SECTIONS.map(section => ({
       if (!searchQuery.value.trim()) return true
       const q = searchQuery.value.toLowerCase().trim()
       return (srv.name || '').toLowerCase().includes(q)
+        || serviceDisplayName(srv).toLowerCase().includes(q)
         || (srv.description || '').toLowerCase().includes(q)
     })
     .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
@@ -68,8 +85,16 @@ function clearFilters() {
   searchQuery.value = ''
 }
 
-/** Display title for a section key: DAMEN -> Damen */
+/** Display title for a section key: DAMEN -> Women (EN) / Damen (DE) */
 function sectionTitle(section: string): string {
+  const key = `serviceSections.${section}`
+  try {
+    if (te(key)) {
+      const translated = t(key)
+      if (translated && translated !== key) return translated
+    }
+  }
+  catch { /* fallback below */ }
   return section.charAt(0) + section.slice(1).toLowerCase()
 }
 
@@ -136,7 +161,7 @@ onBeforeUnmount(() => {
     </section>
 
     <!-- 2. Sticky tab bar (anchor scroll, snap on mobile, safe-area aware) -->
-    <div class="sticky z-30 border-b border-border bg-bg/95 backdrop-blur-sm [top:calc(5rem+env(safe-area-inset-top))]">
+    <div class="sticky z-30 border-b border-border bg-bg/95 backdrop-blur-sm [top:calc(4rem+env(safe-area-inset-top))]">
       <div class="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
         <nav
           class="flex gap-6 overflow-x-auto snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -169,8 +194,8 @@ onBeforeUnmount(() => {
             <input
               v-model="searchQuery"
               type="search"
-              :placeholder="locale === 'ar' ? 'ابحث باسم الخدمة...' : 'Search services by name...'"
-              :aria-label="locale === 'ar' ? 'ابحث باسم الخدمة...' : 'Search services by name...'"
+              :placeholder="locale === 'de' ? 'Leistungen nach Namen suchen...' : 'Search services by name...'"
+              :aria-label="locale === 'de' ? 'Leistungen nach Namen suchen...' : 'Search services by name...'"
               class="h-11 w-full rounded-sm border border-border bg-surface ps-10 pe-9 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors shadow-xs"
             />
             <button
@@ -199,7 +224,8 @@ onBeforeUnmount(() => {
               v-for="srv in group.items"
               :key="srv.id"
               :section="srv.section || group.section"
-              :name="srv.name"
+              :name="serviceDisplayName(srv)"
+              :cover="srv.coverImagePath || null"
               :price-cents="Number(srv.priceAbCents || 0)"
               :duration-min="Number(srv.durationMin || 0)"
               :needs-duration-review="srv.needsDurationReview !== false"
@@ -219,10 +245,10 @@ onBeforeUnmount(() => {
           <Search class="h-8 w-8" />
         </div>
         <h3 class="font-heading text-xl sm:text-2xl font-bold text-text mb-2">
-          {{ locale === 'ar' ? 'لم نجد خدمة مطابقة لبحثك' : 'No Matching Services Found' }}
+          {{ locale === 'de' ? 'Keine passenden Leistungen gefunden' : 'No Matching Services Found' }}
         </h3>
         <p class="text-sm text-muted max-w-sm mx-auto mb-6">
-          {{ locale === 'ar' ? 'جرّب البحث باسم مختلف أو تصفح جميع الخدمات المتاحة.' : 'Try searching with different terms or reset the filters to see all available services.' }}
+          {{ locale === 'de' ? 'Versuchen Sie andere Suchbegriffe oder setzen Sie die Filter zurück.' : 'Try searching with different terms or reset the filters to see all available services.' }}
         </p>
         <button
           type="button"
@@ -230,7 +256,7 @@ onBeforeUnmount(() => {
           @click="clearFilters"
         >
           <RotateCcw class="h-4 w-4" />
-          <span>{{ locale === 'ar' ? 'عرض كل الخدمات' : 'View All Services' }}</span>
+          <span>{{ locale === 'de' ? 'Alle Leistungen anzeigen' : 'View All Services' }}</span>
         </button>
       </div>
 

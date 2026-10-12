@@ -324,31 +324,8 @@ async function deleteLogo() {
       </div>
     </div>
 
-    <!-- Homepage Hero Image (existing functionality, kept compact) -->
-    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-      <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
-        {{ locale === 'ar' ? 'صورة الواجهة (Hero)' : 'Homepage Hero Image' }}
-      </h2>
-      <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">
-        {{ locale === 'ar' ? 'خلفية القسم الترحيبي العريضة (1920×800).' : 'Wide hero banner background (1920×800).' }}
-      </p>
-      <label
-        class="group flex cursor-pointer items-center gap-3 rounded-md border border-dashed p-3 transition-colors hover:border-[#2B71AE] hover:bg-slate-50 dark:hover:bg-slate-800/50"
-        :style="{ borderColor: dragOver === 'hero' ? '#2B71AE' : 'var(--color-border)' }"
-        @dragover.prevent="dragOver = 'hero'"
-        @dragleave="dragOver = null"
-        @drop="onDrop('hero', $event)"
-      >
-        <div class="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100 dark:bg-[#0B1520]">
-          <img v-if="data?.heroImagePath" :src="data.heroImagePath" alt="" class="h-full w-full object-cover" loading="lazy" />
-          <ImageIcon v-else class="h-5 w-5 text-slate-400" aria-hidden="true" />
-        </div>
-        <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">
-          {{ uploadingType === 'hero' ? (locale === 'ar' ? 'جاري الرفع…' : 'Uploading…') : (locale === 'ar' ? 'اضغط أو اسحب صورة الواجهة هنا' : 'Click or drag the hero image here') }}
-        </span>
-        <input type="file" accept="image/*" class="hidden" @change="uploadFile('hero', $event)" />
-      </label>
-    </div>
+    <!-- Homepage Hero Slideshow (multi-image, managed here) -->
+    <AdminSettingsHero />
 
     <!-- Inline Feedback Banner -->
     <div

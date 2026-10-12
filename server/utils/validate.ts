@@ -42,6 +42,22 @@ export const serviceCreateSchema = z.object({
 
 export const serviceUpdateSchema = serviceCreateSchema.partial()
 
+// ── Homepage hero slideshow (Phase: multi-image hero) ──
+export const heroSlideOrderSchema = z.object({
+  order: z.array(z.string().trim().min(1).max(100)).min(1).max(8),
+})
+
+export const heroSlideUpdateSchema = z.object({
+  isActive: z.boolean().optional(),
+  altText: z.string().trim().max(200).nullable().optional(),
+}).refine(o => o.isActive !== undefined || o.altText !== undefined, {
+  message: 'Nothing to update',
+})
+
+export const heroIntervalSchema = z.object({
+  intervalSec: z.coerce.number().int().min(3).max(15),
+})
+
 // ── Working hours (Phase 2b) ──
 export const workingHoursDaySchema = z.object({
   weekday: z.coerce.number().int().min(0).max(6),

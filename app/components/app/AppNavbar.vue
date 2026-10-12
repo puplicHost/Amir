@@ -111,18 +111,18 @@ const showMobileBottomBar = computed(() => {
   <header
     class="sticky top-0 z-40 w-full bg-white dark:bg-[#050808] border-b border-border dark:border-[#303636] transition-colors"
   >
-    <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
       <!-- Left: Brand Logo -->
       <NuxtLink :to="localePath('/')" class="flex items-center shrink-0 focus-visible:outline-none">
         <img
           src="/brand/logo-black-transparent-small.png"
           alt="AMIR Frisur & Kosmetik Studio"
-          class="h-10 w-auto object-contain dark:hidden"
+          class="h-8 w-auto object-contain dark:hidden"
         />
         <img
           src="/brand/logo-white-transparent-small.png"
           alt="AMIR Frisur & Kosmetik Studio"
-          class="h-10 w-auto object-contain hidden dark:block"
+          class="h-8 w-auto object-contain hidden dark:block"
         />
       </NuxtLink>
 
@@ -323,7 +323,7 @@ const showMobileBottomBar = computed(() => {
           aria-label="Mobile Navigation"
         >
           <!-- Drawer Header -->
-          <div class="flex h-20 items-center justify-between border-b border-border dark:border-[#303636] px-6">
+          <div class="flex h-16 items-center justify-between border-b border-border dark:border-[#303636] px-6">
             <img
               src="/brand/logo-black-transparent-small.png"
               alt="AMIR"

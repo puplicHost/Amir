@@ -1,7 +1,42 @@
 {
   "brand": {
     "name": "AMIR",
-    "tagline": "Frisur & Kosmetik Studio"
+    "tagline": "Hair & Beauty Studio"
+  },
+  "serviceSections": {
+    "DAMEN": "Women",
+    "HERREN": "Men",
+    "KINDER": "Kids",
+    "KOSMETIK": "Beauty"
+  },
+  "serviceNames": {
+    "damen-waschen-foehnen-kurz": "Wash & Blow-Dry, Short Hair",
+    "damen-waschen-schneiden-foehnen-kurz": "Wash, Cut & Blow-Dry, Short Hair",
+    "damen-waschen-schneiden-schulterlang": "Wash & Cut, Shoulder-Length Hair",
+    "damen-waschen-schneiden-foehnen-lang": "Wash, Cut & Blow-Dry, Long Hair",
+    "damen-waschen-schneiden-kurz": "Wash & Cut, Short Hair",
+    "damen-waschen-schneiden-lang": "Wash & Cut, Long Hair",
+    "damen-dauerwelle": "Perm",
+    "damen-farbe-ansatz": "Root Color",
+    "damen-farbe-komplett": "Full Color",
+    "damen-folienstraehnen-schulterlang": "Foil Highlights, Shoulder-Length Hair",
+    "damen-balayage-olaplex": "Balayage incl. Olaplex Treatment & Toning",
+    "damen-ombre-olaplex": "Ombré incl. Olaplex Treatment & Toning",
+    "herren-haarschnitt-maschine-schere": "Haircut (Clipper & Scissors)",
+    "herren-haarwaschen-oder-foehnen": "Hair Wash or Blow-Dry",
+    "herren-haarschnitt-kamm-schere": "Haircut (Comb & Scissors)",
+    "herren-waschen-schneiden-styling": "Wash, Cut & Styling",
+    "herren-bart-formen-schneiden": "Beard Shaping & Trim incl. Conditioning & Oil",
+    "kinder-maedchen-bis-10-jahre": "Girls up to 10 Years",
+    "kinder-maedchen-bis-16-jahre": "Girls up to 16 Years",
+    "kinder-jungen-bis-10-jahre": "Boys up to 10 Years",
+    "kinder-jungen-bis-16-jahre": "Boys up to 16 Years",
+    "kosmetik-augenbrauen-zupfen-faerben": "Eyebrow Threading or Tinting",
+    "kosmetik-wimpern-faerben": "Eyelash Tinting",
+    "kosmetik-abend-make-up": "Evening Make-Up",
+    "kosmetik-braut-make-up": "Bridal Make-Up",
+    "kosmetik-hochstecken": "Updo Styling",
+    "kosmetik-gesichtsreinigungspaket": "Facial Cleansing Package"
   },
   "nav": {
     "home": "Home",
@@ -149,7 +184,30 @@
         "unitsSold": "units sold"
       }
     },
-    "shellNotice": "Admin shell - functional modules arrive in later phases."
+    "shellNotice": "Admin shell - functional modules arrive in later phases.",
+    "hero": {
+      "title": "Hero images",
+      "desc": "Multiple images for the homepage slideshow, shown in order.",
+      "picker": "Choose images",
+      "dropHint": "or drop files here",
+      "uploading": "Uploading…",
+      "queued": "Waiting…",
+      "altLabel": "Alt text (DE)",
+      "altPlaceholder": "Short description, e.g. stylist blow-drying hair",
+      "active": "Active",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete image",
+      "deleteConfirmTitle": "Delete image?",
+      "deleteConfirmMessage": "The image and its files will be permanently removed.",
+      "intervalLabel": "Slide interval (seconds)",
+      "intervalHint": "Recommended: at least 1600 px wide, portrait 4:5. Maximum 8 images.",
+      "empty": "No images uploaded. The homepage shows the default graphic.",
+      "maxReached": "Maximum reached (8 images).",
+      "saved": "Saved",
+      "uploadFailed": "Upload failed",
+      "saveFailed": "Save failed"
+    }
   },
   "common": {
     "toggleTheme": "Toggle color mode",
@@ -329,5 +387,14 @@
     "agbTitle": "Terms & Conditions",
     "stornierungTitle": "Cancellation Policy",
     "placeholder": "This page is currently an empty placeholder."
+  },
+  "hero": {
+    "carouselLabel": "Homepage image gallery",
+    "slideCounter": "{n} of {total}",
+    "prevSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "goToSlide": "Go to slide {n}",
+    "pauseAutoplay": "Pause autoplay",
+    "playAutoplay": "Play autoplay"
   }
 }

@@ -1,6 +1,6 @@
 import type { SessionUser } from './auth'
 
-export type AuditEntityType = 'product' | 'category' | 'service' | 'booking'
+export type AuditEntityType = 'product' | 'category' | 'service' | 'booking' | 'hero-slide'
 export type AuditAction = 'created' | 'updated' | 'deleted' | 'media'
 
 interface AuditEntry {

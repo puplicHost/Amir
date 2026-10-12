@@ -18,8 +18,8 @@ export default defineEventHandler(async (event) => {
 
   // Public media scopes. Every other scope (service-request uploads,
   // legacy private files) requires an admin session and is never served
-  // anonymously.
-  const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings'])
+  // anonymously. Hero slides are public homepage content.
+  const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings', 'hero', 'services'])
   if (!PUBLIC_SCOPES.has(scope)) {
     let sessionUser = null
     try {

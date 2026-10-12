@@ -176,6 +176,7 @@ model Service {
   section             ServiceSection
   name                String // German only
   description         String?        @db.Text // German only
+  coverImagePath      String?
   priceAbCents        Int // listed "ab" price in EUR cents
   durationMin         Int            @default(30)
   needsDurationReview Boolean        @default(true)
@@ -312,6 +313,22 @@ model Banner {
   @@index([placement, isActive, sortOrder])
 }
 
+// ─── Homepage hero slideshow ───────────────────────────────
+// Multiple managed images shown as an automatic slideshow on the home page.
+// The legacy SiteSettings.heroImagePath column is left untouched.
+
+model HeroSlide {
+  id         String   @id @default(cuid())
+  imagePath  String
+  altText    String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 // ─── Top announcement carousel items ───────────────────────────
 
 model AnnouncementItem {
@@ -341,6 +358,7 @@ model SiteSettings {
   logoPath   String?
   faviconPath String?
   heroImagePath String?
+  heroSlideIntervalSec Int @default(6)
 
   primaryDarkColor String @default("#1C2940")
   primaryColor     String @default("#1C2940")

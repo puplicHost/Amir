@@ -3,6 +3,41 @@
     "name": "AMIR",
     "tagline": "Frisur & Kosmetik Studio"
   },
+  "serviceSections": {
+    "DAMEN": "Damen",
+    "HERREN": "Herren",
+    "KINDER": "Kinder",
+    "KOSMETIK": "Kosmetik"
+  },
+  "serviceNames": {
+    "damen-waschen-foehnen-kurz": "Waschen, Föhnen, kurz",
+    "damen-waschen-schneiden-foehnen-kurz": "Waschen, Schneiden, Föhnen, kurz",
+    "damen-waschen-schneiden-schulterlang": "Waschen, Schneiden, schulterlang",
+    "damen-waschen-schneiden-foehnen-lang": "Waschen, Schneiden, Föhnen lang",
+    "damen-waschen-schneiden-kurz": "Waschen, Schneiden, kurz",
+    "damen-waschen-schneiden-lang": "Waschen, Schneiden, lang",
+    "damen-dauerwelle": "Dauerwelle",
+    "damen-farbe-ansatz": "Farbe Ansatz",
+    "damen-farbe-komplett": "Farbe komplett",
+    "damen-folienstraehnen-schulterlang": "Foliensträhnen schulterlang",
+    "damen-balayage-olaplex": "Balayage inkl. Olaplex-Behandlung, Abmattierung",
+    "damen-ombre-olaplex": "Ombré inkl. Olaplex-Behandlung, Abmattierung",
+    "herren-haarschnitt-maschine-schere": "Haarschnitt (Maschine & Schere)",
+    "herren-haarwaschen-oder-foehnen": "Haarwaschen oder Föhnen",
+    "herren-haarschnitt-kamm-schere": "Haarschnitt (Kamm & Schere)",
+    "herren-waschen-schneiden-styling": "Waschen, Schneiden, Styling",
+    "herren-bart-formen-schneiden": "Bart formen, schneiden inkl. Condition, Öl",
+    "kinder-maedchen-bis-10-jahre": "Mädchen bis 10 Jahre",
+    "kinder-maedchen-bis-16-jahre": "Mädchen bis 16 Jahre",
+    "kinder-jungen-bis-10-jahre": "Jungen bis 10 Jahre",
+    "kinder-jungen-bis-16-jahre": "Jungen bis 16 Jahre",
+    "kosmetik-augenbrauen-zupfen-faerben": "Augenbrauen zupfen mit Faden oder färben",
+    "kosmetik-wimpern-faerben": "Wimpern färben",
+    "kosmetik-abend-make-up": "Abend Make-Up",
+    "kosmetik-braut-make-up": "Braut Make-Up",
+    "kosmetik-hochstecken": "Hochstecken",
+    "kosmetik-gesichtsreinigungspaket": "Gesichtsreinigungspaket"
+  },
   "nav": {
     "home": "Startseite",
     "products": "Produkte",
@@ -149,7 +184,30 @@
         "unitsSold": "gebuchte Einheiten"
       }
     },
-    "shellNotice": "Administrationsbereich."
+    "shellNotice": "Administrationsbereich.",
+    "hero": {
+      "title": "Hero-Bilder",
+      "desc": "Mehrere Bilder für die Slideshow auf der Startseite, in Reihenfolge.",
+      "picker": "Bilder wählen",
+      "dropHint": "oder hierher ziehen",
+      "uploading": "Wird hochgeladen…",
+      "queued": "Wartet…",
+      "altLabel": "Alternativtext (DE)",
+      "altPlaceholder": "Kurzbeschreibung, z. B. Friseurin beim Föhnen",
+      "active": "Aktiv",
+      "moveUp": "Nach oben",
+      "moveDown": "Nach unten",
+      "delete": "Bild löschen",
+      "deleteConfirmTitle": "Bild löschen?",
+      "deleteConfirmMessage": "Das Bild und seine Dateien werden endgültig entfernt.",
+      "intervalLabel": "Wechselintervall (Sekunden)",
+      "intervalHint": "Empfohlen: mindestens 1600 px Breite, Hochformat 4:5. Maximal 8 Bilder.",
+      "empty": "Keine Bilder hochgeladen. Die Startseite zeigt die Standard-Grafik.",
+      "maxReached": "Maximum erreicht (8 Bilder).",
+      "saved": "Gespeichert",
+      "uploadFailed": "Hochladen fehlgeschlagen",
+      "saveFailed": "Speichern fehlgeschlagen"
+    }
   },
   "common": {
     "toggleTheme": "Farbmodus umschalten",
@@ -329,5 +387,14 @@
     "agbTitle": "Allgemeine Geschäftsbedingungen",
     "stornierungTitle": "Stornierungsbedingungen",
     "placeholder": "Diese Seite ist derzeit ein Platzhalter."
+  },
+  "hero": {
+    "carouselLabel": "Bildergalerie der Startseite",
+    "slideCounter": "{n} von {total}",
+    "prevSlide": "Vorheriges Bild",
+    "nextSlide": "Nächstes Bild",
+    "goToSlide": "Zu Bild {n}",
+    "pauseAutoplay": "Automatische Wiedergabe pausieren",
+    "playAutoplay": "Automatische Wiedergabe starten"
   }
 }

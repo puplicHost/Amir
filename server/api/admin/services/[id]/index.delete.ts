@@ -1,4 +1,5 @@
 import { deletedLabel, logAudit } from '../../../../utils/audit'
+import { deleteServiceDir } from '../../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   const actor = await requirePermission(event, 'services.manage')
@@ -6,6 +7,7 @@ export default defineEventHandler(async (event) => {
   const existing = await prisma.service.findUnique({ where: { id: id || '' } })
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Service not found' })
   await prisma.service.delete({ where: { id: existing.id } })
+  await deleteServiceDir(existing.id)
   await logAudit({
     entityType: 'service',
     entityId: existing.id,

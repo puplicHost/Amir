@@ -29,6 +29,8 @@ const grouped = computed(() => SERVICE_SECTIONS.map(section => ({
     .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
 })))
 
+
+
 // Service Actions
 const deleting = ref('')
 
@@ -51,6 +53,12 @@ const serviceForm = reactive({
 
 const editingServiceId = ref<string | null>(null)
 
+// Cover image staging (uploaded after the service is saved, like categories).
+const coverFile = ref<File | null>(null)
+const coverPreview = ref<string | null>(null)
+const coverRemoved = ref(false)
+const uploadingCover = ref(false)
+
 function openCreateService() {
   editingServiceId.value = null
   const maxSort = Math.max(0, ...((services.value || []).map((s: any) => s.sortOrder ?? 0)))
@@ -66,6 +74,9 @@ function openCreateService() {
     isActive: true,
     featuredOnHomepage: false,
   })
+  coverFile.value = null
+  coverPreview.value = null
+  coverRemoved.value = false
   serviceFormError.value = ''
   showServiceModal.value = true
 }
@@ -84,8 +95,34 @@ function openEditService(s: any) {
     isActive: s.isActive !== false,
     featuredOnHomepage: s.featuredOnHomepage === true,
   })
+  coverFile.value = null
+  coverPreview.value = s.coverImagePath || null
+  coverRemoved.value = false
   serviceFormError.value = ''
   showServiceModal.value = true
+}
+
+function onCoverChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    const msg = locale.value === 'ar' ? 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت' : 'Image size must be 5MB or less.'
+    serviceFormError.value = msg
+    toast.warning(
+      locale.value === 'ar' ? 'ملف كبير' : 'File too large',
+      msg,
+    )
+    return
+  }
+  coverFile.value = file
+  coverPreview.value = URL.createObjectURL(file)
+  coverRemoved.value = false
+}
+
+function clearCover() {
+  coverFile.value = null
+  coverPreview.value = null
+  coverRemoved.value = true
 }
 
 async function saveService() {
@@ -113,17 +150,30 @@ async function saveService() {
       isActive: serviceForm.isActive,
       featuredOnHomepage: serviceForm.featuredOnHomepage,
     }
-    if (editingServiceId.value) {
-      await $fetch(`/api/admin/services/${editingServiceId.value}`, {
+    let id = editingServiceId.value
+    if (id) {
+      await $fetch(`/api/admin/services/${id}`, {
         method: 'PUT',
         body,
       })
     }
     else {
-      await $fetch('/api/admin/services', {
+      const created = await $fetch<any>('/api/admin/services', {
         method: 'POST',
         body,
       })
+      id = created?.id
+    }
+    if (id && coverFile.value) {
+      const fd = new FormData()
+      fd.append('cover', coverFile.value)
+      await $fetch(`/api/admin/services/${id}/cover`, {
+        method: 'POST',
+        body: fd,
+      })
+    }
+    else if (id && coverRemoved.value && editingServiceId.value) {
+      await $fetch(`/api/admin/services/${id}/cover`, { method: 'DELETE' })
     }
     showServiceModal.value = false
     await refreshServices()
@@ -278,7 +328,14 @@ async function toggleFeatured(service: any) {
                   <!-- Service Name -->
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
-                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-400">
+                      <img
+                        v-if="s.coverImagePath"
+                        :src="s.coverImagePath"
+                        :alt="s.name"
+                        class="h-10 w-10 shrink-0 rounded-md border object-cover"
+                        :style="{ borderColor: 'var(--color-border)' }"
+                      />
+                      <div v-else class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-400">
                         <ServiceSectionIcon :section="s.section" class="h-5 w-5" />
                       </div>
                       <div>
@@ -469,6 +526,47 @@ async function toggleFeatured(service: any) {
             <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Description (DE)</span>
             <textarea v-model="serviceForm.description" rows="3" class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
+
+          <!-- Cover image (service card, like category covers) -->
+          <div class="block">
+            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ locale === 'ar' ? 'صورة الخدمة' : 'Cover image' }}</span>
+            <div class="flex items-center gap-3">
+              <img
+                v-if="coverPreview"
+                :src="coverPreview"
+                alt=""
+                class="h-16 w-16 rounded-md border object-cover"
+                :style="{ borderColor: 'var(--color-border)' }"
+              />
+              <span
+                v-else
+                class="inline-flex h-16 w-16 items-center justify-center rounded-md border border-dashed text-slate-400"
+                :style="{ borderColor: 'var(--color-border)' }"
+              >
+                <Wrench class="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div class="flex flex-col gap-2">
+                <label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                  <span>{{ locale === 'ar' ? 'اختيار صورة' : 'Choose image' }}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    class="sr-only"
+                    @change="onCoverChange"
+                  />
+                </label>
+                <button
+                  v-if="coverPreview"
+                  type="button"
+                  class="inline-flex h-8 items-center justify-center gap-1 rounded-md text-[11px] font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                  @click="clearCover"
+                >
+                  <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>{{ locale === 'ar' ? 'إزالة' : 'Remove' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div class="grid gap-3 sm:grid-cols-2">
             <label class="block">

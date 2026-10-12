@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { centsToEur } from '~~/shared/booking'
 
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const slug = String(route.params.slug)
@@ -16,8 +16,24 @@ if (error.value || !service.value) {
   throw createError({ statusCode: 404, statusMessage: 'Service not found', fatal: true })
 }
 
+/** Translated display name (DB stores German; EN comes from i18n). */
+const serviceDisplayName = computed(() => {
+  const srv: any = service.value
+  const fallback = srv?.name || ''
+  if (!srv?.slug) return fallback
+  const key = `serviceNames.${srv.slug}`
+  try {
+    if (te(key)) {
+      const translated = t(key) as string
+      if (translated && translated !== key) return translated
+    }
+  }
+  catch { /* fallback to DB name */ }
+  return fallback
+})
+
 useHead(() => ({
-  title: `${service.value.name} | ${t('brand.name')}`,
+  title: `${serviceDisplayName.value || service.value.name} | ${t('brand.name')}`,
 }))
 
 const todayStr = new Date().toISOString().slice(0, 10)
@@ -61,7 +77,7 @@ watch(date, loadSlots)
 onMounted(() => {
   if (service.value) {
     trackViewContent({
-      content_name: service.value.name,
+      content_name: serviceDisplayName.value || service.value.name,
       content_category: service.value.section,
       value: Number(service.value.priceAbCents || 0) / 100,
       currency: 'EUR',
@@ -71,12 +87,12 @@ onMounted(() => {
 
 function slotLabel(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleTimeString(locale.value === 'ar' ? 'ar-EG' : 'de-DE', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString(locale.value === 'de' ? 'de-DE' : 'en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
 function slotDay(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+  return d.toLocaleDateString(locale.value === 'de' ? 'de-DE' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 async function payFor(token: string, provider: 'stripe' | 'paypal') {
@@ -104,11 +120,11 @@ async function payFor(token: string, provider: 'stripe' | 'paypal') {
 async function createBooking() {
   formError.value = ''
   if (!form.name.trim() || !form.phone.trim()) {
-    formError.value = locale.value === 'ar' ? 'الاسم ورقم الهاتف مطلوبان.' : 'Name and phone are required.'
+    formError.value = locale.value === 'de' ? 'Name und Telefonnummer sind erforderlich.' : 'Name and phone are required.'
     return
   }
   if (!selectedStart.value) {
-    formError.value = locale.value === 'ar' ? 'اختر موعداً أولاً.' : 'Please pick a slot first.'
+    formError.value = locale.value === 'de' ? 'Bitte wählen Sie zuerst einen Termin.' : 'Please pick a slot first.'
     return
   }
   creating.value = true
@@ -163,15 +179,26 @@ async function createBooking() {
       <span class="text-slate-400">/</span>
       <NuxtLink :to="localePath('/services')" class="hover:text-primary transition-colors">{{ t('nav.services') }}</NuxtLink>
       <span class="text-slate-400">/</span>
-      <span class="text-text font-semibold">{{ service.name }}</span>
+      <span class="text-text font-semibold">{{ serviceDisplayName }}</span>
     </nav>
 
-    <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-text mb-2">
-      {{ t('booking.title') }}: {{ service.name }}
-    </h1>
-    <p class="text-sm text-muted mb-8">
-      {{ t('services.priceAb') }} {{ servicePrice }} · {{ service.durationMin }} {{ t('services.minutes') }}
-    </p>
+    <div class="mb-8 flex items-center gap-4">
+      <img
+        v-if="service.coverImagePath"
+        :src="service.coverImagePath"
+        :alt="serviceDisplayName"
+        class="h-20 w-20 shrink-0 rounded-xl border object-cover sm:h-24 sm:w-24"
+        :style="{ borderColor: 'var(--color-border)' }"
+      />
+      <div class="min-w-0">
+        <h1 class="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-text mb-2">
+          {{ t('booking.title') }}: {{ serviceDisplayName }}
+        </h1>
+        <p class="text-sm text-muted">
+          {{ t('services.priceAb') }} {{ servicePrice }} · {{ service.durationMin }} {{ t('services.minutes') }}
+        </p>
+      </div>
+    </div>
 
     <div
       v-if="formError"
