@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import {
-  ArrowRight,
   RotateCcw,
   Search,
-  Wrench,
 } from 'lucide-vue-next'
-import { SERVICE_SECTIONS, centsToEur } from '~~/shared/booking'
+import { SERVICE_SECTIONS } from '~~/shared/booking'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -63,15 +61,45 @@ const grouped = computed(() => SERVICE_SECTIONS.map(section => ({
 
 const hasResults = computed(() => grouped.value.some(g => g.items.length > 0))
 
+/** Sections with active items (drives tabs + groups; follows search). */
+const tabSections = computed(() => grouped.value.filter(g => g.items.length > 0))
+
 function clearFilters() {
   searchQuery.value = ''
 }
+
+/** Display title for a section key: DAMEN -> Damen */
+function sectionTitle(section: string): string {
+  return section.charAt(0) + section.slice(1).toLowerCase()
+}
+
+/** Scroll-spy for the sticky tab bar (presentation only). */
+const activeSection = ref('')
+function syncActiveFromScroll() {
+  if (typeof window === 'undefined') return
+  const y = window.scrollY + 150
+  let current = ''
+  for (const g of tabSections.value) {
+    const el = document.getElementById(g.section)
+    if (el && (el as HTMLElement).offsetTop <= y) current = g.section
+  }
+  if (current) activeSection.value = current
+}
+
+onMounted(() => {
+  syncActiveFromScroll()
+  window.addEventListener('scroll', syncActiveFromScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', syncActiveFromScroll)
+})
 </script>
 
 <template>
   <div class="space-y-0 selection:bg-accent selection:text-on-accent">
 
-    <!-- 1. Hero Band: Centered Title + Breadcrumb on Dark Themed Banner -->
+    <!-- 1. Header Band: eyebrow, serif H1 with accent, factual sentence (left-aligned) -->
     <section
       class="relative overflow-hidden bg-navy bg-cover bg-center text-white"
       :style="heroGeneral?.heroImagePath ? `background-image: url('${heroGeneral.heroImagePath}')` : ''"
@@ -82,39 +110,68 @@ function clearFilters() {
         <path class="fill-bg" d="M0,110 L0,60 C360,5 1080,5 1440,60 L1440,110 Z" />
       </svg>
 
-      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-24 sm:pb-28 text-center">
-        <!-- Centered Breadcrumb -->
-        <nav class="mb-4 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
+      <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-24 sm:pb-28">
+        <!-- Breadcrumb -->
+        <nav class="mb-4 flex items-center gap-1.5 text-xs font-medium text-white/60" aria-label="Breadcrumb">
           <NuxtLink :to="localePath('/')" class="hover:text-white transition-colors">{{ t('nav.home') }}</NuxtLink>
           <span class="text-white/40" aria-hidden="true">/</span>
           <span class="text-white font-semibold" aria-current="page">{{ t('nav.services') }}</span>
         </nav>
 
-        <!-- Centered Page Title -->
-        <h1 class="font-heading text-4xl font-extrabold tracking-tight text-white mb-4 leading-tight">
-          {{ t('home.servicesTitle') }}
+        <!-- Eyebrow -->
+        <p class="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/60">
+          {{ t('services.eyebrow') }}
+        </p>
+
+        <!-- Serif H1 with accented word -->
+        <h1 class="font-heading text-4xl font-medium tracking-tight text-white mb-4 leading-tight text-balance">
+          {{ t('services.pageTitle') }} <em class="italic">{{ t('services.pageTitleAccent') }}</em>
         </h1>
 
-        <!-- Concise Subtitle -->
-        <p class="text-sm sm:text-base text-white/80 max-w-2xl mx-auto leading-relaxed">
+        <!-- Short factual sentence -->
+        <p class="text-[15px] sm:text-base text-white/80 max-w-2xl leading-relaxed text-pretty">
           {{ t('home.servicesSubtitle') }}
         </p>
       </div>
     </section>
 
-    <!-- 2. Services Section: grouped by section -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <!-- 2. Sticky tab bar (anchor scroll, snap on mobile, safe-area aware) -->
+    <div class="sticky z-30 border-b border-border bg-bg/95 backdrop-blur-sm [top:calc(5rem+env(safe-area-inset-top))]">
+      <div class="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
+        <nav
+          class="flex gap-6 overflow-x-auto snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          :aria-label="t('home.servicesTitle') + ' ' + t('home.servicesTitleAccent')"
+        >
+          <a
+            v-for="g in tabSections"
+            :key="g.section"
+            :href="'#' + g.section"
+            class="snap-start whitespace-nowrap border-b py-3 text-[12px] font-semibold uppercase tracking-[0.12em] transition-colors"
+            :class="activeSection === g.section
+              ? '-mb-px border-text text-text'
+              : 'border-transparent text-muted hover:text-text'"
+            @click="activeSection = g.section"
+          >
+            {{ sectionTitle(g.section) }}
+          </a>
+        </nav>
+      </div>
+    </div>
 
-      <!-- Live Search Input -->
-      <div class="mb-12 space-y-4">
-        <div class="mx-auto max-w-[500px]">
+    <!-- 3. Services content -->
+    <section class="py-12 sm:py-16 px-5 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+
+      <!-- Live Search Input (same filtering behavior, restyled) -->
+      <div class="mb-10 space-y-4">
+        <div class="w-full max-w-[480px]">
           <div class="relative flex items-center">
             <Search class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <input
               v-model="searchQuery"
               type="search"
               :placeholder="locale === 'ar' ? 'ابحث باسم الخدمة...' : 'Search services by name...'"
-              class="h-11 w-full rounded-xl border border-border bg-surface ps-10 pe-9 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-xs"
+              :aria-label="locale === 'ar' ? 'ابحث باسم الخدمة...' : 'Search services by name...'"
+              class="h-11 w-full rounded-sm border border-border bg-surface ps-10 pe-9 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors shadow-xs"
             />
             <button
               v-if="searchQuery"
@@ -129,55 +186,28 @@ function clearFilters() {
       </div>
 
       <div v-if="hasResults" class="space-y-12">
-        <section v-for="group in grouped" :key="group.section" :aria-label="group.section">
-          <h2 class="mb-4 font-heading text-xl sm:text-2xl font-extrabold text-text">
-            {{ group.section }}
-          </h2>
-          <div
-            v-if="group.items.length"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
-          >
-            <div
+        <template v-for="group in grouped" :key="group.section">
+        <section v-if="group.items.length" :id="group.section" :aria-label="group.section" class="scroll-mt-36">
+          <div class="mb-5 flex flex-wrap items-baseline gap-x-3 border-b border-border pb-3">
+            <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text text-balance">
+              {{ sectionTitle(group.section) }}
+            </h2>
+            <span class="text-xs text-muted">{{ t('services.sectionCount', { n: group.items.length }) }}</span>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5 items-stretch auto-rows-fr">
+            <ServiceCard
               v-for="srv in group.items"
               :key="srv.id"
-              class="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-white dark:bg-[#1A1D2E] p-5 sm:p-6 shadow-sm hover:border-primary hover:shadow-md transition-all duration-300 h-full"
-            >
-              <div>
-                <div class="flex items-center justify-between gap-3 mb-4">
-                  <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300 shadow-xs">
-                    <Wrench class="h-6 w-6" aria-hidden="true" />
-                  </div>
-                  <div class="text-end">
-                    <p class="font-mono text-sm font-black text-primary">
-                      {{ t('services.priceAb') }} {{ centsToEur(Number(srv.priceAbCents || 0)) }}
-                    </p>
-                    <p class="text-[11px] text-muted">
-                      {{ srv.durationMin }} {{ t('services.minutes') }}
-                    </p>
-                  </div>
-                </div>
-
-                <h3 class="font-heading text-lg font-bold text-text group-hover:text-primary transition-colors leading-snug line-clamp-2 mb-2">
-                  {{ srv.name }}
-                </h3>
-
-                <p v-if="srv.description" class="text-sm text-muted leading-relaxed line-clamp-3 mb-6">
-                  {{ srv.description }}
-                </p>
-              </div>
-
-              <div class="mt-auto pt-4 border-t border-border">
-                <NuxtLink
-                  :to="localePath(`/booking/${srv.slug}`)"
-                  class="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 group-hover:bg-yellow-400 active:scale-[0.98] transition-colors"
-                >
-                  <span>{{ t('services.bookNow') }}</span>
-                  <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-                </NuxtLink>
-              </div>
-            </div>
+              :section="srv.section || group.section"
+              :name="srv.name"
+              :price-cents="Number(srv.priceAbCents || 0)"
+              :duration-min="Number(srv.durationMin || 0)"
+              :needs-duration-review="srv.needsDurationReview !== false"
+              :to="localePath(`/booking/${srv.slug}`)"
+            />
           </div>
         </section>
+        </template>
       </div>
 
       <!-- Empty State -->
@@ -205,6 +235,9 @@ function clearFilters() {
       </div>
 
     </section>
+
+    <!-- Bottom spacer so the mobile booking bar never overlaps content -->
+    <div class="h-[88px] md:hidden" aria-hidden="true" />
 
   </div>
 </template>

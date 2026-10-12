@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import {
   ArrowRight,
-  Boxes,
-  Wrench,
 } from 'lucide-vue-next'
-import { centsToEur } from '~~/shared/booking'
+import { SERVICE_SECTIONS } from '~~/shared/booking'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -25,28 +23,20 @@ const featuredProducts = computed(() => {
   return productData.value?.products || []
 })
 
-const displayServices = computed(() => {
-  // Strictly DB-driven: only services managed in the Admin Panel (/api/services
-  // already returns active ones only). No hardcoded fallback anywhere.
-  return (services.value || []).map((srv: any) => {
+const sectionCards = computed(() => {
+  // Home shows one card per service section (Damen/Herren/Kinder/Kosmetik)
+  // with the minimum "ab" price and the service count. Sections without
+  // active services are hidden. No hardcoded fallback anywhere.
+  return SERVICE_SECTIONS.map((section) => {
+    const items = (services.value || []).filter((srv: any) => srv.section === section)
+    if (!items.length) return null
     return {
-      id: srv.id,
-      slug: srv.slug || '',
-      section: srv.section || '',
-      name: srv.name || '',
-      description: srv.description || '',
-      priceAbCents: Number(srv.priceAbCents || 0),
-      durationMin: Number(srv.durationMin || 0),
+      section,
+      title: section.charAt(0) + section.slice(1).toLowerCase(),
+      priceCents: Math.min(...items.map((srv: any) => Number(srv.priceAbCents || 0))),
+      count: items.length,
     }
-  })
-})
-
-const flagshipService = computed(() => {
-  return displayServices.value[0] || null
-})
-
-const standardServices = computed(() => {
-  return displayServices.value.filter(s => s.id !== flagshipService.value?.id)
+  }).filter((c): c is NonNullable<typeof c> => c !== null)
 })
 
 const siteSeo = await useSiteSeo()
@@ -150,7 +140,7 @@ catch { /* state not registered yet — mount layout already ran */ }
         </h1>
 
         <!-- Subheadline (1 line) -->
-        <p class="hero-anim mb-8 text-base text-white/80 sm:text-lg max-w-3xl mx-auto leading-relaxed truncate" style="animation-delay: 200ms">
+        <p class="hero-anim mb-8 text-base text-white/80 sm:text-lg max-w-3xl mx-auto leading-relaxed text-pretty" style="animation-delay: 200ms">
           {{ t('home.heroSubtitle') }}
         </p>
 
@@ -170,108 +160,58 @@ catch { /* state not registered yet — mount layout already ran */ }
     <!-- Dynamic promo banners: below_hero slot (managed in /admin/banners) -->
     <AppHomeBanners placement="below_hero" />
 
-    <!-- 3. Featured Services -->
-    <!-- Shown while loading or when at least one eligible service exists; hidden on empty/error -->
-    <section v-if="servicesPending || displayServices.length" class="py-16 sm:py-24 px-4 bg-bg transition-colors">
+    <!-- 3. Service Sections (one card per section, links to /services#SECTION) -->
+    <!-- Shown while loading or when at least one section has active services -->
+    <section v-if="servicesPending || sectionCards.length" class="py-16 sm:py-24 px-5 bg-bg transition-colors">
       <div class="mx-auto max-w-7xl">
-        <!-- Section Header (Vertical Stack, No Split-Header) -->
-        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
-          <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-text mb-3">
-            {{ t('home.servicesTitle') }}
+        <!-- Section Header -->
+        <div class="reveal mb-8 max-w-3xl">
+          <p class="mb-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            {{ t('home.servicesEyebrow') }}
+          </p>
+          <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text mb-3 text-balance">
+            {{ t('home.servicesTitle') }} <em class="italic">{{ t('home.servicesTitleAccent') }}</em>
           </h2>
-          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-[65ch] mx-auto">
+          <p class="text-[15px] sm:text-base text-muted leading-relaxed max-w-[65ch] text-pretty">
             {{ t('home.servicesSubtitle') }}
           </p>
-          <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
         </div>
 
         <!-- Loading skeleton (same card footprint, no fake content) -->
         <div
           v-if="servicesPending"
-          class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch"
+          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 items-stretch auto-rows-fr"
           aria-hidden="true"
         >
           <div
-            v-for="i in 6"
+            v-for="i in 4"
             :key="i"
-            class="flex animate-pulse flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-white dark:bg-[#1A1D2E] p-3 sm:p-5 h-full"
+            class="flex animate-pulse flex-col rounded-sm border border-border bg-surface p-3.5 min-h-[120px] h-full"
           >
-            <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
-              <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
-              <div class="h-5 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div class="flex items-start justify-between gap-2 mb-2.5">
+              <div class="h-7 w-7 rounded bg-border" />
+              <div class="h-4 w-4 rounded bg-border" />
             </div>
-            <div class="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-1.5" />
-            <div class="h-3 w-full rounded bg-slate-100 dark:bg-slate-800 mb-3 sm:mb-4" />
-            <div class="mt-auto h-10 w-full rounded-lg bg-slate-200 dark:bg-slate-700" />
+            <div class="h-7 w-3/4 rounded bg-border mb-2" />
+            <div class="mt-auto border-t border-border pt-2.5">
+              <div class="h-4 w-1/2 rounded bg-border" />
+            </div>
           </div>
         </div>
 
-        <!-- Asymmetric Bento Grid -->
-        <div v-else class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 items-stretch">
-          
-          <!-- Unified Service Card: flagship entry (same style as all cards) -->
-          <div
-            v-if="flagshipService"
-            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-white dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
-          >
-            <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
-              <div class="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300">
-                <Wrench class="h-5 w-5" aria-hidden="true" />
-              </div>
-              <span class="font-mono text-xs sm:text-sm font-bold text-primary">
-                {{ t('services.priceAb') }} {{ centsToEur(flagshipService.priceAbCents) }}
-              </span>
-            </div>
-
-            <h3 class="font-heading text-base font-bold text-text line-clamp-2 mb-1.5 leading-snug">
-              {{ flagshipService.name }}
-            </h3>
-
-            <p class="text-sm text-muted line-clamp-2 leading-relaxed mb-3 sm:mb-4">
-              {{ flagshipService.description }}
-            </p>
-
-            <NuxtLink
-              :to="localePath(`/booking/${flagshipService.slug}`)"
-              class="mt-auto flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 hover:bg-yellow-400 active:scale-[0.98] transition-colors"
-            >
-              <span>{{ t('home.serviceAction') }}</span>
-              <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-            </NuxtLink>
-          </div>
-
-          <!-- Unified Service Cards -->
-          <div
-            v-for="(srv, i) in standardServices"
-            :key="srv.id"
-            class="reveal group relative flex flex-col rounded-xl border border-[#E2E8F0] dark:border-[#2D3748] bg-white dark:bg-[#1A1D2E] p-3 sm:p-5 shadow-sm h-full"
-            :style="{ '--reveal-delay': `${(i + 1) * 70}ms` }"
-          >
-            <div class="flex items-center justify-between gap-2 mb-2.5 sm:mb-3.5">
-              <div class="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] dark:bg-[#2B71AE]/20 text-[#2B71AE] dark:text-blue-300">
-                <Wrench class="h-5 w-5" aria-hidden="true" />
-              </div>
-              <span class="font-mono text-xs sm:text-sm font-bold text-primary">
-                {{ t('services.priceAb') }} {{ centsToEur(srv.priceAbCents) }}
-              </span>
-            </div>
-
-            <h3 class="font-heading text-base font-bold text-text line-clamp-2 mb-1.5 leading-snug">
-              {{ srv.name }}
-            </h3>
-
-            <p class="text-sm text-muted line-clamp-2 leading-relaxed mb-3 sm:mb-4">
-              {{ srv.description }}
-            </p>
-
-            <NuxtLink
-              :to="localePath(`/booking/${srv.slug}`)"
-              class="mt-auto flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#F5CC07] text-sm font-bold text-slate-950 group-hover:bg-yellow-400 active:scale-[0.98] transition-colors"
-            >
-              <span>{{ t('home.serviceAction') }}</span>
-              <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-            </NuxtLink>
-          </div>
+        <!-- Section Cards Grid -->
+        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 items-stretch auto-rows-fr">
+          <ServiceSectionCard
+            v-for="(card, i) in sectionCards"
+            :key="card.section"
+            :section="card.section"
+            :title="card.title"
+            :price-cents="card.priceCents"
+            :count="card.count"
+            :to="localePath('/services') + '#' + card.section"
+            class="reveal"
+            :style="{ '--reveal-delay': `${i * 70}ms` }"
+          />
         </div>
 
       </div>
@@ -280,74 +220,40 @@ catch { /* state not registered yet — mount layout already ran */ }
     <!-- Dynamic promo banners: below_services slot (managed in /admin/banners) -->
     <AppHomeBanners placement="below_services" />
 
-    <!-- 4. Featured Categories (Visual Hardware & Component Catalog) -->
-    <section class="py-16 sm:py-24 px-4 bg-surface border-y border-border">
+    <!-- 4. Featured Categories (image tile + name only, text never overlaps) -->
+    <!-- Hidden when no active items -->
+    <section v-if="categories?.length" class="py-16 sm:py-24 px-5 bg-surface border-y border-border">
       <div class="mx-auto max-w-7xl">
         <!-- Section Header -->
-        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
-          <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-text mb-3">
-            {{ t('home.categoriesTitle') }}
+        <div class="reveal mb-8 max-w-3xl">
+          <p class="mb-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            {{ t('home.categoriesEyebrow') }}
+          </p>
+          <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text mb-3 text-balance">
+            {{ t('home.categoriesTitle') }} <em class="italic">{{ t('home.categoriesTitleAccent') }}</em>
           </h2>
-          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-[65ch] mx-auto">
+          <p class="text-[15px] sm:text-base text-muted leading-relaxed max-w-[65ch] text-pretty">
             {{ t('home.categoriesSubtitle') }}
           </p>
-          <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
         </div>
 
-        <!-- Category Grid (Responsive 2-col mobile, 3-col desktop) -->
-        <div 
-          v-if="categories?.length" 
-          class="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6"
-        >
-          <NuxtLink
+        <!-- Category Grid (2-col mobile, 3 from 768px, 4 from 1024px) -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 items-stretch auto-rows-fr">
+          <CategoryCard
             v-for="(cat, i) in categories"
             :key="cat.id"
+            :name="locale === 'ar' ? cat.nameAr : cat.nameEn"
+            :cover="cat.coverImagePath || null"
             :to="localePath(`/products/${cat.slug}`)"
-            class="reveal group relative h-32 sm:h-72 lg:h-80 overflow-hidden rounded-lg sm:rounded-2xl bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-border transition-all duration-300"
+            class="reveal"
             :style="{ '--reveal-delay': `${i * 70}ms` }"
-          >
-            <!-- Category Cover Image -->
-            <img 
-              v-if="cat.coverImagePath" 
-              :src="cat.coverImagePath" 
-              :alt="locale === 'ar' ? cat.nameAr : cat.nameEn" 
-              class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105" 
-            />
-            <!-- Fallback Technical Pattern -->
-            <div 
-              v-else 
-              class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-navy-light via-navy-dark to-navy p-6 text-center"
-            >
-              <div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 mb-2">
-                <Boxes class="h-8 w-8 text-cream/60" />
-              </div>
-            </div>
-
-            <!-- Gradient Scrim for Readability -->
-            <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/60 to-transparent opacity-90 group-hover:opacity-95 transition-opacity"></div>
-
-            <!-- Card Bottom Content -->
-            <div class="absolute inset-0 p-2.5 sm:p-6 flex flex-col justify-end">
-              <span class="hidden sm:block text-[11px] font-mono font-bold uppercase tracking-wider text-cream mb-1">
-                {{ locale === 'ar' ? 'فئة معتمدة' : 'Hardware Catalog' }}
-              </span>
-              <h3 class="font-heading text-sm sm:text-2xl font-semibold sm:font-bold text-white mb-1.5 sm:mb-3 group-hover:text-cream transition-colors leading-tight line-clamp-2">
-                {{ locale === 'ar' ? cat.nameAr : cat.nameEn }}
-              </h3>
-              <div>
-                <span class="inline-flex items-center gap-1 sm:gap-1.5 rounded-md sm:rounded-lg bg-white/15 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold text-white group-hover:bg-cream group-hover:text-navy transition-all duration-300">
-                  <span>{{ t('home.categoryAction') }}</span>
-                  <ArrowRight class="h-3 w-3 sm:h-3.5 sm:w-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
-                </span>
-              </div>
-            </div>
-          </NuxtLink>
+          />
         </div>
 
         <!-- View All Products CTA -->
         <div class="mt-10 sm:mt-12 text-center">
-          <NuxtLink 
-            :to="localePath('/products')" 
+          <NuxtLink
+            :to="localePath('/products')"
             class="inline-flex items-center gap-2 rounded-lg border-2 border-primary px-7 py-3 text-sm sm:text-base font-bold text-primary hover:bg-accent hover:text-on-accent active:scale-[0.98] transition-all"
           >
             <span>{{ t('home.allCategories') }}</span>
@@ -360,42 +266,66 @@ catch { /* state not registered yet — mount layout already ran */ }
     <!-- Dynamic promo banners: below_categories slot (managed in /admin/banners) -->
     <AppHomeBanners placement="below_categories" />
 
-    <!-- 5. Featured Hardware Products (Live E-Commerce Component Grid) -->
-    <section v-if="featuredProducts.length" class="py-16 sm:py-24 px-4 bg-bg transition-colors">
+    <!-- 5. Products (left-aligned header, desktop link right, mobile button below) -->
+    <section v-if="featuredProducts.length" class="py-14 md:py-20 lg:py-24 px-5 bg-bg transition-colors">
       <div class="mx-auto max-w-7xl">
-        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
-          <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-text mb-3">
-            {{ t('home.productsTitle') }}
-          </h2>
-          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-[65ch] mx-auto">
-            {{ t('home.productsSubtitle') }}
-          </p>
-          <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
+        <div class="reveal mb-8 flex items-end justify-between gap-4">
+          <div class="max-w-3xl">
+            <p class="mb-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+              {{ t('home.productsEyebrow') }}
+            </p>
+            <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text mb-3 text-balance">
+              {{ t('home.productsTitle') }} <em class="italic">{{ t('home.productsTitleAccent') }}</em>
+            </h2>
+            <p class="text-[15px] sm:text-base text-muted leading-relaxed max-w-[65ch] text-pretty">
+              {{ t('home.productsSubtitle') }}
+            </p>
+          </div>
+          <NuxtLink
+            :to="localePath('/products')"
+            class="hidden md:inline-flex h-11 shrink-0 items-center gap-1.5 text-sm font-bold text-text hover:underline underline-offset-4"
+          >
+            <span>{{ t('nav.allProducts') }}</span>
+            <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+          </NuxtLink>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 items-stretch auto-rows-fr">
           <AppProductCard
-            v-for="(product, i) in featuredProducts"
+            v-for="(product, i) in featuredProducts.slice(0, 4)"
             :key="product.id"
             :product="product"
             class="reveal"
             :style="{ '--reveal-delay': `${i * 70}ms` }"
           />
         </div>
+
+        <!-- Bottom button (mobile only) -->
+        <div class="mt-6 text-center md:hidden">
+          <NuxtLink
+            :to="localePath('/products')"
+            class="inline-flex h-12 items-center gap-2 whitespace-nowrap border border-text px-6 text-sm font-bold text-text transition-colors hover:bg-text hover:text-bg"
+          >
+            <span>{{ t('nav.allProducts') }}</span>
+            <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+          </NuxtLink>
+        </div>
       </div>
     </section>
 
     <!-- 6. Salon Experience -->
-    <section class="py-16 sm:py-24 px-4 bg-surface border-t border-border">
+    <section class="py-16 sm:py-24 px-5 bg-surface border-t border-border">
       <div class="mx-auto max-w-7xl">
-        <div class="reveal mb-12 text-center max-w-3xl mx-auto">
-          <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-text mb-3">
-            {{ t('home.workflowTitle') }}
+        <div class="reveal mb-8 max-w-3xl">
+          <p class="mb-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            {{ t('home.workflowEyebrow') }}
+          </p>
+          <h2 class="font-heading text-[28px] sm:text-4xl font-medium text-text mb-3 text-balance">
+            {{ t('home.workflowTitle') }} <em class="italic">{{ t('home.workflowTitleAccent') }}</em>
           </h2>
-          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-[65ch] mx-auto">
+          <p class="text-[15px] sm:text-base text-muted leading-relaxed max-w-[65ch] text-pretty">
             {{ t('home.workflowSubtitle') }}
           </p>
-          <div class="h-1 w-12 bg-accent mx-auto rounded-full mt-4"></div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6 items-stretch">

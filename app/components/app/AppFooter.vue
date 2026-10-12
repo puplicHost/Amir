@@ -154,18 +154,6 @@ const tagline = computed(() => {
         <!-- Line 1: Copyright -->
         <p>&copy; {{ year }} {{ siteDisplayName }}. {{ locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.' }}</p>
 
-        <!-- Line 2: Developer Credit -->
-        <div class="text-slate-400">
-          <span>{{ locale === 'ar' ? 'تم التطوير بواسطة ' : 'Developed by ' }}</span>
-          <a
-            href="https://abdelrhmanisc.site/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="font-semibold text-slate-200 hover:text-cream underline-offset-4 hover:underline transition-colors"
-          >
-            Abdelrhman
-          </a>
-        </div>
       </div>
 
     </div>

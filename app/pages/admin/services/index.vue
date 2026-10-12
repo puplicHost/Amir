@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import {
+  Loader2,
   Pencil,
   Plus,
+  Star,
   Trash2,
   Wrench,
   X,
 } from 'lucide-vue-next'
 import { SERVICE_SECTIONS, centsToEur, eurToCents } from '~~/shared/booking'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['services.view', 'services.config'] })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'services.manage' })
 
 const { t, locale } = useI18n()
 const toast = useAdminToast()
@@ -44,6 +46,7 @@ const serviceForm = reactive({
   needsDurationReview: true,
   sortOrder: 0,
   isActive: true,
+  featuredOnHomepage: false,
 })
 
 const editingServiceId = ref<string | null>(null)
@@ -61,6 +64,7 @@ function openCreateService() {
     needsDurationReview: true,
     sortOrder: maxSort + 1,
     isActive: true,
+    featuredOnHomepage: false,
   })
   serviceFormError.value = ''
   showServiceModal.value = true
@@ -78,6 +82,7 @@ function openEditService(s: any) {
     needsDurationReview: s.needsDurationReview !== false,
     sortOrder: s.sortOrder ?? 0,
     isActive: s.isActive !== false,
+    featuredOnHomepage: s.featuredOnHomepage === true,
   })
   serviceFormError.value = ''
   showServiceModal.value = true
@@ -106,6 +111,7 @@ async function saveService() {
       needsDurationReview: serviceForm.needsDurationReview,
       sortOrder: serviceForm.sortOrder,
       isActive: serviceForm.isActive,
+      featuredOnHomepage: serviceForm.featuredOnHomepage,
     }
     if (editingServiceId.value) {
       await $fetch(`/api/admin/services/${editingServiceId.value}`, {
@@ -141,7 +147,7 @@ async function saveService() {
 }
 
 const { confirm: confirmDialog } = useAdminConfirm()
-const canConfigServices = useAdminCan('services.config')
+const canConfigServices = useAdminCan('services.manage')
 
 async function deleteService(s: any) {
   const ok = await confirmDialog({
@@ -190,6 +196,33 @@ async function toggleActive(service: any) {
   }
 }
 
+const togglingFeaturedId = ref<string | null>(null)
+async function toggleFeatured(service: any) {
+  if (togglingFeaturedId.value === service.id) return
+  togglingFeaturedId.value = service.id
+  const next = !(service.featuredOnHomepage === true)
+  try {
+    await $fetch(`/api/admin/services/${service.id}`, {
+      method: 'PUT',
+      body: { showOnHome: next, featuredOnHomepage: next },
+    })
+    service.featuredOnHomepage = next
+    toast.success(
+      locale.value === 'ar' ? 'تم تحديث التمييز' : 'Featured Status Updated',
+      locale.value === 'ar' ? `خدمة "${service.name}" أصبحت ${next ? 'مميزة بالرئيسية' : 'غير مميزة'}.` : `Service is now ${next ? 'featured' : 'not featured'}.`,
+    )
+  }
+  catch (e: any) {
+    toast.error(
+      locale.value === 'ar' ? 'فشل التحديث' : 'Update Failed',
+      e?.data?.message || 'Failed to update service',
+    )
+  }
+  finally {
+    togglingFeaturedId.value = null
+  }
+}
+
 </script>
 
 <template>
@@ -231,6 +264,7 @@ async function toggleActive(service: any) {
                   <th scope="col" class="px-4 py-3 text-center">{{ t('services.priceAb') }}</th>
                   <th scope="col" class="px-4 py-3 text-center">{{ t('services.duration') }}</th>
                   <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'الحالة' : 'Status' }}</th>
+                  <th scope="col" class="px-4 py-3 text-center">{{ locale === 'ar' ? 'مميز بالرئيسية' : 'Featured' }}</th>
                   <th scope="col" class="px-4 py-3 text-center">{{ t('services.sortOrder') }}</th>
                   <th scope="col" class="px-4 py-3 text-end">{{ locale === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
                 </tr>
@@ -245,7 +279,7 @@ async function toggleActive(service: any) {
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
                       <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-400">
-                        <Wrench class="h-5 w-5" aria-hidden="true" />
+                        <ServiceSectionIcon :section="s.section" class="h-5 w-5" />
                       </div>
                       <div>
                         <p class="font-semibold text-slate-900 dark:text-slate-100">{{ s.name }}</p>
@@ -291,6 +325,35 @@ async function toggleActive(service: any) {
                       <span class="h-1.5 w-1.5 rounded-full" :class="s.isActive ? 'bg-emerald-500' : 'bg-slate-400'" />
                       <span>{{ s.isActive ? (locale === 'ar' ? 'نشط' : 'Active') : (locale === 'ar' ? 'معطل' : 'Inactive') }}</span>
                     </button>
+                  </td>
+
+                  <!-- Featured Toggle -->
+                  <td class="px-4 py-3 text-center">
+                    <button
+                      v-if="canConfigServices"
+                      type="button"
+                      :disabled="togglingFeaturedId === s.id"
+                      class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                      :class="s.featuredOnHomepage
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40'
+                        : 'bg-slate-100 text-slate-400 border border-slate-200 hover:text-amber-600 hover:border-amber-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'"
+                      :title="locale === 'ar' ? (s.featuredOnHomepage ? 'مميز بالرئيسية (اضغط للإلغاء)' : 'غير مميز (اضغط للتمييز بالرئيسية)') : (s.featuredOnHomepage ? 'Featured on home (click to toggle)' : 'Not featured (click to feature)')"
+                      @click="toggleFeatured(s)"
+                    >
+                      <Loader2 v-if="togglingFeaturedId === s.id" class="h-3 w-3 animate-spin text-amber-600" />
+                      <Star v-else class="h-3 w-3" :class="s.featuredOnHomepage ? 'fill-amber-500 text-amber-500' : 'text-slate-400'" aria-hidden="true" />
+                      <span>{{ s.featuredOnHomepage ? (locale === 'ar' ? 'مميز' : 'Featured') : (locale === 'ar' ? 'غير مميز' : 'Standard') }}</span>
+                    </button>
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                      :class="s.featuredOnHomepage
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40'
+                        : 'bg-slate-100 text-slate-400 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'"
+                    >
+                      <Star class="h-3 w-3" :class="s.featuredOnHomepage ? 'fill-amber-500 text-amber-500' : 'text-slate-400'" aria-hidden="true" />
+                      <span>{{ s.featuredOnHomepage ? (locale === 'ar' ? 'مميز' : 'Featured') : (locale === 'ar' ? 'غير مميز' : 'Standard') }}</span>
+                    </span>
                   </td>
 
                   <!-- Sort -->
@@ -425,6 +488,11 @@ async function toggleActive(service: any) {
               <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
                 <input v-model="serviceForm.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
                 <span>{{ locale === 'ar' ? 'خدمة نشطة وظاهرة للعملاء' : 'Active and visible to clients' }}</span>
+              </label>
+
+              <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                <input v-model="serviceForm.featuredOnHomepage" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
+                <span>{{ locale === 'ar' ? 'عرض كخدمة مميزة في الصفحة الرئيسية' : 'Feature on homepage' }}</span>
               </label>
 
               <label class="flex cursor-pointer items-center gap-2 text-xs font-bold text-amber-800 dark:text-yellow-300">

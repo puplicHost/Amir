@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Clock } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'services.config' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'services.manage' })
 
 const { t, locale } = useI18n()
 const toast = useAdminToast()

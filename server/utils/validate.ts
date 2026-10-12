@@ -36,6 +36,8 @@ export const serviceCreateSchema = z.object({
   needsDurationReview: z.boolean().nullish(),
   sortOrder: z.coerce.number().int().min(0).max(100000).nullish(),
   isActive: z.boolean().nullish(),
+  featuredOnHomepage: z.boolean().nullish(),
+  showOnHome: z.boolean().nullish(),
 })
 
 export const serviceUpdateSchema = serviceCreateSchema.partial()

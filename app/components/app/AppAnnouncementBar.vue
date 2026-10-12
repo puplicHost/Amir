@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
 
 interface AnnouncementItem {
@@ -13,7 +13,7 @@ interface AnnouncementItem {
   linkValue: string | null
 }
 
-const { data, refresh } = await useAsyncData('announcement-feed', () =>
+const { data } = await useAsyncData('announcement-feed', () =>
   $fetch<{
     items: AnnouncementItem[]
     active: boolean
@@ -26,10 +26,6 @@ const currentIndex = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  if (typeof window !== 'undefined') {
-    // Clear legacy dismiss flag so it doesn't cause a disappearing flash on refresh
-    try { sessionStorage.removeItem('amir_announcement_dismissed') } catch {}
-  }
   startTimer()
 })
 
@@ -46,7 +42,7 @@ const currentItem = computed(() => activeItems.value[currentIndex.value] || null
 
 function textOf(item: AnnouncementItem | null) {
   if (!item) return ''
-  return locale.value === 'ar' ? item.textAr : (item.textEn || item.textAr)
+  return item.textEn || item.textAr || ''
 }
 
 function linkOf(item: AnnouncementItem | null) {
@@ -71,10 +67,6 @@ function prev() {
   currentIndex.value = (currentIndex.value - 1 + activeItems.value.length) % activeItems.value.length
 }
 
-function goTo(idx: number) {
-  currentIndex.value = idx
-}
-
 function startTimer() {
   stopTimer()
   if (activeItems.value.length > 1) {
@@ -94,68 +86,47 @@ function stopTimer() {
 function dismiss() {
   isDismissed.value = true
 }
-
-// Touch swipe support on mobile
-const touchStartX = ref(0)
-function onTouchStart(e: TouchEvent) {
-  touchStartX.value = e.changedTouches[0].screenX
-  stopTimer()
-}
-function onTouchEnd(e: TouchEvent) {
-  const diff = e.changedTouches[0].screenX - touchStartX.value
-  if (Math.abs(diff) > 40) {
-    if (diff > 0) prev()
-    else next()
-  }
-  startTimer()
-}
 </script>
 
 <template>
   <div
     v-if="isBarVisible"
     data-site-announce
-    class="relative z-50 flex h-10 w-full items-center justify-between px-3 text-xs font-semibold text-white transition-colors print:hidden"
-    :style="{ backgroundColor: data?.bgColor || 'rgb(var(--primary) / 1)' }"
+    class="relative z-50 flex h-8 w-full items-center justify-between px-4 text-[11px] font-medium tracking-wide bg-[#050808] text-white border-b border-[#303636] print:hidden"
     @mouseenter="stopTimer"
     @mouseleave="startTimer"
-    @touchstart="onTouchStart"
-    @touchend="onTouchEnd"
   >
-    <!-- Right side (in RTL): Previous arrow button -->
     <div class="flex items-center">
       <button
         v-if="activeItems.length > 1"
         type="button"
-        class="hidden sm:flex h-7 w-7 items-center justify-center rounded text-white/80 hover:bg-white/15 hover:text-white active:scale-95 transition-all"
-        :aria-label="locale === 'ar' ? 'السابق' : 'Previous'"
+        class="hidden sm:flex h-6 w-6 items-center justify-center text-white/60 hover:text-white transition-colors"
+        aria-label="Previous"
         @click="prev"
       >
-        <ChevronRight class="h-4 w-4" />
+        <ChevronLeft class="h-3.5 w-3.5" />
       </button>
     </div>
 
-    <!-- Center: Transitioning announcement content -->
     <div class="flex-1 overflow-hidden text-center px-2">
       <Transition
         mode="out-in"
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-2"
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 translate-y-1"
         enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition duration-200 ease-in"
+        leave-active-class="transition duration-150 ease-in"
         leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-2"
+        leave-to-class="opacity-0 -translate-y-1"
       >
         <div :key="currentIndex" class="truncate">
-          <!-- Clickable Link if configured -->
           <NuxtLink
             v-if="linkOf(currentItem) && !isExternalLink(currentItem)"
             :to="linkOf(currentItem)!"
-            class="inline-flex items-center gap-1.5 hover:underline"
+            class="inline-flex items-center gap-1.5 hover:underline underline-offset-2"
           >
             <span>{{ textOf(currentItem) }}</span>
-            <span class="text-[10px] opacity-80 underline underline-offset-2">
-              {{ locale === 'ar' ? '— اضغط للتفاصيل' : '— Click for details' }}
+            <span class="text-[10px] opacity-75">
+              {{ locale === 'de' ? '— Details ansehen' : '— View details' }}
             </span>
           </NuxtLink>
 
@@ -164,15 +135,14 @@ function onTouchEnd(e: TouchEvent) {
             :href="linkOf(currentItem)!"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-1.5 hover:underline"
+            class="inline-flex items-center gap-1.5 hover:underline underline-offset-2"
           >
             <span>{{ textOf(currentItem) }}</span>
-            <span class="text-[10px] opacity-80 underline underline-offset-2">
-              {{ locale === 'ar' ? '— اضغط للتفاصيل' : '— Click for details' }}
+            <span class="text-[10px] opacity-75">
+              {{ locale === 'de' ? '— Details ansehen' : '— View details' }}
             </span>
           </a>
 
-          <!-- Static text if no link -->
           <span v-else>
             {{ textOf(currentItem) }}
           </span>
@@ -180,40 +150,24 @@ function onTouchEnd(e: TouchEvent) {
       </Transition>
     </div>
 
-    <!-- Left side (in RTL): Next arrow + Dots indicators + Close button -->
-    <div class="flex items-center gap-2">
-      <!-- Dots indicators -->
-      <div v-if="activeItems.length > 1" class="flex items-center gap-1 px-1">
-        <button
-          v-for="(_, i) in activeItems"
-          :key="i"
-          type="button"
-          class="h-1.5 rounded-full transition-all"
-          :class="i === currentIndex ? 'w-3.5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'"
-          :aria-label="`Go to slide ${i + 1}`"
-          @click="goTo(i)"
-        />
-      </div>
-
-      <!-- Next button -->
+    <div class="flex items-center gap-1">
       <button
         v-if="activeItems.length > 1"
         type="button"
-        class="hidden sm:flex h-7 w-7 items-center justify-center rounded text-white/80 hover:bg-white/15 hover:text-white active:scale-95 transition-all"
-        :aria-label="locale === 'ar' ? 'التالي' : 'Next'"
+        class="hidden sm:flex h-6 w-6 items-center justify-center text-white/60 hover:text-white transition-colors"
+        aria-label="Next"
         @click="next"
       >
-        <ChevronLeft class="h-4 w-4" />
+        <ChevronRight class="h-3.5 w-3.5" />
       </button>
 
-      <!-- Dismiss (×) Button -->
       <button
         type="button"
-        class="flex h-7 w-7 items-center justify-center rounded text-white/70 hover:bg-white/15 hover:text-white transition-all active:scale-90 ms-1"
-        :title="locale === 'ar' ? 'إغلاق الإشعار' : 'Close'"
+        class="flex h-6 w-6 items-center justify-center text-white/60 hover:text-white transition-colors ms-1"
+        :aria-label="t('common.close')"
         @click="dismiss"
       >
-        <X class="h-4 w-4" />
+        <X class="h-3.5 w-3.5" />
       </button>
     </div>
   </div>

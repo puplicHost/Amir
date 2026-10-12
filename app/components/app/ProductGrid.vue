@@ -164,8 +164,7 @@ async function resetFilters() {
   await router.replace({ query: {} })
 }
 
-async function gotoPage(p: number) {
-  page.value = p
+async function gotoPage(p: number) {  page.value = p
   await router.replace({ query: { ...route.query, page: p > 1 ? String(p) : undefined } })
   if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -191,7 +190,7 @@ watch(() => route.query, (newQ) => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1536px] px-4 sm:px-6 lg:px-8 xl:px-10 py-6 sm:py-8">
+  <div class="mx-auto w-full max-w-[1536px] px-5 sm:px-6 lg:px-8 xl:px-10 py-6 sm:py-8">
     
     <!-- Top Toolbar: Live Result Count, Search Bar, Sort Dropdown & Action Controls -->
     <div 
@@ -405,21 +404,23 @@ watch(() => route.query, (newQ) => {
         
         <div>
           <!-- Loading State Skeleton -->
-          <div v-if="pending" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 w-full" aria-label="Loading catalog">
-            <div v-for="i in 8" :key="i" class="overflow-hidden rounded-xl border border-border bg-bg p-3">
-              <div class="aspect-square w-full animate-pulse rounded-lg bg-border mb-3" />
-              <div class="h-4 w-2/3 animate-pulse rounded bg-border mb-2" />
-              <div class="h-5 w-1/3 animate-pulse rounded bg-border mb-3" />
-              <div class="h-8.5 w-full animate-pulse rounded-lg bg-border/40" />
+          <div v-if="pending" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 w-full auto-rows-fr" aria-label="Loading catalog">
+            <div v-for="i in 8" :key="i" class="overflow-hidden rounded-sm border border-border bg-surface p-0">
+              <div class="aspect-[4/5] w-full animate-pulse bg-border/40" />
+              <div class="p-3.5">
+                <div class="h-3 w-1/2 animate-pulse rounded bg-border/40 mb-2" />
+                <div class="h-4 w-2/3 animate-pulse rounded bg-border/40 mb-2" />
+                <div class="h-5 w-1/3 animate-pulse rounded bg-border/40" />
+              </div>
             </div>
           </div>
 
-          <!-- Populated Grid: 4 cards per row on large desktop (xl:grid-cols-4), 3 on lg, 2 on md/mobile -->
-          <div v-else-if="data?.products?.length" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 w-full">
-            <AppProductCard 
-              v-for="p in data.products" 
-              :key="(p as {slug:string}).slug" 
-              :product="p as never" 
+          <!-- Populated Grid: 2-col mobile, 3 from 768px, 4 from 1024px -->
+          <div v-else-if="data?.products?.length" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 w-full items-stretch auto-rows-fr">
+            <AppProductCard
+              v-for="p in data.products"
+              :key="(p as {slug:string}).slug"
+              :product="p as never"
             />
           </div>
 

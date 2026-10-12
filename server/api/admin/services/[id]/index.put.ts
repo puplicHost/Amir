@@ -18,6 +18,8 @@ export default defineEventHandler(async (event) => {
   if (body.needsDurationReview !== undefined) data.needsDurationReview = body.needsDurationReview
   if (body.sortOrder !== undefined) data.sortOrder = body.sortOrder
   if (body.isActive !== undefined) data.isActive = body.isActive
+  if (body.showOnHome !== undefined) data.featuredOnHomepage = body.showOnHome === true
+  if (body.featuredOnHomepage !== undefined) data.featuredOnHomepage = body.featuredOnHomepage === true
 
   const rawSlug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : ''
   if (rawSlug && rawSlug !== existing.slug) {

@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
       needsDurationReview: body.needsDurationReview ?? true,
       sortOrder: body.sortOrder ?? 0,
       isActive: body.isActive ?? true,
+      featuredOnHomepage: body.featuredOnHomepage ?? body.showOnHome ?? false,
     },
   })
   await logAudit({

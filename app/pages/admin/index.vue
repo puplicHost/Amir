@@ -29,7 +29,7 @@ const { data, pending, refresh } = await useAsyncData<DashboardResponse>(
   () => fetch<DashboardResponse>('/api/admin/dashboard/stats'),
 )
 
-const canServicesView = useAdminCan('services.view')
+const canServicesView = useAdminCan('services.manage')
 const canCategoriesManage = useAdminCan('categories.manage')
 const canSettingsView = useAdminCan('settings.view')
 

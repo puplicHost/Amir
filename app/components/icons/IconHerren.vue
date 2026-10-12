@@ -10,11 +10,12 @@
     class="inline-block shrink-0"
     v-bind="$attrs"
   >
-    <path d="M4 19l6-6" />
-    <path d="M5.5 20.5l6-6" />
-    <circle cx="10.5" cy="12.5" r="1" />
-    <path d="M11 12l8-7.5c.8-.7 2-.2 2 .8v3.5c0 .6-.3 1.1-.8 1.4L13 14" />
-    <line x1="14" y1="8" x2="19" y2="4.5" />
-    <path d="M3 21l2-2" />
+    <!-- Comb: spine with even teeth, same 1.5-stroke line style -->
+    <path d="M4 7.5h16" />
+    <path d="M6.5 7.5V15" />
+    <path d="M9.5 7.5V16.5" />
+    <path d="M12.5 7.5V15" />
+    <path d="M15.5 7.5V16.5" />
+    <path d="M18.5 7.5V15" />
   </svg>
 </template>

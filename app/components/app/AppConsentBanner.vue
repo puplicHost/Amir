@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 
 const isAdminRoute = computed(() =>
-  route.path.replace(/^\/(en|ar)(?=\/|$)/, '').startsWith('/admin'),
+  route.path.replace(/^\/(en|de)(?=\/|$)/, '').startsWith('/admin'),
 )
 
 const {
@@ -77,16 +77,15 @@ onUnmounted(() => {
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl transition-all"
-        :style="{ borderColor: 'var(--color-border)' }"
+        class="w-full max-w-lg rounded-[2px] border border-border dark:border-[#303636] bg-white dark:bg-[#121616] p-6 sm:p-8 shadow-xl transition-all"
       >
-        <div class="mb-4 flex items-center justify-between border-b border-border pb-3">
-          <h2 id="consent-settings-title" class="font-heading text-lg font-bold text-text">
+        <div class="mb-4 flex items-center justify-between border-b border-border dark:border-[#303636] pb-3">
+          <h2 id="consent-settings-title" class="font-display text-xl font-medium tracking-tight text-brand-black dark:text-white">
             {{ t('consent.title') }}
           </h2>
           <button
             type="button"
-            class="rounded-md p-1 text-muted hover:text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            class="rounded-[2px] p-1 text-muted hover:text-brand-black dark:hover:text-white focus:outline-none"
             :aria-label="t('common.close')"
             @click="closeSettings"
           >
@@ -94,9 +93,9 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <p class="mb-5 text-xs text-muted leading-relaxed">
+        <p class="mb-5 text-xs text-muted dark:text-[#A6A6A6] leading-relaxed">
           {{ t('consent.description') }}
-          <NuxtLink :to="localePath('/datenschutz')" class="text-primary underline ms-1">
+          <NuxtLink :to="localePath('/datenschutz')" class="text-brand-black dark:text-white underline underline-offset-2 ms-1">
             {{ t('consent.privacyLink') }}
           </NuxtLink>
         </p>
@@ -104,56 +103,56 @@ onUnmounted(() => {
         <!-- Category list -->
         <div class="space-y-4 mb-6">
           <!-- Necessary Category (Always on) -->
-          <div class="rounded-xl border border-border bg-bg/50 p-4">
+          <div class="rounded-[2px] border border-border dark:border-[#303636] bg-surface dark:bg-[#050808] p-4">
             <div class="flex items-center justify-between gap-3 mb-1">
               <div class="flex items-center gap-2">
-                <ShieldCheck class="h-4 w-4 text-emerald-600" />
-                <span class="font-heading text-sm font-bold text-text">{{ t('consent.necessaryTitle') }}</span>
+                <ShieldCheck class="h-4 w-4 text-brand-black dark:text-white" />
+                <span class="font-display text-base font-medium text-brand-black dark:text-white">{{ t('consent.necessaryTitle') }}</span>
               </div>
-              <span class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              <span class="text-[10px] font-medium tracking-wider uppercase px-2 py-0.5 border border-border dark:border-[#303636] text-muted dark:text-[#A6A6A6]">
                 {{ t('consent.alwaysActive') }}
               </span>
             </div>
-            <p class="text-[11px] text-muted leading-relaxed">
+            <p class="text-[11px] text-muted dark:text-[#A6A6A6] leading-relaxed">
               {{ t('consent.necessaryDesc') }}
             </p>
           </div>
 
           <!-- Marketing Category (No pre-ticked box) -->
-          <div class="rounded-xl border border-border bg-bg/50 p-4">
+          <div class="rounded-[2px] border border-border dark:border-[#303636] bg-surface dark:bg-[#050808] p-4">
             <div class="flex items-center justify-between gap-3 mb-1">
               <label for="consent-marketing-check" class="flex items-center gap-2 cursor-pointer">
                 <input
                   id="consent-marketing-check"
                   v-model="marketingChoice"
                   type="checkbox"
-                  class="h-4 w-4 rounded accent-primary cursor-pointer"
+                  class="h-4 w-4 rounded-[2px] accent-[#050808] dark:accent-white cursor-pointer"
                 />
-                <span class="font-heading text-sm font-bold text-text">{{ t('consent.marketingTitle') }}</span>
+                <span class="font-display text-base font-medium text-brand-black dark:text-white">{{ t('consent.marketingTitle') }}</span>
               </label>
             </div>
-            <p class="text-[11px] text-muted leading-relaxed ps-6">
+            <p class="text-[11px] text-muted dark:text-[#A6A6A6] leading-relaxed ps-6">
               {{ t('consent.marketingDesc') }}
             </p>
           </div>
         </div>
 
         <!-- Settings actions -->
-        <div class="flex flex-wrap items-center justify-end gap-2.5 border-t border-border pt-4">
-          <button
-            type="button"
-            class="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-xs font-bold text-text hover:bg-border/30 active:scale-95 transition-all"
+        <div class="flex flex-wrap items-center justify-end gap-3 border-t border-border dark:border-[#303636] pt-4">
+          <Button
+            variant="outline"
+            size="sm"
             @click="handleRejectAll"
           >
             {{ t('consent.rejectAll') }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex h-10 items-center justify-center rounded-xl bg-accent px-5 text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all"
+          </Button>
+          <Button
+            variant="solid"
+            size="sm"
             @click="handleSaveSettings"
           >
             {{ t('consent.saveSelection') }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -165,48 +164,47 @@ onUnmounted(() => {
       aria-modal="false"
       aria-labelledby="consent-banner-title"
       aria-describedby="consent-banner-desc"
-      class="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-surface/98 backdrop-blur-md p-4 sm:p-6 shadow-2xl transition-all"
-      :style="{ borderColor: 'var(--color-border)' }"
+      class="fixed bottom-0 inset-x-0 z-40 border-t border-border dark:border-[#303636] bg-white/95 dark:bg-[#050808]/95 backdrop-blur-md p-4 sm:p-6 shadow-lg transition-all"
     >
       <div class="mx-auto max-w-7xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
         <div class="max-w-3xl space-y-1.5">
-          <h2 id="consent-banner-title" class="font-heading text-base font-bold text-text">
+          <h2 id="consent-banner-title" class="font-display text-lg sm:text-xl font-medium tracking-tight text-brand-black dark:text-white">
             {{ t('consent.title') }}
           </h2>
-          <p id="consent-banner-desc" class="text-xs sm:text-sm text-muted leading-relaxed">
+          <p id="consent-banner-desc" class="text-xs sm:text-sm text-muted dark:text-[#A6A6A6] leading-relaxed">
             {{ t('consent.description') }}
-            <NuxtLink :to="localePath('/datenschutz')" class="text-primary underline ms-1">
+            <NuxtLink :to="localePath('/datenschutz')" class="text-brand-black dark:text-white underline underline-offset-2 ms-1">
               {{ t('consent.privacyLink') }}
             </NuxtLink>
           </p>
         </div>
 
         <!-- Equal prominence buttons on first layer -->
-        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            class="flex-1 sm:flex-none inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border-2 border-primary bg-primary px-6 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-primary/90 active:scale-95 transition-all cursor-pointer"
+        <div class="flex flex-wrap items-center gap-3 shrink-0">
+          <Button
+            variant="solid"
+            size="sm"
             @click="handleAcceptAll"
           >
             {{ t('consent.acceptAll') }}
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            class="flex-1 sm:flex-none inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border-2 border-primary bg-surface px-6 text-xs sm:text-sm font-bold text-text hover:bg-border/40 active:scale-95 transition-all cursor-pointer"
+          <Button
+            variant="outline"
+            size="sm"
             @click="handleRejectAll"
           >
             {{ t('consent.rejectAll') }}
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            class="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border px-4 text-xs font-semibold text-muted hover:text-text hover:bg-border/30 active:scale-95 transition-all cursor-pointer"
+          <Button
+            variant="ghost"
+            size="sm"
             @click="settingsModalOpen = true"
           >
             <Sliders class="h-3.5 w-3.5" />
             <span>{{ t('consent.settings') }}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>
