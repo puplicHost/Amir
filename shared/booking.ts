@@ -12,8 +12,23 @@ export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number]
 export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] as const
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]
 
-export const BOOKING_STATUSES = ['UNASSIGNED', 'ASSIGNED', 'CANCELLED_BY_STAFF', 'COMPLETED'] as const
+export const BOOKING_STATUSES = ['UNASSIGNED', 'ASSIGNED', 'CANCELLED_BY_STAFF', 'CANCELLED', 'COMPLETED'] as const
 export type BookingStatus = (typeof BOOKING_STATUSES)[number]
+
+export const CANCELLED_BY = ['CUSTOMER', 'ADMIN', 'STAFF', 'SYSTEM'] as const
+
+export const REFUND_STATUSES = ['NONE', 'PENDING', 'SUCCEEDED', 'FAILED', 'OUTSIDE'] as const
+
+export const STAFF_CHOICES = ['SPECIFIC', 'ANY'] as const
+export type StaffChoice = (typeof STAFF_CHOICES)[number]
+
+export const BOOKING_SOURCES = ['ONLINE', 'WALK_IN', 'WHATSAPP', 'PHONE'] as const
+export type BookingSource = (typeof BOOKING_SOURCES)[number]
+
+export const MANUAL_PAYMENT_MODES = ['paid_in_salon', 'pending', 'pay_link'] as const
+export type ManualPaymentMode = (typeof MANUAL_PAYMENT_MODES)[number]
+
+export const BOOKING_MIN_LEAD_MIN_DEFAULT = 120
 
 export const ADMIN_ROLES = ['ADMIN', 'MANAGER', 'STAFF'] as const
 export type AdminRole = (typeof ADMIN_ROLES)[number]
@@ -111,6 +126,9 @@ export function isStatusTransitionAllowed(
   }
   if (toStatus === 'CANCELLED_BY_STAFF') {
     return fromStatus === 'ASSIGNED'
+  }
+  if (toStatus === 'CANCELLED') {
+    return fromStatus === 'UNASSIGNED' || fromStatus === 'ASSIGNED'
   }
   return false
 }

@@ -42,7 +42,7 @@ const resolvedPadding = computed(() => {
 <template>
   <component
     :is="as"
-    class="rounded-[2px] transition-all duration-200"
+    class="rounded-[2px] transition duration-200"
     :class="[
       variantClasses[props.variant],
       resolvedPadding,

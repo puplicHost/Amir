@@ -25,8 +25,8 @@ const badgeConfig = computed(() => {
   }
   if (['processing', 'new', 'in review', 'in_review', 'reviewed', 'contacted', 'جديد', 'تمت المراجعة'].includes(s)) {
     return {
-      classes: 'bg-blue-50 text-[#2B71AE] border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50',
-      dot: 'bg-[#2B71AE] dark:bg-blue-400',
+      classes: 'bg-neutral-50 text-primary border-neutral-200 dark:bg-neutral-950/40 dark:text-neutral-300 dark:border-neutral-800/50',
+      dot: 'bg-primary dark:bg-neutral-400',
     }
   }
   if (['shipped'].includes(s)) {
@@ -43,13 +43,13 @@ const badgeConfig = computed(() => {
   }
   if (['super', 'superadmin'].includes(s)) {
     return {
-      classes: 'bg-[#F5CC07]/20 text-slate-900 border-[#F5CC07]/40 dark:bg-[#F5CC07]/20 dark:text-[#F5CC07] dark:border-[#F5CC07]/30',
-      dot: 'bg-[#F5CC07]',
+      classes: 'bg-primary/20 text-neutral-900 border-primary/40 dark:bg-primary/20 dark:text-primary dark:border-primary/30',
+      dot: 'bg-primary',
     }
   }
   return {
-    classes: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-    dot: 'bg-slate-400 dark:bg-slate-500',
+    classes: 'bg-neutral-100 text-neutral-700 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700',
+    dot: 'bg-neutral-400 dark:bg-neutral-500',
   }
 })
 </script>

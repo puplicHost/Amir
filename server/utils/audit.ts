@@ -1,7 +1,15 @@
 import type { SessionUser } from './auth'
 
-export type AuditEntityType = 'product' | 'category' | 'service' | 'booking' | 'hero-slide'
-export type AuditAction = 'created' | 'updated' | 'deleted' | 'media'
+export type AuditEntityType =
+  | 'product'
+  | 'category'
+  | 'service'
+  | 'booking'
+  | 'hero-slide'
+  | 'staff'
+  | 'expense'
+  | 'expense-category'
+export type AuditAction = 'created' | 'updated' | 'deleted' | 'media' | 'exported'
 
 interface AuditEntry {
   entityType: AuditEntityType

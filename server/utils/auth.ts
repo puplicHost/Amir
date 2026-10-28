@@ -29,14 +29,18 @@ function sessionConfig(event: H3Event) {
   if (!password || password.length < 32) {
     throw createError({ statusCode: 500, statusMessage: 'Session misconfigured' })
   }
-  const isHttps = isHttpsRequest(event)
+  const config2 = config.public as Record<string, string> | undefined
+  const siteUrl = String(config2?.siteUrl || process.env.NUXT_PUBLIC_SITE_URL || '')
+  // Force Secure whenever the canonical site is HTTPS, even if a reverse proxy
+  // fails to forward `x-forwarded-proto`. Only skip Secure for plain-HTTP dev.
+  const secure = isHttpsRequest(event) || siteUrl.startsWith('https://')
   return {
     name: 'amir_admin_session',
     password,
     maxAge: 60 * 60 * 24 * 7, // 7 days (sets iron-seal TTL and cookie expires)
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' && isHttps,
+      secure,
       sameSite: 'lax' as const,
       maxAge: 60 * 60 * 24 * 7, // 7 days (sets cookie Max-Age)
       path: '/',

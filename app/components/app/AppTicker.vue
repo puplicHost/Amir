@@ -83,7 +83,7 @@ watch(text, () => nextTick(() => calcRepeatCount()))
     </div>
     <button
       type="button"
-      class="flex shrink-0 items-center px-2.5 text-white/60 hover:text-white transition-colors"
+      class="flex h-11 w-11 shrink-0 items-center justify-center text-white/60 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       :aria-label="t('common.close')"
       @click="dismissed = true"
     >
@@ -105,6 +105,13 @@ watch(text, () => nextTick(() => calcRepeatCount()))
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+[dir="rtl"] .ticker-track {
+  animation-name: ticker-scroll-rtl;
+}
+@keyframes ticker-scroll-rtl {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }

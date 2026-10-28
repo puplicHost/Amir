@@ -18,7 +18,7 @@ const localePath = useLocalePath()
       <div v-if="backTo" class="mb-2">
         <NuxtLink
           :to="localePath(backTo)"
-          class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-[#2B71AE] dark:text-slate-400 dark:hover:text-[#F5CC07]"
+          class="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-primary dark:text-neutral-400 dark:hover:text-primary"
         >
           <ArrowRight v-if="locale === 'ar'" class="h-3.5 w-3.5" aria-hidden="true" />
           <ArrowLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
@@ -26,12 +26,12 @@ const localePath = useLocalePath()
         </NuxtLink>
       </div>
       <div class="flex items-center gap-3">
-        <h1 class="font-heading text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <h1 class="font-heading text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
           {{ title }}
         </h1>
         <slot name="badge" />
       </div>
-      <p v-if="description" class="text-sm text-slate-500 dark:text-slate-400">
+      <p v-if="description" class="text-sm text-neutral-500 dark:text-neutral-400">
         {{ description }}
       </p>
     </div>

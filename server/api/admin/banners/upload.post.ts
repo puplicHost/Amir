@@ -1,7 +1,6 @@
 import { defineEventHandler, readMultipartFormData, createError } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
-import { storeFile } from '../../../utils/storage'
+import { saveBrandImage } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'banners.manage')
@@ -9,8 +8,9 @@ export default defineEventHandler(async (event) => {
   if (!formData || !formData.length) throw createError({ statusCode: 400, message: 'No file provided' })
 
   const file = formData[0]
-  if (!file.filename || !file.data) throw createError({ statusCode: 400, message: 'Invalid file' })
+  if (!file?.filename || !file.data) throw createError({ statusCode: 400, message: 'Invalid file' })
 
-  const { relativePath } = await storeFile(file.data, 'banners', `banner-${Date.now()}-${file.filename}`)
+  // Content-validated + re-encoded to WebP (banners/ is a public scope).
+  const relativePath = await saveBrandImage('banners', 'banner', file.data, 2000)
   return { success: true, path: relativePath }
 })

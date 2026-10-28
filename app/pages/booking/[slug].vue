@@ -38,7 +38,7 @@ useHead(() => ({
 
 const todayStr = new Date().toISOString().slice(0, 10)
 const date = ref(todayStr)
-const form = reactive({ name: '', phone: '', email: '', note: '' })
+const form = reactive({ name: '', phone: '', email: '', note: '', whatsappReminder: false })
 const formError = ref('')
 const slots = ref<{ startsAt: string, available: boolean }[]>([])
 const slotsPending = ref(false)
@@ -49,18 +49,51 @@ const createdToken = ref('')
 const depositCents = ref(0)
 const gateways = ref({ stripe: false, paypal: false })
 const currency = ref('EUR')
+// UX-04: stable per-attempt key so a double-submit cannot create two bookings.
+const idempotencyKey = ref('')
+
+interface StaffOption { id: string, displayName: string, imagePath: string | null, sortOrder: number }
+const staffOptions = ref<StaffOption[]>([])
+const selectedStaff = ref('any')
 
 const servicePrice = computed(() => centsToEur(Number(service.value?.priceAbCents || 0)))
 
+const { data: contact } = await useAsyncData(`booking-contact-${slug}`, () =>
+  $fetch<any>('/api/settings/contact').catch(() => null),
+)
+const waBookUrl = computed(() => {
+  const raw = String(contact.value?.contactWhatsapp || '').replace(/\D/g, '')
+  if (!raw) return ''
+  const name = serviceDisplayName.value || service.value?.name || ''
+  const msg = locale.value === 'de'
+    ? `Hallo! Ich möchte gerne "${name}" buchen.`
+    : `Hello! I'd like to book "${name}".`
+  return `https://wa.me/${raw}?text=${encodeURIComponent(msg)}`
+})
+
+async function loadStaff() {
+  try {
+    const res = await $fetch<{ staff: StaffOption[] }>(`/api/staff?${new URLSearchParams({ service: slug })}`)
+    staffOptions.value = res.staff || []
+  }
+  catch {
+    staffOptions.value = []
+  }
+}
+
+const cancelWindowHours = ref(24)
 async function loadSlots() {
   slotsPending.value = true
   formError.value = ''
   selectedStart.value = ''
+  idempotencyKey.value = ''
   try {
     const res = await $fetch<{
       slots: { startsAt: string, available: boolean }[]
-    }>(`/api/availability?${new URLSearchParams({ service: slug, date: date.value })}`)
+      cancelWindowHours?: number
+    }>(`/api/availability?${new URLSearchParams({ service: slug, date: date.value, staff: selectedStaff.value })}`)
     slots.value = res.slots || []
+    if (typeof res.cancelWindowHours === 'number') cancelWindowHours.value = res.cancelWindowHours
   }
   catch (e: any) {
     slots.value = []
@@ -71,8 +104,12 @@ async function loadSlots() {
   }
 }
 
+await loadStaff()
 await loadSlots()
 watch(date, loadSlots)
+watch(selectedStaff, loadSlots)
+// A different slot is a different booking attempt → fresh idempotency key.
+watch(selectedStart, () => { idempotencyKey.value = '' })
 
 onMounted(() => {
   if (service.value) {
@@ -117,10 +154,35 @@ async function payFor(token: string, provider: 'stripe' | 'paypal') {
   }
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+// RFC4122 v4 UUID (server validates uuid()).
+function makeIdempotencyKey(): string {
+  const c = globalThis.crypto
+  if (c?.randomUUID) return c.randomUUID()
+  const bytes = new Uint8Array(16)
+  if (c?.getRandomValues) {
+    c.getRandomValues(bytes)
+  }
+  else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256)
+  }
+  const b6 = bytes[6] ?? 0
+  const b8 = bytes[8] ?? 0
+  bytes[6] = (b6 & 0x0f) | 0x40
+  bytes[8] = (b8 & 0x3f) | 0x80
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 async function createBooking() {
   formError.value = ''
   if (!form.name.trim() || !form.phone.trim()) {
     formError.value = locale.value === 'de' ? 'Name und Telefonnummer sind erforderlich.' : 'Name and phone are required.'
+    return
+  }
+  if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) {
+    formError.value = locale.value === 'de' ? 'Bitte geben Sie eine gültige E-Mail-Adresse ein.' : 'Please enter a valid email address.'
     return
   }
   if (!selectedStart.value) {
@@ -128,6 +190,11 @@ async function createBooking() {
     return
   }
   creating.value = true
+  // UX-04: reuse the same key across retries of this attempt; a new slot
+  // selection clears it (see watch below) so a fresh booking can be made.
+  if (!idempotencyKey.value) {
+    idempotencyKey.value = makeIdempotencyKey()
+  }
   try {
     const res = await $fetch<{
       token: string
@@ -142,29 +209,31 @@ async function createBooking() {
         customerPhone: form.phone.trim(),
         customerEmail: form.email.trim() || undefined,
         startsAt: selectedStart.value,
+        locale: locale.value === 'en' ? 'en' : 'de',
+        whatsappReminder: form.whatsappReminder,
+        staffId: selectedStaff.value === 'any' ? undefined : selectedStaff.value,
         note: form.note.trim() || undefined,
         marketingConsent: hasMarketingConsent.value,
         fbp: hasMarketingConsent.value ? (getMetaCookie('_fbp') || undefined) : undefined,
         fbc: hasMarketingConsent.value ? (getMetaCookie('_fbc') || undefined) : undefined,
+        idempotencyKey: idempotencyKey.value,
       },
     })
     createdToken.value = res.token
     depositCents.value = res.depositCents
     currency.value = res.currency
     gateways.value = res.gateways
-    if (!res.gateways.stripe && !res.gateways.paypal) return
-    if (res.gateways.stripe && !res.gateways.paypal) {
-      await payFor(res.token, 'stripe')
-    }
-    else if (res.gateways.paypal && !res.gateways.stripe) {
-      await payFor(res.token, 'paypal')
-    }
+    // UX-01: never auto-redirect. The deposit is disclosed and the customer
+    // explicitly chooses how to pay (even when a single gateway is enabled).
   }
   catch (e: any) {
     const msg = e?.data?.message || e?.data?.statusMessage || ''
-    formError.value = e?.statusCode === 409 || e?.data?.statusCode === 409
+    const status = e?.statusCode ?? e?.data?.statusCode
+    formError.value = status === 409
       ? t('booking.slotTaken')
-      : (msg || t('booking.createFailed'))
+      : status === 503
+        ? t('booking.blocked')
+        : (msg || t('booking.createFailed'))
   }
   finally {
     creating.value = false
@@ -176,9 +245,9 @@ async function createBooking() {
   <div class="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
     <nav class="mb-6 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted" aria-label="Breadcrumb">
       <NuxtLink :to="localePath('/')" class="hover:text-primary transition-colors">{{ t('nav.home') }}</NuxtLink>
-      <span class="text-slate-400">/</span>
+      <span class="text-slate-400" aria-hidden="true">/</span>
       <NuxtLink :to="localePath('/services')" class="hover:text-primary transition-colors">{{ t('nav.services') }}</NuxtLink>
-      <span class="text-slate-400">/</span>
+      <span class="text-slate-400" aria-hidden="true">/</span>
       <span class="text-text font-semibold">{{ serviceDisplayName }}</span>
     </nav>
 
@@ -197,6 +266,16 @@ async function createBooking() {
         <p class="text-sm text-muted">
           {{ t('services.priceAb') }} {{ servicePrice }} · {{ service.durationMin }} {{ t('services.minutes') }}
         </p>
+        <a
+          v-if="waBookUrl"
+          :href="waBookUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-2 inline-flex h-11 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+        >
+          <IconWhatsApp class="h-4 w-4" />
+          <span>{{ t('booking.bookViaWhatsapp') }}</span>
+        </a>
       </div>
     </div>
 
@@ -208,16 +287,67 @@ async function createBooking() {
       {{ formError }}
     </div>
 
+    <!-- Staff -->
+    <section class="mb-8 rounded-xl border border-border bg-surface p-4 sm:p-6">
+      <h2 class="font-heading text-base font-bold text-text mb-4">{{ t('booking.pickStaff') }}</h2>
+      <p v-if="!staffOptions.length" class="text-xs text-muted">{{ t('booking.noStaff') }}</p>
+      <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2" role="radiogroup" :aria-label="t('booking.pickStaff')">
+        <button
+          type="button"
+          role="radio"
+          :aria-checked="selectedStaff === 'any'"
+          class="flex items-center gap-3 rounded-xl border p-3 text-start transition active:scale-95"
+          :class="selectedStaff === 'any'
+            ? 'border-accent bg-accent/10'
+            : 'border-border bg-white hover:border-primary dark:bg-[#0B1520]'"
+          @click="selectedStaff = 'any'"
+        >
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary" aria-hidden="true">✦</span>
+          <span class="min-w-0">
+            <span class="block truncate text-xs font-bold text-text">{{ t('booking.anyStaff') }}</span>
+          </span>
+        </button>
+        <button
+          v-for="st in staffOptions"
+          :key="st.id"
+          type="button"
+          role="radio"
+          :aria-checked="selectedStaff === st.id"
+          class="flex items-center gap-3 rounded-xl border p-3 text-start transition active:scale-95"
+          :class="selectedStaff === st.id
+            ? 'border-accent bg-accent/10'
+            : 'border-border bg-white hover:border-primary dark:bg-[#0B1520]'"
+          @click="selectedStaff = st.id"
+        >
+          <img
+            v-if="st.imagePath"
+            :src="st.imagePath"
+            width="88" height="88"
+            :alt="st.displayName"
+            class="h-11 w-11 shrink-0 rounded-full border object-cover"
+            :style="{ borderColor: 'var(--color-border)' }"
+          />
+          <span v-else class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300" aria-hidden="true">
+            {{ st.displayName.slice(0, 1).toUpperCase() }}
+          </span>
+          <span class="min-w-0">
+            <span class="block truncate text-xs font-bold text-text">{{ st.displayName }}</span>
+          </span>
+        </button>
+      </div>
+    </section>
+
     <!-- Date + slots -->
     <section class="mb-8 rounded-xl border border-border bg-surface p-4 sm:p-6">
       <h2 class="font-heading text-base font-bold text-text mb-4">{{ t('booking.pickSlot') }}</h2>
       <input
         v-model="date"
         type="date"
-        class="mb-4 h-10 rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]"
+        :aria-label="t('booking.pickSlot')"
+        class="mb-4 h-11 rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]"
         :style="{ borderColor: 'var(--color-border)' }"
       />
-      <div v-if="slotsPending" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+      <div v-if="slotsPending" role="status" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
         <div v-for="i in 8" :key="i" class="h-10 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
       </div>
       <p v-else-if="!slots.length" class="text-xs text-muted">{{ t('booking.noSlots') }}</p>
@@ -227,14 +357,16 @@ async function createBooking() {
           :key="s.startsAt"
           type="button"
           :disabled="!s.available"
-          class="h-10 rounded-lg border text-xs font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          class="h-11 rounded-lg border text-xs font-bold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           :class="selectedStart === s.startsAt
             ? 'border-accent bg-accent text-on-accent'
             : 'border-border bg-white text-text hover:border-primary dark:bg-[#0B1520]'"
           :title="slotDay(s.startsAt)"
+          :aria-label="s.available ? slotLabel(s.startsAt) : `${slotLabel(s.startsAt)} — ${t('booking.booked')}`"
           @click="selectedStart = s.startsAt"
         >
           {{ slotLabel(s.startsAt) }}
+          <span v-if="!s.available" class="block text-[10px] font-semibold opacity-70">{{ t('booking.booked') }}</span>
         </button>
       </div>
     </section>
@@ -245,49 +377,59 @@ async function createBooking() {
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="block">
           <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ t('booking.name') }} *</span>
-          <input v-model="form.name" type="text" autocomplete="name" class="h-10 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.name" type="text" name="customerName" autocomplete="name" spellcheck="false" class="h-11 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
         <label class="block">
           <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ t('booking.phone') }} *</span>
-          <input v-model="form.phone" type="tel" autocomplete="tel" placeholder="+49..." dir="ltr" class="h-10 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.phone" type="tel" name="customerPhone" autocomplete="tel" placeholder="+49..." dir="ltr" class="h-11 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
         <label class="block">
           <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ t('booking.email') }}</span>
-          <input v-model="form.email" type="email" autocomplete="email" dir="ltr" class="h-10 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.email" type="email" name="customerEmail" autocomplete="email" spellcheck="false" dir="ltr" class="h-11 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
         <label class="block">
           <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">{{ t('booking.note') }}</span>
-          <input v-model="form.note" type="text" class="h-10 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
+          <input v-model="form.note" type="text" name="customerNote" class="h-11 w-full rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
       </div>
+
+      <label class="mt-4 flex cursor-pointer items-start gap-2">
+        <input v-model="form.whatsappReminder" type="checkbox" class="mt-0.5 h-4 w-4 rounded accent-emerald-600" />
+        <span class="text-[11px] text-muted">{{ t('booking.waReminderOptIn') }}</span>
+      </label>
+
+      <p class="mt-4 text-[11px] text-muted">{{ t('manage.policyShort', { hours: cancelWindowHours }) }}</p>
 
       <button
         type="button"
         :disabled="creating || !selectedStart"
-        class="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-7 text-sm font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50"
+        class="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-7 text-sm font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition disabled:opacity-50"
         @click="createBooking"
       >
         <span>{{ creating ? '…' : t('booking.continueToPay') }}</span>
       </button>
     </section>
 
-    <!-- Gateway choice (both on) -->
-    <section v-if="createdToken && gateways.stripe && gateways.paypal" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
+    <!-- Deposit disclosure + gateway choice (UX-01: always shown before redirect) -->
+    <section v-if="createdToken && (gateways.stripe || gateways.paypal)" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
       <h2 class="font-heading text-base font-bold text-text mb-2">{{ t('booking.payWith') }}</h2>
-      <p class="text-xs text-muted mb-4">{{ t('booking.depositDue') }}: {{ centsToEur(depositCents) }} {{ currency }}</p>
+      <p class="mb-1 text-sm font-bold text-text">{{ t('booking.depositDue') }}: {{ centsToEur(depositCents) }} {{ currency }}</p>
+      <p class="mb-4 text-xs text-muted">{{ t('booking.depositNote', { amount: centsToEur(depositCents), currency }) }}</p>
       <div class="flex flex-wrap gap-3">
         <button
+          v-if="gateways.stripe"
           type="button"
           :disabled="paying"
-          class="inline-flex h-11 items-center rounded-xl bg-accent px-6 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50"
+          class="inline-flex h-11 items-center rounded-xl bg-accent px-6 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition disabled:opacity-50"
           @click="payFor(createdToken, 'stripe')"
         >
           {{ t('booking.stripe') }}
         </button>
         <button
+          v-if="gateways.paypal"
           type="button"
           :disabled="paying"
-          class="inline-flex h-11 items-center rounded-xl border border-border bg-white px-6 text-sm font-bold text-text hover:bg-border/40 active:scale-95 transition-all disabled:opacity-50 dark:bg-[#0B1520]"
+          class="inline-flex h-11 items-center rounded-xl border border-border bg-white px-6 text-sm font-bold text-text hover:bg-border/40 active:scale-95 transition disabled:opacity-50 dark:bg-[#0B1520]"
           @click="payFor(createdToken, 'paypal')"
         >
           {{ t('booking.paypal') }}

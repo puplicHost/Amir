@@ -26,12 +26,12 @@ const { locale } = useI18n()
 </script>
 
 <template>
-  <div class="sticky bottom-0 -mx-1 border-t bg-white/95 px-1 py-3 backdrop-blur transition-colors dark:bg-[#0B1520]/95" :style="{ borderColor: 'var(--color-border)' }">
+  <div class="sticky bottom-0 -mx-1 border-t bg-white/95 px-1 py-3 backdrop-blur transition-colors dark:bg-bg/95" :style="{ borderColor: 'var(--color-border)' }">
     <div class="flex flex-wrap items-center gap-3">
       <!-- Dirty / pristine indicator -->
       <span
         class="inline-flex items-center gap-1.5 text-[11px] font-medium"
-        :class="dirty ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'"
+        :class="dirty ? 'text-amber-600 dark:text-amber-400' : 'text-neutral-400 dark:text-neutral-500'"
         role="status"
       >
         <span
@@ -53,7 +53,7 @@ const { locale } = useI18n()
       <button
         v-if="dirty"
         type="button"
-        class="inline-flex h-10 items-center gap-1.5 rounded-md border px-4 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        class="inline-flex h-11 items-center gap-1.5 rounded-md border px-4 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
         @click="$emit('reset')"
       >
         <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
@@ -63,7 +63,7 @@ const { locale } = useI18n()
       <button
         type="submit"
         :disabled="loading || !dirty || disabled"
-        class="inline-flex h-10 items-center gap-1.5 rounded-md bg-[#F5CC07] px-6 text-xs font-semibold text-slate-950 shadow-xs transition-colors hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
+        class="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-6 text-xs font-semibold text-on-primary shadow-xs transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Save class="h-3.5 w-3.5" aria-hidden="true" />
         <span>{{ loading ? savingLabel : saveLabel }}</span>

@@ -212,8 +212,10 @@ watch(() => route.query, (newQ) => {
           <input
             v-model="search"
             type="search"
+            name="search"
+            :aria-label="t('products.search')"
             :placeholder="t('products.search')"
-            class="h-9 w-full rounded-lg border-border bg-surface ps-8 pe-3 text-xs text-text placeholder:text-slate-400 focus:border-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            class="h-11 w-full rounded-lg border-border bg-surface ps-8 pe-3 text-xs text-text placeholder:text-slate-400 focus:border-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             :style="{ borderColor: 'var(--color-border)' }"
             @keyup.enter="apply"
           />
@@ -221,8 +223,9 @@ watch(() => route.query, (newQ) => {
 
         <!-- Sort Select -->
         <select 
-          v-model="sort" 
-          class="h-9 rounded-lg border-border bg-surface px-2.5 text-xs font-semibold text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" 
+          v-model="sort"
+          :aria-label="t('products.sortBy')" 
+          class="h-11 rounded-lg border-border bg-surface px-2.5 text-xs font-semibold text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" 
           :style="{ borderColor: 'var(--color-border)' }" 
           @change="apply"
         >
@@ -235,7 +238,7 @@ watch(() => route.query, (newQ) => {
         <!-- Cohesive Apply Button -->
         <button 
           type="button" 
-          class="inline-flex h-9 items-center justify-center rounded-lg bg-accent px-3.5 text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all" 
+          class="inline-flex h-11 items-center justify-center rounded-lg bg-accent px-3.5 text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition" 
           @click="apply"
         >
           <span>{{ t('common.apply') }}</span>
@@ -244,11 +247,11 @@ watch(() => route.query, (newQ) => {
         <!-- Mobile Filter Drawer Trigger (only visible on mobile/tablet < md) -->
         <button 
           type="button" 
-          class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-bold text-muted hover:bg-border/40 md:hidden" 
+          class="inline-flex h-11 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-bold text-muted hover:bg-border/40 md:hidden" 
           :style="{ borderColor: 'var(--color-border)' }" 
           @click="mobileFilters = true"
         >
-          <SlidersHorizontal class="h-3.5 w-3.5 text-muted" />
+          <SlidersHorizontal class="h-3.5 w-3.5 text-muted" aria-hidden="true" />
           <span>{{ t('products.filters') }}</span>
         </button>
 
@@ -256,11 +259,10 @@ watch(() => route.query, (newQ) => {
         <button
           v-if="hasActiveFilters"
           type="button"
-          class="inline-flex h-9 items-center gap-1 rounded-lg border border-border px-2.5 text-xs font-medium text-muted hover:text-text transition-colors"
+          class="inline-flex h-11 items-center gap-1 rounded-lg border border-border px-2.5 text-xs font-medium text-muted hover:text-text transition-colors"
           :title="locale === 'ar' ? 'إعادة ضبط الفلاتر' : 'Reset filters'"
-          @click="resetFilters"
-        >
-          <RotateCcw class="h-3.5 w-3.5" />
+          @click="resetFilters" :aria-label="locale === 'ar' ? 'إعادة ضبط الفلاتر' : 'Reset filters'">
+          <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
           <span class="hidden sm:inline">{{ locale === 'ar' ? 'إلغاء' : 'Reset' }}</span>
         </button>
       </div>
@@ -320,21 +322,25 @@ watch(() => route.query, (newQ) => {
             </h3>
             <div class="flex items-center gap-1.5 pt-1">
               <input 
-                v-model="minPrice" 
+                v-model="minPrice"
+                name="minPrice"
                 type="number" 
-                min="0" 
+                min="0"
+                :aria-label="t('products.min')" 
                 :placeholder="facetsData?.minPrice !== undefined ? String(facetsData.minPrice) : t('products.min')" 
-                class="h-8.5 w-full rounded-lg border-border bg-surface px-2 text-xs text-text focus:border-primary focus:outline-none" 
+                class="h-11 w-full rounded-lg border-border bg-surface px-2 text-xs text-text focus:border-primary focus:outline-none" 
                 :style="{ borderColor: 'var(--color-border)' }" 
                 @keyup.enter="apply"
               />
               <span class="text-xs text-slate-400 font-bold">-</span>
               <input 
-                v-model="maxPrice" 
+                v-model="maxPrice"
+                name="maxPrice"
                 type="number" 
-                min="0" 
+                min="0"
+                :aria-label="t('products.max')" 
                 :placeholder="facetsData?.maxPrice !== undefined ? String(facetsData.maxPrice) : t('products.max')" 
-                class="h-8.5 w-full rounded-lg border-border bg-surface px-2 text-xs text-text focus:border-primary focus:outline-none" 
+                class="h-11 w-full rounded-lg border-border bg-surface px-2 text-xs text-text focus:border-primary focus:outline-none" 
                 :style="{ borderColor: 'var(--color-border)' }" 
                 @keyup.enter="apply"
               />
@@ -358,8 +364,8 @@ watch(() => route.query, (newQ) => {
                 @click="toggleGroup(attr.keyEn)"
               >
                 <span>{{ locale === 'ar' ? attr.keyAr : attr.keyEn }}</span>
-                <ChevronUp v-if="isGroupOpen(attr.keyEn)" class="h-3.5 w-3.5 text-slate-400" />
-                <ChevronDown v-else class="h-3.5 w-3.5 text-slate-400" />
+                <ChevronUp v-if="isGroupOpen(attr.keyEn)" class="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                <ChevronDown v-else class="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
               </button>
 
               <div v-if="isGroupOpen(attr.keyEn)" class="space-y-1.5 max-h-44 overflow-y-auto pr-1">
@@ -390,7 +396,7 @@ watch(() => route.query, (newQ) => {
           <div class="pt-2 border-t border-border">
             <button 
               type="button" 
-              class="h-9 w-full rounded-lg bg-accent text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all" 
+              class="h-11 w-full rounded-lg bg-accent text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition" 
               @click="apply"
             >
               {{ t('products.applyFilters') }}
@@ -431,7 +437,7 @@ watch(() => route.query, (newQ) => {
             :style="{ borderColor: 'var(--color-border)' }"
           >
             <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Search class="h-6 w-6" />
+              <Search class="h-6 w-6" aria-hidden="true" />
             </div>
             <h3 class="font-heading text-xl font-bold text-text mb-1.5">
               {{ t('products.noResults') }}
@@ -441,7 +447,7 @@ watch(() => route.query, (newQ) => {
             </p>
             <button 
               type="button"
-              class="inline-flex h-10 items-center justify-center rounded-xl bg-accent px-6 text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all"
+              class="inline-flex h-11 items-center justify-center rounded-xl bg-accent px-6 text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition"
               @click="resetFilters"
             >
               {{ locale === 'ar' ? 'إلغاء جميع الفلاتر وعرض المنتجات' : 'Clear Filters & Browse All' }}
@@ -485,18 +491,18 @@ watch(() => route.query, (newQ) => {
           <!-- Drawer Header -->
           <div class="flex h-14 items-center justify-between border-b px-4" :style="{ borderColor: 'var(--color-border)' }">
             <div class="flex items-center gap-2">
-              <SlidersHorizontal class="h-4 w-4 text-primary" />
+              <SlidersHorizontal class="h-4 w-4 text-primary" aria-hidden="true" />
               <h2 class="font-heading text-sm font-bold text-text">
                 {{ t('products.filters') }}
               </h2>
             </div>
             <button
               type="button"
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-border/40 hover:text-text"
+              class="flex h-11 w-8 items-center justify-center rounded-lg text-muted hover:bg-border/40 hover:text-text"
               :aria-label="locale === 'ar' ? 'إغلاق' : 'Close'"
               @click="mobileFilters = false"
             >
-              <X class="h-5 w-5" />
+              <X class="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
 
@@ -549,7 +555,7 @@ watch(() => route.query, (newQ) => {
                     type="number" 
                     min="0" 
                     :placeholder="facetsData?.minPrice !== undefined ? String(facetsData.minPrice) : t('products.min')" 
-                    class="h-8.5 w-full rounded-lg border-border bg-surface px-2 text-xs text-text" 
+                    class="h-11 w-full rounded-lg border-border bg-surface px-2 text-xs text-text" 
                     :style="{ borderColor: 'var(--color-border)' }" 
                   />
                   <span class="text-xs text-slate-400 font-bold">-</span>
@@ -558,7 +564,7 @@ watch(() => route.query, (newQ) => {
                     type="number" 
                     min="0" 
                     :placeholder="facetsData?.maxPrice !== undefined ? String(facetsData.maxPrice) : t('products.max')" 
-                    class="h-8.5 w-full rounded-lg border-border bg-surface px-2 text-xs text-text" 
+                    class="h-11 w-full rounded-lg border-border bg-surface px-2 text-xs text-text" 
                     :style="{ borderColor: 'var(--color-border)' }" 
                   />
                 </div>
@@ -602,7 +608,7 @@ watch(() => route.query, (newQ) => {
           <div class="p-4 border-t border-border bg-surface">
             <button 
               type="button" 
-              class="h-10 w-full rounded-xl bg-accent text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all" 
+              class="h-11 w-full rounded-xl bg-accent text-xs font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition" 
               @click="apply"
             >
               {{ t('products.applyFilters') }}

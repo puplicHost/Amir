@@ -67,7 +67,7 @@ const links = computed<SocialLink[]>(() => {
       rel="noopener noreferrer"
       :aria-label="l.label"
       :title="l.label"
-      class="flex items-center justify-center transition-all active:scale-95"
+      class="flex items-center justify-center transition active:scale-95"
       :class="[
         variant === 'footer'
           ? 'h-9 w-9 rounded-xl border border-slate-700/60 bg-white/5 text-slate-300 hover:-translate-y-0.5 hover:shadow-md'

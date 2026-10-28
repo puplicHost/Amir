@@ -192,21 +192,21 @@ async function moveOrder(index: number, direction: 'up' | 'down') {
   await refresh()
 }
 
-const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:border-slate-700 dark:text-white'
+const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg dark:border-neutral-700 dark:text-white'
 </script>
 
 <template>
   <div class="space-y-6" :dir="locale === 'ar' ? 'rtl' : 'ltr'">
     
     <!-- Top Configuration Card (Toggle + Background Color Picker) -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032] dark:border-slate-800">
-      <div class="flex items-center justify-between border-b pb-3.5 mb-4 dark:border-slate-800">
+    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-neutral-900 dark:border-neutral-800">
+      <div class="flex items-center justify-between border-b pb-3.5 mb-4 dark:border-neutral-800">
         <div>
-          <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Megaphone class="h-4 w-4 text-[#2B71AE] dark:text-[#F5CC07]" />
+          <h2 class="font-heading text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+            <Megaphone class="h-4 w-4 text-primary dark:text-primary" aria-hidden="true" />
             <span>{{ locale === 'ar' ? 'شريط الإشعارات العلوي (Announcement Bar)' : 'Top Announcement Bar' }}</span>
           </h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             {{ locale === 'ar' ? 'شريط ترويجي يظهر أعلى كل صفحات الموقع للتنويه عن العروض، الخدمات، أو التوصيل.' : 'Top-of-page promotional bar for deals, service notices, or shipping announcements.' }}
           </p>
         </div>
@@ -214,7 +214,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <button
           type="button"
           :disabled="savingSettings"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-semibold text-slate-950 shadow-xs hover:bg-yellow-400 disabled:opacity-50 transition-all"
+          class="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-on-primary shadow-xs hover:bg-primary/90 disabled:opacity-50 transition"
           @click="saveBarSettings"
         >
           <span>{{ savingSettings ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ إعدادات الشريط' : 'Save Bar Settings') }}</span>
@@ -223,29 +223,29 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
       <div class="grid gap-4 sm:grid-cols-2 items-center">
         <!-- Toggle Switch -->
-        <label class="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-700 dark:bg-[#0B1520]">
+        <label class="flex cursor-pointer items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 p-3.5 dark:border-neutral-700 dark:bg-bg">
           <div>
-            <span class="block text-xs font-bold text-slate-900 dark:text-white">
+            <span class="block text-xs font-bold text-neutral-900 dark:text-white">
               {{ locale === 'ar' ? 'تفعيل شريط الإشعارات' : 'Enable Announcement Bar' }}
             </span>
-            <span class="text-[11px] text-slate-500 dark:text-slate-400">
+            <span class="text-[11px] text-neutral-500 dark:text-neutral-400">
               {{ isBarActive ? (locale === 'ar' ? 'الشريط ظاهر في الموقع' : 'Bar is currently visible') : (locale === 'ar' ? 'الشريط مخفي مؤقتاً' : 'Bar is hidden') }}
             </span>
           </div>
           <input
             v-model="isBarActive"
             type="checkbox"
-            class="h-5 w-5 rounded accent-[#2B71AE]"
+            class="h-5 w-5 rounded accent-primary"
           />
         </label>
 
         <!-- Background Color Picker -->
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-700 dark:bg-[#0B1520]">
-          <span class="mb-1.5 block text-xs font-bold text-slate-900 dark:text-white">
+        <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-3.5 dark:border-neutral-700 dark:bg-bg">
+          <span class="mb-1.5 block text-xs font-bold text-neutral-900 dark:text-white">
             {{ locale === 'ar' ? 'لون خلفية الشريط' : 'Bar Background Color' }}
           </span>
           <div class="flex items-center gap-2">
-            <label class="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-md border border-slate-300 shadow-xs" :style="{ backgroundColor: barBgColor }">
+            <label class="relative h-11 w-9 shrink-0 cursor-pointer overflow-hidden rounded-md border border-neutral-300 shadow-xs" :style="{ backgroundColor: barBgColor }">
               <input v-model="barBgColor" type="color" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
             </label>
             <input v-model="barBgColor" type="text" placeholder="#2B71AE" dir="ltr" :class="inputCls" />
@@ -255,16 +255,16 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
     </div>
 
     <!-- Announcement Items List Card (Change 12: Multi-Item Draggable List) -->
-    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-[#162032] dark:border-slate-800">
-      <div class="flex items-center justify-between border-b pb-3 mb-4 dark:border-slate-800">
+    <div class="rounded-md border bg-white p-5 shadow-xs dark:bg-neutral-900 dark:border-neutral-800">
+      <div class="flex items-center justify-between border-b pb-3 mb-4 dark:border-neutral-800">
         <div>
-          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <h3 class="font-heading text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <span>{{ locale === 'ar' ? 'قائمة الإشعارات المتتابعة' : 'Announcement Items Carousel' }}</span>
-            <span class="font-mono text-xs font-semibold text-slate-400">
+            <span class="font-mono text-xs font-semibold text-neutral-400">
               ({{ data?.items?.length || 0 }} / 10)
             </span>
           </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             {{ locale === 'ar' ? 'تتنقل الإشعارات تلقائياً كل 5 ثوانٍ مع أزرار التنقل والتحكم.' : 'Auto-scrolls every 5 seconds with slide animation.' }}
           </p>
         </div>
@@ -272,20 +272,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
         <button
           type="button"
           :disabled="(data?.items?.length || 0) >= 10"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#F5CC07] px-4 text-xs font-bold text-slate-950 shadow-xs hover:bg-yellow-400 disabled:opacity-50 transition-all"
+          class="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-bold text-on-primary shadow-xs hover:bg-primary/90 disabled:opacity-50 transition"
           @click="openCreateModal"
         >
-          <Plus class="h-4 w-4" />
+          <Plus class="h-4 w-4" aria-hidden="true" />
           <span>{{ locale === 'ar' ? 'إضافة إشعار جديد' : 'Add Item' }}</span>
         </button>
       </div>
 
       <!-- Items List Table -->
-      <div v-if="data?.items?.length" class="divide-y divide-slate-100 dark:divide-slate-800 border rounded-lg overflow-hidden dark:border-slate-700">
+      <div v-if="data?.items?.length" class="divide-y divide-neutral-100 dark:divide-neutral-800 border rounded-lg overflow-hidden dark:border-neutral-700">
         <div
           v-for="(item, idx) in data.items"
           :key="item.id"
-          class="flex items-center justify-between gap-3 p-3.5 bg-white hover:bg-slate-50/70 dark:bg-[#162032] dark:hover:bg-slate-800/40 transition-colors"
+          class="flex items-center justify-between gap-3 p-3.5 bg-white hover:bg-neutral-50/70 dark:bg-neutral-900 dark:hover:bg-neutral-800/40 transition-colors"
         >
           <!-- Left: Order Handles + Badge + Texts -->
           <div class="flex items-center gap-3 min-w-0">
@@ -294,18 +294,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               <button
                 type="button"
                 :disabled="idx === 0"
-                class="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-200 disabled:opacity-20 dark:hover:bg-slate-700"
+                :aria-label="locale === 'ar' ? 'تحريك لأعلى' : 'Move up'"
+                class="flex h-11 w-11 items-center justify-center rounded text-neutral-400 hover:bg-neutral-200 disabled:opacity-20 dark:hover:bg-neutral-700"
                 @click="moveOrder(idx, 'up')"
               >
-                <ArrowUp class="h-3 w-3" />
+                <ArrowUp class="h-3 w-3" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 :disabled="idx === data.items.length - 1"
-                class="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-200 disabled:opacity-20 dark:hover:bg-slate-700"
+                :aria-label="locale === 'ar' ? 'تحريك لأسفل' : 'Move down'"
+                class="flex h-11 w-11 items-center justify-center rounded text-neutral-400 hover:bg-neutral-200 disabled:opacity-20 dark:hover:bg-neutral-700"
                 @click="moveOrder(idx, 'down')"
               >
-                <ArrowDown class="h-3 w-3" />
+                <ArrowDown class="h-3 w-3" aria-hidden="true" />
               </button>
             </div>
 
@@ -314,20 +316,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
               class="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold"
               :class="[
                 item.type === 'product'
-                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                  ? 'bg-neutral-100 text-neutral-800 dark:bg-neutral-950/60 dark:text-neutral-300'
                   : item.type === 'service'
-                    ? 'bg-amber-100 text-amber-900 dark:bg-yellow-950/60 dark:text-yellow-300'
-                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                    ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300'
+                    : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
               ]"
             >
               {{ item.type === 'product' ? (locale === 'ar' ? 'منتج' : 'Product') : item.type === 'service' ? (locale === 'ar' ? 'خدمة' : 'Service') : (locale === 'ar' ? 'عام' : 'General') }}
             </span>
 
             <div class="min-w-0">
-              <p class="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+              <p class="font-semibold text-xs sm:text-sm text-neutral-900 dark:text-white truncate">
                 {{ item.textAr }}
               </p>
-              <p v-if="item.textEn" class="text-[11px] text-slate-400 truncate font-mono">
+              <p v-if="item.textEn" class="text-[11px] text-neutral-400 truncate font-mono">
                 {{ item.textEn }}
               </p>
             </div>
@@ -335,30 +337,32 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
           <!-- Right: Link indicator & Actions -->
           <div class="flex items-center gap-2 shrink-0">
-            <span v-if="item.linkType !== 'none' && item.linkValue" class="text-[11px] text-slate-400 font-mono hidden sm:inline truncate max-w-[140px]">
+            <span v-if="item.linkType !== 'none' && item.linkValue" class="text-[11px] text-neutral-400 font-mono hidden sm:inline truncate max-w-[140px]">
               🔗 {{ item.linkValue }}
             </span>
 
             <button
               type="button"
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              :aria-label="locale === 'ar' ? 'تعديل الإشعار' : 'Edit announcement'"
+              class="flex h-11 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
               @click="openEditModal(item)"
             >
-              <Pencil class="h-3.5 w-3.5" />
+              <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
 
             <button
               type="button"
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+              :aria-label="locale === 'ar' ? 'حذف الإشعار' : 'Delete announcement'"
+              class="flex h-11 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               @click="deleteItem(item)"
             >
-              <Trash2 class="h-3.5 w-3.5" />
+              <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>
       </div>
 
-      <div v-else class="rounded-lg border border-dashed p-8 text-center text-xs text-slate-400 dark:border-slate-700">
+      <div v-else class="rounded-lg border border-dashed p-8 text-center text-xs text-neutral-400 dark:border-neutral-700">
         {{ locale === 'ar' ? 'لا توجد إشعارات مسجلة. اضغط على "إضافة إشعار جديد" لإضافة إشعار للشريط العلوي.' : 'No announcements configured yet.' }}
       </div>
     </div>
@@ -371,26 +375,27 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
       aria-modal="true"
     >
       <div 
-        class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#162032]"
+        class="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900"
         :dir="locale === 'ar' ? 'rtl' : 'ltr'"
       >
-        <div class="mb-4 flex items-center justify-between border-b pb-3 dark:border-slate-800">
-          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-white">
+        <div class="mb-4 flex items-center justify-between border-b pb-3 dark:border-neutral-800">
+          <h3 class="font-heading text-base font-bold text-neutral-900 dark:text-white">
             {{ editingId ? (locale === 'ar' ? 'تعديل الإشعار' : 'Edit Announcement') : (locale === 'ar' ? 'إضافة إشعار جديد للشريط العلوي' : 'New Announcement Item') }}
           </h3>
           <button
             type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            :aria-label="t('common.close')"
+            class="flex h-11 w-7 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             @click="modalOpen = false"
           >
-            <X class="h-4 w-4" />
+            <X class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
         <form class="space-y-4" @submit.prevent="saveItem">
           <!-- Text AR -->
           <label class="block">
-            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'نص الإشعار (بالعربية) *' : 'Announcement Text (Arabic) *' }}
             </span>
             <input
@@ -405,7 +410,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
           <!-- Text EN -->
           <label class="block">
-            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'نص الإشعار (بالإنجليزية)' : 'Announcement Text (English)' }}
             </span>
             <input
@@ -420,7 +425,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           <div class="grid gap-4 sm:grid-cols-2">
             <!-- Type -->
             <label class="block">
-              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 {{ locale === 'ar' ? 'نوع الإشعار' : 'Announcement Type' }}
               </span>
               <select v-model="itemForm.type" :class="inputCls">
@@ -432,7 +437,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
 
             <!-- Link Type -->
             <label class="block">
-              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 {{ locale === 'ar' ? 'ربط بـ' : 'Link Target' }}
               </span>
               <select v-model="itemForm.linkType" :class="inputCls">
@@ -445,9 +450,9 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
           </div>
 
           <!-- Dynamic Link Target Picker -->
-          <div v-if="itemForm.linkType === 'product'" class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-[#0B1520]">
+          <div v-if="itemForm.linkType === 'product'" class="rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-bg">
             <label class="block">
-              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 {{ locale === 'ar' ? 'اختر المنتج المرتبط' : 'Select Product' }}
               </span>
               <select v-model="itemForm.linkValue" required :class="inputCls">
@@ -459,9 +464,9 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             </label>
           </div>
 
-          <div v-else-if="itemForm.linkType === 'service'" class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-[#0B1520]">
+          <div v-else-if="itemForm.linkType === 'service'" class="rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-bg">
             <label class="block">
-              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 {{ locale === 'ar' ? 'اختر الخدمة المرتبطة' : 'Select Service' }}
               </span>
               <select v-model="itemForm.linkValue" required :class="inputCls">
@@ -473,9 +478,9 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             </label>
           </div>
 
-          <div v-else-if="itemForm.linkType === 'url'" class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-[#0B1520]">
+          <div v-else-if="itemForm.linkType === 'url'" class="rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-bg">
             <label class="block">
-              <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 {{ locale === 'ar' ? 'الرابط المطلوب' : 'Target URL' }}
               </span>
               <input
@@ -493,10 +498,10 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             {{ itemError }}
           </p>
 
-          <div class="mt-6 flex items-center justify-end gap-2 border-t pt-4 dark:border-slate-800">
+          <div class="mt-6 flex items-center justify-end gap-2 border-t pt-4 dark:border-neutral-800">
             <button
               type="button"
-              class="h-9 rounded-lg border border-slate-200 px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              class="h-11 rounded-lg border border-neutral-200 px-4 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300"
               @click="modalOpen = false"
             >
               {{ locale === 'ar' ? 'إلغاء' : 'Cancel' }}
@@ -504,7 +509,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition
             <button
               type="submit"
               :disabled="savingItem"
-              class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#F5CC07] px-5 text-xs font-bold text-slate-950 hover:bg-yellow-400 disabled:opacity-50 transition-all"
+              class="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-xs font-bold text-on-primary hover:bg-primary/90 disabled:opacity-50 transition"
             >
               <span>{{ savingItem ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ الإشعار' : 'Save Item') }}</span>
             </button>

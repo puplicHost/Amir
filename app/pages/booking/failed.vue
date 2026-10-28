@@ -41,10 +41,10 @@ async function retry(provider: 'stripe' | 'paypal') {
 <template>
   <div class="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-16 text-center">
     <div class="rounded-xl border border-border bg-surface p-8">
-      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-2xl font-black dark:bg-rose-950/40">!</div>
+      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-2xl font-black dark:bg-rose-950/40" aria-hidden="true">!</div>
       <h1 class="font-heading text-2xl font-extrabold text-text mb-2">{{ t('booking.failedTitle') }}</h1>
       <p class="text-sm text-muted mb-2">{{ t('booking.failedText') }}</p>
-      <p v-if="data" class="font-mono text-xs text-muted mb-6">
+      <p v-if="data" class="font-mono text-xs text-muted mb-6 break-words">
         {{ t('booking.bookingNo') }} {{ data.bookingNumber }} · {{ centsToEur(Number(data.depositCents)) }} {{ data.currency }}
       </p>
       <p v-if="retryError" role="alert" class="mb-4 text-xs font-medium text-rose-600">{{ retryError }}</p>
@@ -52,21 +52,25 @@ async function retry(provider: 'stripe' | 'paypal') {
         <button
           type="button"
           :disabled="!!retrying"
-          class="inline-flex h-10 items-center rounded-xl bg-accent px-6 text-xs font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50"
+          :aria-busy="retrying === 'stripe'"
+          class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-6 text-xs font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition-colors disabled:opacity-50"
           @click="retry('stripe')"
         >
+          <span v-if="retrying === 'stripe'" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
           {{ t('booking.stripe') }}
         </button>
         <button
           type="button"
           :disabled="!!retrying"
-          class="inline-flex h-10 items-center rounded-xl border border-border bg-white px-6 text-xs font-bold text-text hover:bg-border/40 active:scale-95 transition-all disabled:opacity-50 dark:bg-[#0B1520]"
+          :aria-busy="retrying === 'paypal'"
+          class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-6 text-xs font-bold text-text hover:bg-border/40 active:scale-95 transition-colors disabled:opacity-50 dark:bg-[#0B1520]"
           @click="retry('paypal')"
         >
+          <span v-if="retrying === 'paypal'" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
           {{ t('booking.paypal') }}
         </button>
       </div>
-      <NuxtLink :to="localePath('/services')" class="inline-flex h-10 items-center rounded-xl border border-border px-6 text-xs font-bold text-text hover:bg-border/40 transition-all">
+      <NuxtLink :to="localePath('/services')" class="inline-flex h-11 items-center rounded-xl border border-border px-6 text-xs font-bold text-text hover:bg-border/40 transition">
         {{ t('booking.pickNewSlot') }}
       </NuxtLink>
     </div>

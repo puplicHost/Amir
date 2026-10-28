@@ -45,7 +45,7 @@ function formatAb(priceAbCents: number): string {
         draggable="false"
       />
       <div v-else class="absolute inset-0 flex items-center justify-center text-muted">
-        <ServiceSectionIcon :section="props.section" class="h-10 w-10" />
+        <ServiceSectionIcon :section="props.section" class="h-11 w-10" />
       </div>
       <span class="absolute end-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-bg/80 text-text backdrop-blur-sm">
         <ArrowUpRight

@@ -4,7 +4,9 @@ import {
   FolderTree,
   History,
   Package,
+  Receipt,
   RotateCcw,
+  Users,
   Wrench,
 } from 'lucide-vue-next'
 
@@ -27,7 +29,7 @@ interface AdminActivityItem {
   createdAt: string
 }
 
-const entityTypes = ['product', 'category', 'service']
+const entityTypes = ['product', 'category', 'service', 'staff', 'expense', 'expense-category']
 const actions = ['created', 'updated', 'deleted', 'media']
 const entityFilter = ref(entityTypes.includes(String(route.query.entityType || '')) ? String(route.query.entityType) : '')
 const actionFilter = ref(actions.includes(String(route.query.action || '')) ? String(route.query.action) : '')
@@ -57,18 +59,27 @@ const hasFilters = computed(() => !!(entityFilter.value || actionFilter.value))
 function activityIcon(entityType: string) {
   if (entityType === 'category') return FolderTree
   if (entityType === 'service') return Wrench
+  if (entityType === 'staff' || entityType === 'user') return Users
+  if (entityType === 'expense' || entityType === 'expense-category') return Receipt
   return Package
 }
 
 function activityLink(entry: AdminActivityItem) {
-  if (entry.entityType === 'category') return '/admin/categories'
-  if (entry.entityType === 'service') return '/admin/services'
+  if (entry.entityType === 'category') return '/admin/catalog?tab=categories'
+  if (entry.entityType === 'service') return '/admin/salon?tab=services'
+  if (entry.entityType === 'staff' || entry.entityType === 'user') return '/admin/salon?tab=team'
+  if (entry.entityType === 'expense' || entry.entityType === 'expense-category') return '/admin/finance?tab=expenses'
+  if (entry.entityType === 'booking') return '/admin/appointments?tab=bookings'
   return `/admin/products/${entry.entityId}/edit`
 }
 
 function entityTypeLabel(entityType: string) {
   if (entityType === 'category') return locale.value === 'ar' ? 'قسم' : 'Category'
   if (entityType === 'service') return locale.value === 'ar' ? 'خدمة' : 'Service'
+  if (entityType === 'staff' || entityType === 'user') return locale.value === 'ar' ? 'موظف' : 'Staff'
+  if (entityType === 'expense') return locale.value === 'ar' ? 'مصروف' : 'Expense'
+  if (entityType === 'expense-category') return locale.value === 'ar' ? 'فئة مصروف' : 'Expense category'
+  if (entityType === 'booking') return locale.value === 'ar' ? 'حجز' : 'Booking'
   return locale.value === 'ar' ? 'منتج' : 'Product'
 }
 
@@ -136,13 +147,13 @@ async function openActivity(entry: AdminActivityItem) {
 
     <!-- Filter toolbar -->
     <div
-      class="mb-4 rounded-md border bg-white p-3.5 shadow-xs dark:bg-[#162032]"
+      class="mb-4 rounded-md border bg-white p-3.5 shadow-xs dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
       <form class="flex flex-wrap items-center gap-2.5" @submit.prevent="applyFilters">
         <select
           v-model="entityFilter"
-          class="h-9 rounded-md border bg-white px-3 text-xs text-slate-700 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-300"
+          class="h-11 rounded-md border bg-white px-3 text-xs text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg dark:text-neutral-300"
           :style="{ borderColor: 'var(--color-border)' }"
           :aria-label="locale === 'ar' ? 'تصفية حسب النوع' : 'Filter by type'"
           @change="applyFilters"
@@ -155,7 +166,7 @@ async function openActivity(entry: AdminActivityItem) {
 
         <select
           v-model="actionFilter"
-          class="h-9 rounded-md border bg-white px-3 text-xs text-slate-700 focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:text-slate-300"
+          class="h-11 rounded-md border bg-white px-3 text-xs text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg dark:text-neutral-300"
           :style="{ borderColor: 'var(--color-border)' }"
           :aria-label="locale === 'ar' ? 'تصفية حسب الإجراء' : 'Filter by action'"
           @change="applyFilters"
@@ -168,7 +179,7 @@ async function openActivity(entry: AdminActivityItem) {
 
         <button
           type="submit"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          class="inline-flex h-11 items-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50 px-3.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
         >
           <Filter class="h-3.5 w-3.5" aria-hidden="true" />
           <span>{{ locale === 'ar' ? 'تصفية' : 'Filter' }}</span>
@@ -177,7 +188,7 @@ async function openActivity(entry: AdminActivityItem) {
         <button
           v-if="hasFilters"
           type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          class="inline-flex h-11 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
           @click="resetFilters"
         >
           <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
@@ -187,51 +198,51 @@ async function openActivity(entry: AdminActivityItem) {
     </div>
 
     <!-- History table -->
-    <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div class="overflow-hidden rounded-md border bg-white shadow-xs dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[760px] text-start text-sm">
           <thead class="sticky top-0 z-10">
-            <tr class="border-b bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/40 dark:text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
+            <tr class="border-b bg-neutral-50/75 text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:bg-neutral-800/40 dark:text-neutral-400" :style="{ borderColor: 'var(--color-border)' }">
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'النشاط' : 'Activity' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'النوع' : 'Type' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'المستخدم' : 'User' }}</th>
               <th scope="col" class="px-4 py-3 text-start">{{ locale === 'ar' ? 'التاريخ' : 'Date' }}</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800/60">
             <tr
               v-for="entry in items"
               :key="entry.id"
-              class="cursor-pointer transition-colors even:bg-slate-50/50 even:dark:bg-slate-800/30 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+              class="cursor-pointer transition-colors even:bg-neutral-50/50 even:dark:bg-neutral-800/30 hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40"
               @click="openActivity(entry)"
             >
               <td class="px-4 py-3">
                 <div class="flex items-start gap-2.5">
                   <span
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/20 dark:text-blue-300"
+                    class="flex h-11 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-neutral-300"
                     aria-hidden="true"
                   >
                     <component :is="activityIcon(entry.entityType)" class="h-4 w-4" />
                   </span>
                   <div class="min-w-0">
-                    <p class="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
+                    <p class="truncate text-xs font-bold text-neutral-900 dark:text-neutral-100">
                       {{ entry.entityName }}
                     </p>
-                    <p class="mt-0.5 line-clamp-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p class="mt-0.5 line-clamp-2 text-[11px] text-neutral-500 dark:text-neutral-400">
                       {{ activityActionLabel(entry) }}
                     </p>
                   </div>
                 </div>
               </td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center gap-1 rounded bg-[#2B71AE]/10 px-2 py-0.5 text-[11px] font-semibold text-[#2B71AE] dark:bg-[#2B71AE]/20 dark:text-blue-300">
+                <span class="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary dark:bg-primary/20 dark:text-neutral-300">
                   <span>{{ entityTypeLabel(entry.entityType) }}</span>
                 </span>
               </td>
-              <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
+              <td class="whitespace-nowrap px-4 py-3 text-xs text-neutral-600 dark:text-neutral-300">
                 {{ entry.userName }}
               </td>
-              <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+              <td class="whitespace-nowrap px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400">
                 {{ formatFull(entry.createdAt) }}
               </td>
             </tr>
@@ -241,15 +252,15 @@ async function openActivity(entry: AdminActivityItem) {
 
       <div v-if="pending && !items.length" class="space-y-2.5 p-4" aria-hidden="true">
         <div v-for="i in 5" :key="i" class="flex animate-pulse items-center gap-3">
-          <div class="h-8 w-8 shrink-0 rounded-lg bg-slate-200 dark:bg-slate-700" />
-          <div class="h-3 flex-1 rounded bg-slate-200 dark:bg-slate-700" />
-          <div class="hidden h-3 w-24 rounded bg-slate-100 sm:block dark:bg-slate-800" />
+          <div class="h-8 w-8 shrink-0 rounded-lg bg-neutral-200 dark:bg-neutral-700" />
+          <div class="h-3 flex-1 rounded bg-neutral-200 dark:bg-neutral-700" />
+          <div class="hidden h-3 w-24 rounded bg-neutral-100 sm:block dark:bg-neutral-800" />
         </div>
       </div>
 
       <div v-if="!pending && !items.length" class="flex flex-col items-center p-8 text-center">
-        <History class="mb-2 h-6 w-6 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-        <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">{{ t('admin.noActivity') }}</p>
+        <History class="mb-2 h-6 w-6 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+        <p class="text-xs font-semibold text-neutral-600 dark:text-neutral-300">{{ t('admin.noActivity') }}</p>
       </div>
 
       <p class="sr-only" role="status">

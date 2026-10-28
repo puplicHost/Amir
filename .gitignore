@@ -24,3 +24,11 @@ logs
 !.env.example
 node_modules/
 dist/
+
+# Database backups / dumps (contain password hashes + customer PII — never commit)
+backups/
+*.dump
+*.sql
+
+# User-uploaded / generated media (runtime content, not source)
+storage/

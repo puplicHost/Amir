@@ -1,6 +1,6 @@
 import { defineEventHandler, readMultipartFormData, createError } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { storeFile } from '../../../utils/storage'
+import { saveBrandImage } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'products.manage')
@@ -18,6 +18,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Image exceeds maximum allowed size of 2MB' })
   }
 
-  const { relativePath } = await storeFile(file.data, 'products/inline', `inline-${Date.now()}-${file.filename}`)
+  // Content-validated + re-encoded to WebP: never trust extension/MIME
+  // (products/ is a public scope).
+  const relativePath = await saveBrandImage('products/inline', 'inline', file.data, 1600)
   return { success: true, url: relativePath }
 })

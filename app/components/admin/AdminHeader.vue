@@ -35,7 +35,7 @@ const userInitials = computed(() => {
       <!-- Mobile menu trigger -->
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-[2px] border text-slate-600 transition-colors hover:bg-slate-100 lg:hidden dark:border-[#303636] dark:text-slate-300 dark:hover:bg-[#121616]"
+        class="flex h-11 w-10 items-center justify-center rounded-[2px] border text-neutral-600 transition-colors hover:bg-neutral-100 lg:hidden dark:border-[#303636] dark:text-neutral-300 dark:hover:bg-[#121616]"
         :aria-label="locale === 'de' ? 'Seitenleiste öffnen' : 'Open sidebar'"
         @click="$emit('toggle-sidebar')"
       >
@@ -56,7 +56,7 @@ const userInitials = computed(() => {
         type="button"
         :aria-label="t('common.toggleLanguage')"
         :title="t('common.toggleLanguage')"
-        class="flex h-9 items-center gap-1.5 rounded-[2px] border border-border px-2.5 text-xs font-medium text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
+        class="flex h-11 items-center gap-1.5 rounded-[2px] border border-border px-2.5 text-xs font-medium text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
         @click="toggleLocale"
       >
         <Globe class="h-3.5 w-3.5" aria-hidden="true" />
@@ -68,7 +68,7 @@ const userInitials = computed(() => {
         type="button"
         :aria-label="t('common.toggleTheme')"
         :title="t('common.toggleTheme')"
-        class="flex h-9 w-9 items-center justify-center rounded-[2px] border border-border text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
+        class="flex h-11 w-9 items-center justify-center rounded-[2px] border border-border text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
         @click="toggleTheme"
       >
         <ClientOnly>

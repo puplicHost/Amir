@@ -5,6 +5,7 @@ const MIME: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
+  '.ico': 'image/x-icon',
   '.pdf': 'application/pdf',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
@@ -16,10 +17,11 @@ export default defineEventHandler(async (event) => {
   // Nitro [...path] param arrives joined; split back into segments.
   const scope = parts[0] || ''
 
-  // Public media scopes. Every other scope (service-request uploads,
-  // legacy private files) requires an admin session and is never served
-  // anonymously. Hero slides are public homepage content.
-  const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings', 'hero', 'services'])
+  // Public media scopes. Every other scope (expense receipts, service-request
+  // uploads, legacy private files) requires an admin session and is never
+  // served anonymously. Hero slides are public homepage content, and staff
+  // avatars are intentionally public (rendered in the customer staff picker).
+  const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings', 'hero', 'services', 'staff'])
   if (!PUBLIC_SCOPES.has(scope)) {
     let sessionUser = null
     try {
@@ -29,8 +31,9 @@ export default defineEventHandler(async (event) => {
       sessionUser = null
     }
     const ok = !!sessionUser && (sessionUser.isSuper
-      || sessionUser.permissions.includes('services.view')
-      || sessionUser.permissions.includes('services.manage'))
+      || sessionUser.permissions.includes('services.manage')
+      || sessionUser.permissions.includes('expenses.view')
+      || sessionUser.permissions.includes('expenses.manage'))
     if (!ok) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
     }
@@ -47,6 +50,8 @@ export default defineEventHandler(async (event) => {
   }
   const ext = full.slice(full.lastIndexOf('.')).toLowerCase()
   setHeader(event, 'content-type', MIME[ext] || 'application/octet-stream')
-  setHeader(event, 'cache-control', 'public, max-age=86400')
+  // PERF-04: stored files are content-unique (uuid/timestamp names), so they
+  // can be cached immutably for a year.
+  setHeader(event, 'cache-control', 'public, max-age=31536000, immutable')
   return sendStream(event, createReadStream(full))
 })

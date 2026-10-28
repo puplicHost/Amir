@@ -49,7 +49,7 @@ function formatAb(priceAbCents: number): string {
 
     <!-- Top: section icon (no tile) + arrow cue (no-image fallback) -->
     <div v-else class="mb-2.5 flex items-start justify-between gap-2">
-      <ServiceSectionIcon :section="props.section" class="h-7 w-7 text-text" />
+      <ServiceSectionIcon :section="props.section" class="h-11 w-7 text-text" />
       <ArrowUpRight
         class="h-4 w-4 shrink-0 text-muted transition-transform duration-150 motion-safe:transition-transform group-hover:translate-x-[2px] group-hover:-translate-y-[2px]"
         :stroke-width="1.5"

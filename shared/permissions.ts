@@ -9,6 +9,7 @@ export const PERMISSION_GROUPS = {
     'bookings.assign',
     'bookings.cancel_own',
     'bookings.refund_handle',
+    'bookings.refund_issue',
     'bookings.complete',
   ],
   services: ['services.manage'],
@@ -20,6 +21,7 @@ export const PERMISSION_GROUPS = {
   settings: ['settings.business', 'settings.payment', 'settings.meta'],
   users: ['users.manage'],
   notifications: ['notifications.view'],
+  expenses: ['expenses.view', 'expenses.manage', 'expenses.export'],
 } as const
 
 export const ALL_PERMISSIONS: string[] = Object.values(PERMISSION_GROUPS).flat()

@@ -14,9 +14,14 @@ export function useAdminSession() {
   )
 }
 
-export function useAdminCan(permission: string): ComputedRef<boolean> {
+/** True when the signed-in admin holds at least one of the given permissions. */
+export function useAdminCan(permission: string | string[]): ComputedRef<boolean> {
   const { data } = useAdminSession()
-  return computed(() => data.value?.user.permissions.includes(permission) ?? false)
+  const needed = Array.isArray(permission) ? permission : [permission]
+  return computed(() => {
+    const granted = data.value?.user.permissions ?? []
+    return needed.some(p => granted.includes(p))
+  })
 }
 
 export async function adminLogout(): Promise<void> {

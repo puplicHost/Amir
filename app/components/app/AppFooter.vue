@@ -44,11 +44,11 @@ const tagline = computed(() => {
             <img 
               v-if="general?.logoPath" 
               :src="general.logoPath" 
-              :alt="siteDisplayName" 
-              class="h-10 w-auto max-w-[150px] rounded object-contain bg-white p-1" 
+              width="150" height="44" :alt="siteDisplayName" 
+              class="h-11 w-auto max-w-[150px] rounded object-contain bg-white p-1" 
             />
             <div v-else class="flex items-center gap-2.5">
-              <img src="/logo.png" alt="Amir" class="h-9 w-9 rounded object-contain shadow-xs" loading="lazy" />
+              <img src="/logo.png" alt="Amir" width="36" height="36" class="h-9 w-9 rounded object-contain shadow-xs" loading="lazy" />
               <span class="font-heading text-xl font-bold tracking-tight text-white group-hover:text-cream transition-colors">
                 {{ siteDisplayName }}
               </span>
@@ -77,29 +77,29 @@ const tagline = computed(() => {
           </h3>
           <ul class="space-y-2.5 text-sm">
             <li>
-              <NuxtLink :to="localePath('/')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
+              <NuxtLink :to="localePath('/')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition duration-200 inline-flex items-center gap-1.5">
                 <span>{{ t('nav.home') }}</span>
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink :to="localePath('/products')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
+              <NuxtLink :to="localePath('/products')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition duration-200 inline-flex items-center gap-1.5">
                 <span>{{ t('nav.products') }}</span>
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink :to="localePath('/services')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
+              <NuxtLink :to="localePath('/services')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition duration-200 inline-flex items-center gap-1.5">
                 <span>{{ t('nav.services') }}</span>
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink :to="localePath('/contact')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5">
+              <NuxtLink :to="localePath('/contact')" class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition duration-200 inline-flex items-center gap-1.5">
                 <span>{{ t('nav.contact') }}</span>
               </NuxtLink>
             </li>
             <li>
               <button
                 type="button"
-                class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition-all duration-200 inline-flex items-center gap-1.5 cursor-pointer"
+                class="text-slate-400 hover:text-cream hover:translate-x-1 rtl:hover:-translate-x-1 transition duration-200 inline-flex items-center gap-1.5 cursor-pointer"
                 @click="openConsentBanner"
               >
                 <span>{{ t('consent.cookieSettings') }}</span>
@@ -116,8 +116,8 @@ const tagline = computed(() => {
           </h3>
           <ul class="space-y-3.5 text-sm">
             <li v-if="contact?.contactPhone1" class="flex items-start gap-3 group">
-              <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-cream shadow-xs group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
-                <Phone class="w-4 h-4" />
+              <div class="mt-0.5 flex h-11 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-cream shadow-xs group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
+                <Phone class="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <span class="block text-[11px] text-slate-400 font-medium">{{ locale === 'ar' ? 'الهاتف المباشر' : 'Direct Line' }}</span>
@@ -126,8 +126,8 @@ const tagline = computed(() => {
             </li>
 
             <li v-if="contact?.contactEmail" class="flex items-start gap-3 group">
-              <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-cream shadow-xs group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
-                <Mail class="w-4 h-4" />
+              <div class="mt-0.5 flex h-11 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-cream shadow-xs group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
+                <Mail class="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <span class="block text-[11px] text-slate-400 font-medium">{{ locale === 'ar' ? 'البريد الإلكتروني' : 'Official Email' }}</span>
@@ -136,8 +136,8 @@ const tagline = computed(() => {
             </li>
 
             <li v-if="contact?.contactAddressEn || contact?.contactAddressAr" class="flex items-start gap-3 group">
-              <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-cream shadow-xs group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
-                <MapPin class="w-4 h-4" />
+              <div class="mt-0.5 flex h-11 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-cream shadow-xs group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
+                <MapPin class="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <span class="block text-[11px] text-slate-400 font-medium">{{ locale === 'ar' ? 'الموقع الفعلي' : 'Location' }}</span>

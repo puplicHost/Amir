@@ -113,6 +113,97 @@ export async function saveServiceCover(serviceId: string, data: Buffer, mime: st
   return `/uploads/services/${serviceId}/${filename}`
 }
 
+// ─── Validated brand / staff / receipt uploads ─────────────────────
+// These helpers never trust the filename extension or the client MIME type:
+// they sniff real content with sharp (or magic bytes for ICO/PDF) and
+// re-encode raster images, so arbitrary bytes can never be published.
+
+export const MAX_BRAND_BYTES = 5 * 1024 * 1024
+const RASTER_FORMATS = new Set(['jpeg', 'png', 'webp'])
+
+/** Assert the buffer is a real, decodable raster image (jpeg/png/webp). */
+export async function assertRasterImage(data: Buffer, maxBytes = MAX_BRAND_BYTES): Promise<void> {
+  if (!data.length) throw createError({ statusCode: 400, statusMessage: 'Empty file' })
+  if (data.length > maxBytes) {
+    throw createError({ statusCode: 400, statusMessage: `Image exceeds ${Math.round(maxBytes / (1024 * 1024))}MB limit` })
+  }
+  let meta
+  try {
+    meta = await sharp(data).metadata()
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid image file' })
+  }
+  if (!meta.format || !RASTER_FORMATS.has(meta.format)) {
+    throw createError({ statusCode: 400, statusMessage: 'Only JPG, PNG or WEBP images allowed' })
+  }
+}
+
+/** Validate + re-encode a brand image (logo/banner) to WebP under `folder/`. */
+export async function saveBrandImage(folder: string, prefix: string, data: Buffer, maxWidth: number): Promise<string> {
+  assertSafeId(folder.replace(/\//g, ''))
+  await assertRasterImage(data)
+  const dir = join(storageRoot(), folder)
+  await mkdir(dir, { recursive: true })
+  const filename = `${prefix}-${Date.now()}-${randomUUID().slice(0, 8)}.webp`
+  const buffer = await sharp(data).rotate().resize({ width: maxWidth, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
+  await writeFile(join(dir, filename), buffer)
+  return `/uploads/${folder}/${filename}`
+}
+
+const ICO_MAGIC = Buffer.from([0x00, 0x00, 0x01, 0x00])
+
+/** Favicon: accepts a real ICO (magic bytes) or a raster image → PNG. */
+export async function saveFavicon(data: Buffer): Promise<string> {
+  if (!data.length) throw createError({ statusCode: 400, statusMessage: 'Empty file' })
+  const dir = join(storageRoot(), 'settings')
+  await mkdir(dir, { recursive: true })
+  if (data.length > 4 && data.subarray(0, 4).equals(ICO_MAGIC)) {
+    if (data.length > 1024 * 1024) throw createError({ statusCode: 400, statusMessage: 'Favicon exceeds 1MB limit' })
+    const filename = `favicon-${Date.now()}-${randomUUID().slice(0, 8)}.ico`
+    await writeFile(join(dir, filename), data)
+    return `/uploads/settings/${filename}`
+  }
+  await assertRasterImage(data, 1024 * 1024)
+  const filename = `favicon-${Date.now()}-${randomUUID().slice(0, 8)}.png`
+  const buffer = await sharp(data).rotate().resize({ width: 256, height: 256, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+  await writeFile(join(dir, filename), buffer)
+  return `/uploads/settings/${filename}`
+}
+
+/** Staff avatar: validated + re-encoded WebP (publicly served under staff/). */
+export async function saveStaffPhoto(userId: string, data: Buffer): Promise<string> {
+  assertSafeId(userId)
+  await assertRasterImage(data, 2 * 1024 * 1024)
+  const dir = join(storageRoot(), 'staff')
+  await mkdir(dir, { recursive: true })
+  const filename = `staff-${userId}-${Date.now()}-${randomUUID().slice(0, 8)}.webp`
+  const buffer = await sharp(data).rotate().resize({ width: 600, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
+  await writeFile(join(dir, filename), buffer)
+  return `/uploads/staff/${filename}`
+}
+
+const PDF_MAGIC = Buffer.from('%PDF-')
+
+/** Expense receipt: real PDF (magic bytes) or a validated raster image. */
+export async function saveReceipt(expenseId: string, data: Buffer): Promise<string> {
+  assertSafeId(expenseId)
+  if (!data.length) throw createError({ statusCode: 400, statusMessage: 'Empty file' })
+  const dir = join(storageRoot(), 'expenses')
+  await mkdir(dir, { recursive: true })
+  if (data.length > 5 && data.subarray(0, 5).equals(PDF_MAGIC)) {
+    if (data.length > 10 * 1024 * 1024) throw createError({ statusCode: 400, statusMessage: 'PDF exceeds 10MB limit' })
+    const filename = `expense-${expenseId}-${Date.now()}-${randomUUID().slice(0, 8)}.pdf`
+    await writeFile(join(dir, filename), data)
+    return `/uploads/expenses/${filename}`
+  }
+  await assertRasterImage(data, 5 * 1024 * 1024)
+  const filename = `expense-${expenseId}-${Date.now()}-${randomUUID().slice(0, 8)}.webp`
+  const buffer = await sharp(data).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
+  await writeFile(join(dir, filename), buffer)
+  return `/uploads/expenses/${filename}`
+}
+
 /** Delete a previously stored service cover file (by public path). */
 export async function deleteServiceCoverFile(imagePath: string): Promise<void> {
   const parts = (imagePath || '').replace(/^\/uploads\//, '').split('/')

@@ -1,9 +1,18 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+
 const isLaunchMode = process.env.NUXT_PUBLIC_LAUNCH_MODE === 'true'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+
+  nitro: {
+    // Sanitizes 404 responses (no stack traces). See server/error-handler.ts.
+    errorHandler: fileURLToPath(new URL('./server/error-handler.ts', import.meta.url)),
+    compressPublicAssets: true,
+    minify: true,
+  },
 
   vite: {
     server: {

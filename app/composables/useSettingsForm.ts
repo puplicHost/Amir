@@ -13,9 +13,9 @@ export function useSettingsDirtyFlag() {
   return useState<boolean>('admin-settings-dirty', () => false)
 }
 
-export const settingsInputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
+export const settingsInputCls = 'h-10 w-full rounded-md border bg-white px-3 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg'
 
-export const settingsTextareaCls = 'w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]'
+export const settingsTextareaCls = 'w-full rounded-md border bg-white p-2.5 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg'
 
 interface SettingsFormOptions<T extends Record<string, any>> {
   /** useAsyncData cache key */

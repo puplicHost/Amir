@@ -138,13 +138,13 @@ function getEmbedUrl(url: string, type?: string): string {
     <!-- Breadcrumb Trail -->
     <nav class="mb-6 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted" aria-label="Breadcrumb">
       <NuxtLink :to="localePath('/')" class="hover:text-primary transition-colors">{{ t('nav.home') }}</NuxtLink>
-      <span class="text-slate-400">/</span>
+      <span class="text-slate-400" aria-hidden="true">/</span>
       <NuxtLink :to="localePath('/products')" class="hover:text-primary transition-colors">{{ t('products.title') }}</NuxtLink>
-      <span class="text-slate-400">/</span>
+      <span class="text-slate-400" aria-hidden="true">/</span>
       <NuxtLink :to="localePath(`/products/${p.category.slug}`)" class="hover:text-primary transition-colors">
         {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
       </NuxtLink>
-      <span class="text-slate-400">/</span>
+      <span class="text-slate-400" aria-hidden="true">/</span>
       <span class="text-text font-semibold truncate max-w-xs">{{ name }}</span>
     </nav>
 
@@ -177,8 +177,10 @@ function getEmbedUrl(url: string, type?: string): string {
             v-for="(img, i) in p.images"
             :key="img.path"
             type="button"
-            class="aspect-square overflow-hidden rounded-xl border p-1 transition-all active:scale-95"
+            class="aspect-square overflow-hidden rounded-xl border p-1 transition-colors active:scale-95"
             :class="i === activeImage ? 'border-primary ring-2 ring-primary/20 bg-surface' : 'border-border bg-surface'"
+            :aria-label="`${name} ${i + 1}`"
+            :aria-pressed="i === activeImage"
             @click="activeImage = i"
           >
             <img :src="img.path" :alt="`${name} ${i + 1}`" class="h-full w-full object-cover rounded-lg" loading="lazy" />
@@ -188,7 +190,7 @@ function getEmbedUrl(url: string, type?: string): string {
         <!-- Product Video Section (if attached) -->
         <div v-if="p.video" class="mt-5 rounded-2xl border border-border overflow-hidden bg-bg shadow-xs">
           <div class="px-3.5 py-2.5 bg-surface border-b border-border flex items-center gap-2 text-xs font-bold text-text">
-            <Play class="h-3.5 w-3.5 text-cream fill-current" />
+            <Play class="h-3.5 w-3.5 text-cream fill-current" aria-hidden="true" />
             <span>{{ locale === 'ar' ? 'فيديو توضيحي للمنتج' : 'Product Demonstration Video' }}</span>
           </div>
           <div class="relative aspect-video w-full bg-black">
@@ -247,7 +249,7 @@ function getEmbedUrl(url: string, type?: string): string {
                 :href="waHref" 
                 target="_blank" 
                 rel="noopener" 
-                class="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-muted hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+                class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-muted hover:border-emerald-500 hover:text-emerald-600 transition-colors"
               >
                 <IconWhatsApp class="h-3.5 w-3.5 text-emerald-500" />
                 <span>{{ t('products.shareWhatsApp') }}</span>
@@ -255,11 +257,11 @@ function getEmbedUrl(url: string, type?: string): string {
 
               <button 
                 type="button" 
-                class="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-muted hover:bg-border/40 transition-colors" 
+                class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-muted hover:bg-border/40 transition-colors" 
                 @click="copyLink"
               >
-                <Check v-if="copied" class="h-3.5 w-3.5 text-emerald-500" />
-                <Copy v-else class="h-3.5 w-3.5 text-slate-400" />
+                <Check v-if="copied" class="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" />
+                <Copy v-else class="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
                 <span>{{ copied ? (locale === 'ar' ? 'تم نسخ الرابط' : 'Link Copied') : (locale === 'ar' ? 'نسخ الرابط' : 'Copy Link') }}</span>
               </button>
             </div>
@@ -268,15 +270,15 @@ function getEmbedUrl(url: string, type?: string): string {
           <!-- Product Confidence Strip -->
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-xl border border-border bg-surface/70 p-4 text-xs text-muted mb-8">
             <div class="flex items-center gap-2">
-              <ShieldCheck class="h-4 w-4 text-primary shrink-0" />
+              <ShieldCheck class="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
               <span>{{ locale === 'ar' ? 'أصلي ومضمون 100%' : '100% Genuine Part' }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <Truck class="h-4 w-4 text-primary shrink-0" />
+              <Truck class="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
               <span>{{ locale === 'ar' ? 'شحن سريع بالمحافظات' : 'Fast Regional Dispatch' }}</span>
             </div>
             <div class="flex items-center gap-2 col-span-2 sm:col-span-1">
-              <FileText class="h-4 w-4 text-primary shrink-0" />
+              <FileText class="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
               <span>{{ locale === 'ar' ? 'كتيب بيانات معتمد' : 'Verified Datasheet' }}</span>
             </div>
           </div>
@@ -306,7 +308,7 @@ function getEmbedUrl(url: string, type?: string): string {
         <!-- Product Documents & Datasheets (PDF) Section -->
         <div v-if="p.documents?.length" class="border-t border-border pt-8 mt-8">
           <div class="flex items-center gap-2 mb-4">
-              <FileText class="h-5 w-5 text-primary" />
+              <FileText class="h-5 w-5 text-primary" aria-hidden="true" />
             <h2 class="font-heading text-lg font-bold text-text">
               {{ locale === 'ar' ? 'كتيبات المواصفات والملفات الفنية (PDF)' : 'Technical Datasheets & Documentation (PDF)' }}
             </h2>
@@ -319,10 +321,10 @@ function getEmbedUrl(url: string, type?: string): string {
               :href="doc.filePath"
               target="_blank"
               download
-              class="group flex items-center justify-between rounded-xl border border-border bg-bg p-3.5 shadow-xs hover:border-primary hover:shadow-md transition-all"
+              class="group flex items-center justify-between rounded-xl border border-border bg-bg p-3.5 shadow-xs hover:border-primary hover:shadow-md transition"
             >
               <div class="flex items-center gap-3 min-w-0">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600 font-bold text-xs uppercase">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600 font-bold text-xs uppercase dark:bg-rose-950/40 dark:text-rose-300">
                   PDF
                 </div>
                 <div class="min-w-0">
@@ -335,7 +337,7 @@ function getEmbedUrl(url: string, type?: string): string {
                 </div>
               </div>
 
-              <Download class="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors shrink-0" />
+              <Download class="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors shrink-0" aria-hidden="true" />
             </a>
           </div>
         </div>

@@ -99,32 +99,33 @@ const inputCls = 'h-11 w-full rounded-xl border border-border bg-surface px-3.5 
       <div class="mx-auto w-full max-w-[600px]">
         <div class="rounded-2xl border border-border bg-bg p-6 shadow-xs">
           <h2 class="font-heading text-base font-bold text-text flex items-center gap-2">
-            <MessageCircle class="h-4 w-4 text-primary" />
+            <MessageCircle class="h-4 w-4 text-primary" aria-hidden="true" />
             {{ t('contact.sendMessage') }}
           </h2>
           <p class="mt-1 text-xs text-muted">{{ t('contact.sendMessageSub') }}</p>
 
           <form @submit.prevent="submitMessage" class="mt-5 space-y-4">
-            <div v-if="formError" role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
+            <div v-if="formError" role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
               {{ formError }}
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block">
                 <span class="mb-1.5 block text-xs font-semibold text-muted">{{ t('contact.fullName') }} *</span>
-                <input v-model="form.name" type="text" autocomplete="name" :placeholder="t('contact.fullNamePh')" :class="inputCls" />
+                <input v-model="form.name" type="text" name="name" autocomplete="name" :placeholder="t('contact.fullNamePh')" :class="inputCls" />
               </label>
               <label class="block">
                 <span class="mb-1.5 block text-xs font-semibold text-muted">{{ t('contact.phone') }} *</span>
-                <input v-model="form.phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="01xxxxxxxxx" :class="inputCls" dir="ltr" />
+                <input v-model="form.phone" type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="01xxxxxxxxx" :class="inputCls" dir="ltr" />
               </label>
             </div>
             <label class="block">
               <span class="mb-1.5 block text-xs font-semibold text-muted">{{ t('contact.message') }} *</span>
-              <textarea v-model="form.message" rows="4" :placeholder="t('contact.messagePh')" class="min-h-[120px] w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" />
+              <textarea v-model="form.message" rows="4" name="message" :placeholder="t('contact.messagePh')" class="min-h-[120px] w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-xs sm:text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" />
             </label>
-            <button type="submit" :disabled="loading"
-              class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent px-7 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50 transition-all sm:w-auto">
-              <Send class="h-4 w-4" />
+            <button type="submit" :disabled="loading" :aria-busy="loading"
+              class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent px-7 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50 transition-colors sm:w-auto">
+              <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
+              <Send v-else class="h-4 w-4" aria-hidden="true" />
               <span>{{ loading ? t('contact.sending') : t('contact.send') }}</span>
             </button>
           </form>
@@ -136,7 +137,7 @@ const inputCls = 'h-11 w-full rounded-xl border border-border bg-surface px-3.5 
     <div
       v-if="toastMsg"
       role="status"
-      class="fixed top-4 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-2 rounded-xl border px-4 py-3 text-xs sm:text-sm font-bold shadow-xl"
+      class="fixed top-4 left-1/2 z-[80] flex max-w-[calc(100vw-2rem)] break-words -translate-x-1/2 items-center gap-2 rounded-xl border px-4 py-3 text-xs sm:text-sm font-bold shadow-xl"
       :class="toastMsg.type === 'success'
         ? 'border-emerald-200 bg-emerald-600 text-white'
         : 'border-rose-200 bg-rose-600 text-white'"

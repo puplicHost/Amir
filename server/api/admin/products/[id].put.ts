@@ -43,6 +43,11 @@ export default defineEventHandler(async (event) => {
     if (next !== existing.isActive) changes.push(next ? 'Activated product' : 'Deactivated product')
     data.isActive = next
   }
+  if (body.featuredOnHomepage !== undefined) {
+    const next = body.featuredOnHomepage === true
+    if (next !== existing.featuredOnHomepage) changes.push(next ? 'Featured on homepage' : 'Removed from homepage')
+    data.featuredOnHomepage = next
+  }
   if (body.slug !== undefined && String(body.slug).trim() && String(body.slug).trim() !== existing.slug) {
     const base = generateSlug(String(body.slug))
     const clash = await prisma.product.findUnique({ where: { slug: base } })
@@ -52,6 +57,19 @@ export default defineEventHandler(async (event) => {
   }
   if (body.attributes !== undefined) changes.push('Updated attributes')
   if (body.seo !== undefined) changes.push('Updated SEO')
+
+  if (body.featuredOnHomepage === true) {
+    const current = await prisma.product.findUnique({
+      where: { id: id || '' },
+      select: { isActive: true },
+    })
+    if (!current?.isActive) {
+      throw createError({
+        statusCode: 400,
+        message: 'Cannot feature an inactive product',
+      })
+    }
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     if (body.attributes !== undefined) {

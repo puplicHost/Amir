@@ -78,8 +78,8 @@ const studioPhone = computed(() => {
         <!-- Location Card -->
         <div class="rounded-xl border border-border bg-surface p-6 shadow-xs">
           <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-on-primary">
-              <MapPin class="h-5 w-5" />
+            <div class="flex h-11 w-10 items-center justify-center rounded-lg bg-primary text-on-primary">
+              <MapPin class="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <h2 class="font-heading text-lg font-bold text-text">
@@ -99,8 +99,8 @@ const studioPhone = computed(() => {
         <!-- Appointment & Hours Card -->
         <div class="rounded-xl border border-border bg-surface p-6 shadow-xs">
           <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-on-primary">
-              <Clock class="h-5 w-5" />
+            <div class="flex h-11 w-10 items-center justify-center rounded-lg bg-primary text-on-primary">
+              <Clock class="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <h2 class="font-heading text-lg font-bold text-text">
@@ -119,10 +119,10 @@ const studioPhone = computed(() => {
           <div class="mt-4">
             <NuxtLink
               :to="localePath('/services')"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-accent px-5 text-xs font-bold text-on-accent hover:bg-accent-hover transition-colors"
+              class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-accent px-5 text-xs font-bold text-on-accent hover:bg-accent-hover transition-colors"
             >
               <span>{{ t('home.servicesCta') }}</span>
-              <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180" />
+              <ArrowRight class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
             </NuxtLink>
           </div>
         </div>
@@ -142,9 +142,9 @@ const studioPhone = computed(() => {
           <a
             v-if="studioPhone"
             :href="`tel:${studioPhone}`"
-            class="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-4 text-xs font-semibold text-text hover:bg-border/30 transition-colors"
+            class="inline-flex h-11 items-center gap-2 rounded-lg border border-border px-4 text-xs font-semibold text-text hover:bg-border/30 transition-colors"
           >
-            <Phone class="h-4 w-4" />
+            <Phone class="h-4 w-4" aria-hidden="true" />
             <span dir="ltr">{{ studioPhone }}</span>
           </a>
           <a
@@ -152,7 +152,7 @@ const studioPhone = computed(() => {
             :href="whatsappUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-4 text-xs font-semibold text-text hover:bg-border/30 transition-colors"
+            class="inline-flex h-11 items-center gap-2 rounded-lg border border-border px-4 text-xs font-semibold text-text hover:bg-border/30 transition-colors"
           >
             <IconWhatsApp class="h-4 w-4 text-emerald-600" />
             <span>WhatsApp</span>

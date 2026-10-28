@@ -43,29 +43,29 @@ const confirmText = computed(() =>
       @click="resolvePending(false)"
     />
     <div
-      class="relative w-full max-w-sm overflow-hidden rounded-xl border bg-white shadow-2xl dark:bg-[#162032]"
+      class="relative w-full max-w-sm overflow-hidden rounded-xl border bg-white shadow-2xl dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
-      <div class="h-1 w-full" :class="pending.danger ? 'bg-rose-500' : 'bg-[#2B71AE]'" />
+      <div class="h-1 w-full" :class="pending.danger ? 'bg-rose-500' : 'bg-primary'" />
       <div class="p-5">
         <div class="flex items-start gap-3">
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            :class="pending.danger ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400' : 'bg-[#2B71AE]/10 text-[#2B71AE] dark:text-blue-400'"
+            class="flex h-11 w-10 shrink-0 items-center justify-center rounded-full"
+            :class="pending.danger ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400' : 'bg-primary/10 text-primary dark:text-neutral-400'"
           >
             <AlertTriangle class="h-5 w-5" aria-hidden="true" />
           </div>
           <div class="min-w-0 flex-1">
-            <h2 class="font-heading text-sm font-bold text-slate-900 dark:text-slate-100">
+            <h2 class="font-heading text-sm font-bold text-neutral-900 dark:text-neutral-100">
               {{ pending.title }}
             </h2>
-            <p v-if="pending.message" class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            <p v-if="pending.message" class="mt-1 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
               {{ pending.message }}
             </p>
           </div>
           <button
             type="button"
-            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+            class="flex h-11 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800"
             :aria-label="cancelText"
             @click="resolvePending(false)"
           >
@@ -75,15 +75,15 @@ const confirmText = computed(() =>
         <div class="mt-5 flex items-center justify-end gap-2.5">
           <button
             type="button"
-            class="inline-flex h-9 items-center rounded-md border px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            class="inline-flex h-11 items-center rounded-md border px-4 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             @click="resolvePending(false)"
           >
             {{ cancelText }}
           </button>
           <button
             type="button"
-            class="inline-flex h-9 items-center rounded-md px-5 text-xs font-bold text-white shadow-xs transition-all active:scale-[0.98]"
-            :class="pending.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#2B71AE] hover:bg-[#285E8E]'"
+            class="inline-flex h-11 items-center rounded-md px-5 text-xs font-bold shadow-xs transition active:scale-[0.98]"
+            :class="pending.danger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-primary hover:bg-primary/90 text-on-primary'"
             @click="resolvePending(true)"
           >
             {{ confirmText }}

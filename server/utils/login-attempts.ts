@@ -35,7 +35,7 @@ export async function recordFailedLogin(email: string): Promise<void> {
       await notifyAdmins({
         type: 'failed_logins',
         relatedEntityId: key,
-        url: '/admin/users',
+        url: '/admin/salon?tab=team&teamTab=users',
         titleEn: `Repeated failed logins: ${key}`,
         titleAr: `Wiederholte fehlgeschlagene Logins: ${key}`,
         bodyEn: `${record.failures.length} failed attempts in 10 minutes`,

@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
   await notifyAdmins({
     type: 'new_staff_user',
     relatedEntityId: user.id,
-    url: '/admin/users',
+    url: '/admin/salon?tab=team&teamTab=users',
     titleEn: `New staff account: ${user.name}`,
     titleAr: `Neues Mitarbeiterkonto: ${user.name}`,
     bodyEn: `${user.email} · by ${actor.name}`,

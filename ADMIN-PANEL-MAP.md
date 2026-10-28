@@ -1,5 +1,12 @@
 # Admin Panel Map — Amir
 
+> **PARTIALLY STALE — see `ADMIN_UX_REFACTOR_REPORT.md` for the current map.**
+> This map predates the current panel: it omits `/admin/schedule`,
+> `/admin/staff`, `/admin/team`, `/admin/expenses`, `/admin/activity`,
+> `/admin/notifications`, `/admin/my-bookings`, `/admin/calendar` and the
+> booking-operations dashboard section. Users and Staff are now merged into
+> `/admin/team` (tabs `?tab=users` / `?tab=staff`).
+
 ## Overview
 This document maps every page, view, component, action, and API endpoint in the Amir Admin Panel (`/admin`). The admin panel is a private, role-based single-page application built with Nuxt 4, Vue 3, Tailwind CSS, and Prisma ORM on PostgreSQL. Access requires an authenticated session with active staff status and specific granular permissions.
 

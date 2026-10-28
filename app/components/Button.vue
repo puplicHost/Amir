@@ -22,9 +22,9 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const sizeClasses = {
-  sm: 'h-9 px-4 text-xs tracking-wider uppercase font-medium',
-  md: 'h-11 px-6 text-xs sm:text-sm tracking-wider uppercase font-medium',
-  lg: 'h-13 px-8 text-sm tracking-widest uppercase font-medium',
+  sm: 'min-h-11 px-4 py-2 text-xs tracking-wider uppercase font-medium',
+  md: 'min-h-11 px-6 py-2.5 text-xs sm:text-sm tracking-wider uppercase font-medium',
+  lg: 'min-h-12 px-8 py-3 text-sm tracking-widest uppercase font-medium',
 }
 
 const variantClasses = {
@@ -43,28 +43,31 @@ const variantClasses = {
   <NuxtLink
     v-if="to"
     :to="to"
-    class="inline-flex items-center justify-center gap-2 rounded-[2px] transition-all duration-200 ease-out select-none"
+    class="inline-flex items-center justify-center gap-2 rounded-[2px] transition-colors duration-200 ease-out select-none"
     :class="[sizeClasses[props.size], variantClasses[props.variant], props.class]"
   >
+    <span v-if="loading" class="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current opacity-40 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
     <slot />
   </NuxtLink>
   <a
     v-else-if="href"
     :href="href"
-    class="inline-flex items-center justify-center gap-2 rounded-[2px] transition-all duration-200 ease-out select-none"
+    class="inline-flex items-center justify-center gap-2 rounded-[2px] transition-colors duration-200 ease-out select-none"
     :class="[sizeClasses[props.size], variantClasses[props.variant], props.class]"
     target="_blank"
     rel="noopener noreferrer"
   >
+    <span v-if="loading" class="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current opacity-40 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
     <slot />
   </a>
   <button
     v-else
     :type="type"
     :disabled="disabled || loading"
-    class="inline-flex items-center justify-center gap-2 rounded-[2px] transition-all duration-200 ease-out select-none disabled:opacity-40 disabled:cursor-not-allowed"
+    class="inline-flex items-center justify-center gap-2 rounded-[2px] transition-colors duration-200 ease-out select-none disabled:opacity-40 disabled:cursor-not-allowed"
     :class="[sizeClasses[props.size], variantClasses[props.variant], props.class]"
   >
+    <span v-if="loading" class="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current opacity-40 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
     <slot />
   </button>
 </template>

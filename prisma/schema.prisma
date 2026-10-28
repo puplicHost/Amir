@@ -33,6 +33,10 @@ model AdminUser {
   // Salon bookings assigned to this staff member.
   assignedBookings Booking[]           @relation("BookingAssignee")
   staffAssignments BookingAssignment[]
+  staffProfile     StaffProfile?
+  staffServices    StaffService[]
+  staffSchedules   StaffSchedule[]
+  staffTimeOffs    StaffTimeOff[]
 }
 
 model AdminPermission {
@@ -78,6 +82,7 @@ model Product {
   categoryId     String
   brand          String? // free text (Phase 2a)
   isActive       Boolean  @default(true)
+  featuredOnHomepage Boolean @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -187,6 +192,7 @@ model Service {
   updatedAt           DateTime       @updatedAt
 
   bookings Booking[]
+  staffServices StaffService[]
 
   @@index([section, isActive, sortOrder])
   @@index([featuredOnHomepage])
@@ -219,6 +225,16 @@ model Booking {
   idempotencyKey      String    @unique
   publicToken         String    @unique // unguessable public lookup key (success/failed pages)
   status              String    @default("UNASSIGNED") // UNASSIGNED | ASSIGNED | CANCELLED_BY_STAFF | COMPLETED
+  staffChoice         String    @default("ANY") // SPECIFIC | ANY (Roadmap Phase 4)
+  source              String    @default("ONLINE") // ONLINE | WALK_IN | WHATSAPP | PHONE (Roadmap Phase 5)
+  locale              String    @default("de") // customer message language de|en (Roadmap Phase 7)
+  manageToken         String?   @unique // unguessable self-service key for /booking/manage (Roadmap Phase 7/8)
+  providerPaymentId   String? // Stripe payment_intent or PayPal capture id for refunds (Roadmap Phase 8)
+  cancelledAt         DateTime?
+  cancelledBy         String? // CUSTOMER | ADMIN | STAFF | SYSTEM (Roadmap Phase 8)
+  cancellationReason  String?   @db.Text
+  refundStatus        String    @default("NONE") // NONE | PENDING | SUCCEEDED | FAILED | OUTSIDE (Roadmap Phase 8)
+  whatsappReminder    Boolean   @default(false) // customer opted into WhatsApp reminders (Roadmap Phase 9)
   assignedStaffId     String?
   notes               String?   @db.Text
   holdExpiresAt       DateTime? // PENDING bookings hold the slot until this UTC instant
@@ -232,9 +248,16 @@ model Booking {
   service       Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   assignedStaff AdminUser?          @relation("BookingAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
   assignments   BookingAssignment[]
+  outbox        NotificationOutbox[]
+  refunds       BookingRefund[]
 
   @@index([serviceId, startsAt])
   @@index([assignedStaffId, startsAt])
+  // DB-01/DB-02: bare startsAt-range scans (availability/confirm/assign) and
+  // the sweeper's (paymentStatus, holdExpiresAt) lookups.
+  @@index([startsAt])
+  @@index([status, startsAt])
+  @@index([paymentStatus, holdExpiresAt])
   @@index([paymentStatus])
   @@index([status])
   @@index([holdExpiresAt])
@@ -254,6 +277,169 @@ model BookingAssignment {
 
   @@index([bookingId])
   @@index([staffId])
+}
+
+// ─── Staff booking (Roadmap Phase 4) ─────────────────────────
+// Staff are AdminUsers with role STAFF. StaffProfile is a 1-1 extension
+// holding public booking data. Empty StaffService rows = all services.
+// Empty StaffSchedule rows for a weekday = inherit from WorkingHours.
+
+model StaffProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  displayName String
+  imagePath   String?
+  isBookable  Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isBookable, sortOrder])
+}
+
+model StaffService {
+  id        String   @id @default(cuid())
+  staffId   String
+  serviceId String
+  createdAt DateTime @default(now())
+
+  staff   AdminUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, serviceId])
+  @@index([serviceId])
+  @@index([staffId])
+}
+
+model StaffSchedule {
+  id       String  @id @default(cuid())
+  staffId  String
+  weekday  Int // 0=Sunday … 6=Saturday (JS getDay convention), salon-local Europe/Berlin
+  openMin  Int // minutes since midnight, salon-local
+  closeMin Int // minutes since midnight, salon-local
+  isClosed Boolean @default(false)
+
+  staff AdminUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, weekday])
+  @@index([staffId])
+}
+
+model StaffTimeOff {
+  id        String   @id @default(cuid())
+  staffId   String
+  startsAt  DateTime // UTC
+  endsAt    DateTime // UTC
+  reason    String?  @db.Text
+  createdBy String? // AdminUser id (no FK: history survives user deletion)
+  createdAt DateTime @default(now())
+
+  staff AdminUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startsAt, endsAt])
+  @@index([startsAt, endsAt])
+}
+
+model SalonClosure {
+  id        String   @id @default(cuid())
+  day       String   @unique // YYYY-MM-DD, salon-local Europe/Berlin
+  reason    String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([day])
+}
+
+// ─── Customer mail outbox (Roadmap Phase 7) ────────────────────
+// Dedupe: one row per dedupeKey — webhook replays and parallel sweepers
+// can never send the same message twice. Failure never fails a booking.
+
+model NotificationOutbox {
+  id        String   @id @default(cuid())
+  bookingId String?
+  type      String // booking_confirmed | booking_changed | booking_cancelled | refund_confirmed | reminder
+  channel   String   @default("EMAIL")
+  locale    String   @default("de")
+  sendTo    String
+  subject   String
+  bodyText  String   @db.Text
+  bodyHtml  String?  @db.Text
+  ical      String?  @db.Text
+  status    String   @default("PENDING") // PENDING | SENT | FAILED | SKIPPED
+  attempts  Int      @default(0)
+  lastError String?  @db.Text
+  dedupeKey String   @unique
+  sendAfter DateTime @default(now())
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status, sendAfter])
+  @@index([bookingId])
+}
+
+// ─── Booking refunds (Roadmap Phase 8) ─────────────────────────
+// Real refunds via Stripe/PayPal APIs with idempotency keys. Webhook
+// replays resolve by provider reference and never double-refund.
+
+model BookingRefund {
+  id             String   @id @default(cuid())
+  bookingId      String
+  amountCents    Int
+  reason         String?  @db.Text
+  status         String   @default("PENDING") // PENDING | SUCCEEDED | FAILED
+  provider       String // stripe | paypal | manual
+  providerRef    String?
+  idempotencyKey String   @unique
+  initiatedBy    String?
+  createdAt      DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+// ─── Salon expenses (Roadmap Phase 10) ─────────────────────────
+// Standalone expense tracking with Excel-friendly CSV export. Soft delete +
+// audit trail. Revenue/profit accounting is explicitly out of scope.
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  nameDe    String
+  nameEn    String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenses Expense[]
+
+  @@index([isActive, sortOrder])
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  day         String // YYYY-MM-DD, salon-local Europe/Berlin
+  categoryId  String
+  amountCents Int
+  description String?   @db.Text
+  vendor      String?
+  payMethod   String    @default("cash") // cash | card | transfer | other
+  taxPercent  Int?
+  receiptPath String?
+  createdBy   String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([day])
+  @@index([categoryId])
+  @@index([deletedAt, day])
 }
 
 // ─── Admin push notifications & notification center ────────────
@@ -431,6 +617,24 @@ model SiteSettings {
   holdTtlMin     Int    @default(20) // PENDING payment hold TTL in minutes
   depositPercent Int    @default(50)
   timezone       String @default("Europe/Berlin")
+  bookingMinLeadMin Int @default(120) // min minutes before start for online booking (Roadmap Phase 4, Q8)
+  manualHoldTtlMin Int @default(1440) // PENDING hold TTL for manual/pay-link bookings in minutes (Roadmap Phase 5)
+  reassignmentWaDe String? @db.Text // WhatsApp template for customer staff-change notice, German (Roadmap Phase 6)
+  reassignmentWaEn String? @db.Text // WhatsApp template for customer staff-change notice, English (Roadmap Phase 6)
+
+  // ── Customer mail (Roadmap Phase 7) ──
+  // mailProvider: 'log' (server log, default) | 'http' (generic JSON API via fetch).
+  // The HTTP key is AES-256-GCM encrypted; never returned raw.
+  mailProvider     String  @default("log")
+  mailFrom         String?
+  mailFromName     String?
+  mailHttpEndpoint String?
+  mailHttpKey      String? @db.Text
+
+  cancellationWindowHours Int @default(24) // self-cancel cutoff before start (Roadmap Phase 8)
+
+  reminderLeadMin     Int     @default(60) // minutes before start for the customer reminder (Roadmap Phase 9)
+  reminderEmailEnabled Boolean @default(true) // automatic reminder mails on/off (Roadmap Phase 9)
 
   updatedAt DateTime @updatedAt
 }

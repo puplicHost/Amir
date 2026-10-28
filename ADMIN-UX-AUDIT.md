@@ -1,5 +1,13 @@
 # Admin Panel UX Audit — Amir
 
+> **STALE — superseded by `ADMIN_UX_REFACTOR_REPORT.md`.**
+> This audit was written against an earlier, different project. It references
+> pages that no longer exist (`/admin/inventory`, `/admin/orders`,
+> `/admin/financials`, `/admin/services?tab=requests`,
+> `/admin/services/requests/:id`) and electronics-store role presets
+> ("Sales Manager", "Warehouse Staff"). Retained for history only; do not treat
+> its items as the current backlog.
+
 An in-depth user experience audit of the Amir Admin Panel (`/admin`). This audit identifies friction points, redundant navigation steps, missing shortcuts, and areas where routine administrative workflows require excessive clicks.
 
 ---

@@ -54,3 +54,19 @@ export function formatTimeBerlin(date: Date | string | number, locale = 'de-DE')
     hour12: false,
   }).format(d)
 }
+
+/**
+ * Today's calendar date (YYYY-MM-DD) in Europe/Berlin.
+ * Use for date-only defaults instead of UTC ISO slices, which shift the
+ * date backwards for local times between 00:00 and the UTC offset.
+ */
+export function todayBerlinISO(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+}

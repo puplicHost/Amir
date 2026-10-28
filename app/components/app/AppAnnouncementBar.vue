@@ -67,9 +67,14 @@ function prev() {
   currentIndex.value = (currentIndex.value - 1 + activeItems.value.length) % activeItems.value.length
 }
 
+const reducedMotion = ref(false)
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+  reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 function startTimer() {
   stopTimer()
-  if (activeItems.value.length > 1) {
+  if (activeItems.value.length > 1 && !reducedMotion.value) {
     timer = setInterval(() => {
       next()
     }, 5000)
@@ -92,19 +97,21 @@ function dismiss() {
   <div
     v-if="isBarVisible"
     data-site-announce
-    class="relative z-50 flex h-8 w-full items-center justify-between px-4 text-[11px] font-medium tracking-wide bg-[#050808] text-white border-b border-[#303636] print:hidden"
+    class="relative z-50 flex min-h-11 w-full items-center justify-between px-2 sm:px-4 text-[11px] font-medium tracking-wide bg-[#050808] text-white border-b border-[#303636] print:hidden"
     @mouseenter="stopTimer"
     @mouseleave="startTimer"
+    @focusin="stopTimer"
+    @focusout="startTimer"
   >
     <div class="flex items-center">
       <button
         v-if="activeItems.length > 1"
         type="button"
-        class="hidden sm:flex h-6 w-6 items-center justify-center text-white/60 hover:text-white transition-colors"
-        aria-label="Previous"
+        class="flex h-11 w-11 items-center justify-center text-white/60 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        :aria-label="t('common.previous')"
         @click="prev"
       >
-        <ChevronLeft class="h-3.5 w-3.5" />
+        <ChevronLeft class="h-3.5 w-3.5" aria-hidden="true" />
       </button>
     </div>
 
@@ -150,24 +157,24 @@ function dismiss() {
       </Transition>
     </div>
 
-    <div class="flex items-center gap-1">
+    <div class="flex items-center">
       <button
         v-if="activeItems.length > 1"
         type="button"
-        class="hidden sm:flex h-6 w-6 items-center justify-center text-white/60 hover:text-white transition-colors"
-        aria-label="Next"
+        class="flex h-11 w-11 items-center justify-center text-white/60 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        :aria-label="t('common.next')"
         @click="next"
       >
-        <ChevronRight class="h-3.5 w-3.5" />
+        <ChevronRight class="h-3.5 w-3.5" aria-hidden="true" />
       </button>
 
       <button
         type="button"
-        class="flex h-6 w-6 items-center justify-center text-white/60 hover:text-white transition-colors ms-1"
+        class="flex h-11 w-11 items-center justify-center text-white/60 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ms-1"
         :aria-label="t('common.close')"
         @click="dismiss"
       >
-        <X class="h-3.5 w-3.5" />
+        <X class="h-3.5 w-3.5" aria-hidden="true" />
       </button>
     </div>
   </div>

@@ -4,7 +4,8 @@ import Stripe from 'stripe'
 import { decryptData } from './encryption.ts'
 import { decideConfirmation, isExpectedAmount } from './booking-confirm.ts'
 import { sendMetaCapiEvent } from './meta-capi.ts'
-import { notifyAdmins } from './admin-notifications.ts'
+import { notifyAdmins, notifyUser } from './admin-notifications.ts'
+import { queueBookingMail } from './outbox.ts'
 import { overlaps, tzDayStr } from './booking-slots.ts'
 
 export interface BookingSettings {
@@ -13,6 +14,7 @@ export interface BookingSettings {
   depositPercent: number
   timezone: string
   currency: string
+  bookingMinLeadMin: number
 }
 
 export async function getBookingSettings(): Promise<BookingSettings> {
@@ -23,6 +25,7 @@ export async function getBookingSettings(): Promise<BookingSettings> {
     depositPercent: s?.depositPercent ?? 50,
     timezone: s?.timezone || 'Europe/Berlin',
     currency: s?.defaultCurrency || 'EUR',
+    bookingMinLeadMin: (s as any)?.bookingMinLeadMin ?? 120,
   }
 }
 
@@ -31,13 +34,32 @@ export interface GatewayStatus {
   paypal: boolean
 }
 
-/** Which gateways can actually take money right now (switch on + keys stored). */
-export async function getGatewayStatus(): Promise<GatewayStatus> {
-  const s = await prisma.siteSettings.findFirst()
+export interface GatewaySettings {
+  stripeEnabled?: boolean | null
+  stripeSecretKey?: string | null
+  paypalEnabled?: boolean | null
+  paypalClientId?: string | null
+  paypalSecret?: string | null
+}
+
+/**
+ * Pure gateway availability check.
+ *
+ * Stripe Checkout is created server-side and redirected to, so only the
+ * secret key is required to take a deposit; the publishable key is used by
+ * client-side Elements, which this flow does not use. Requiring it here
+ * silently disabled online booking for stores that only stored the secret.
+ */
+export function gatewayStatusFromSettings(s: GatewaySettings | null | undefined): GatewayStatus {
   return {
-    stripe: !!s?.stripeEnabled && !!s?.stripePublishableKey && !!s?.stripeSecretKey,
+    stripe: !!s?.stripeEnabled && !!s?.stripeSecretKey,
     paypal: !!s?.paypalEnabled && !!s?.paypalClientId && !!s?.paypalSecret,
   }
+}
+
+/** Which gateways can actually take money right now (switch on + keys stored). */
+export async function getGatewayStatus(): Promise<GatewayStatus> {
+  return gatewayStatusFromSettings(await prisma.siteSettings.findFirst())
 }
 
 function mustDecrypt(label: string, stored: string | null | undefined): string {
@@ -61,13 +83,13 @@ export interface StripeConfig {
 /** Stripe client from encrypted settings. Throws 503 when not configured. */
 export async function getStripeConfig(): Promise<StripeConfig> {
   const s = await prisma.siteSettings.findFirst()
-  if (!s?.stripeEnabled || !s?.stripePublishableKey || !s?.stripeSecretKey) {
+  if (!s?.stripeEnabled || !s?.stripeSecretKey) {
     throw createError({ statusCode: 503, statusMessage: 'Stripe not configured' })
   }
   const secretKey = mustDecrypt('Stripe secret key', s.stripeSecretKey)
   return {
     client: new Stripe(secretKey),
-    publishableKey: s.stripePublishableKey,
+    publishableKey: s.stripePublishableKey || '',
     webhookSecret: s.stripeWebhookSecret ? mustDecrypt('Stripe webhook secret', s.stripeWebhookSecret) : null,
   }
 }
@@ -134,12 +156,40 @@ export interface ConfirmResult {
     providerRef: string | null
     depositCents: number
     startsAt: Date
+    assignedStaffId: string | null
+    status: string
   } | null
+}
+
+function toConfirmBooking(b: {
+  id: string
+  bookingNumber: string
+  serviceId: string
+  paymentStatus: string
+  providerRef: string | null
+  depositCents: number
+  startsAt: Date
+  assignedStaffId: string | null
+  status: string
+}): ConfirmResult['booking'] {
+  return {
+    id: b.id,
+    bookingNumber: b.bookingNumber,
+    serviceId: b.serviceId,
+    paymentStatus: b.paymentStatus,
+    providerRef: b.providerRef,
+    depositCents: b.depositCents,
+    startsAt: b.startsAt,
+    assignedStaffId: b.assignedStaffId,
+    status: b.status,
+  }
 }
 
 export interface PaymentProof {
   amountCents: number | null
   currency: string | null
+  /** Stripe payment_intent or PayPal capture id (Roadmap Phase 8: refunds). */
+  paymentId?: string | null
 }
 
 async function flagForRefund(
@@ -175,12 +225,33 @@ export async function confirmBookingPaid(
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } })
   if (!booking) return { decision: 'missing', booking: null }
   if (booking.paymentStatus === 'PAID') return { decision: 'already-paid', booking: null }
+  // Roadmap Phase 8: money arriving for a cancelled booking can never be
+  // honored — flag for manual refund instead of confirming.
+  if (booking.status === 'CANCELLED' || (booking as any).cancelledAt) {
+    await flagForRefund(booking.id, providerRef, booking.bookingNumber, booking.depositCents)
+    return { decision: 'flag-refund', booking: null }
+  }
 
   const settings = await getBookingSettings()
   if (proof && !isExpectedAmount(proof.amountCents, proof.currency, booking.depositCents, settings.currency)) {
     await flagForRefund(booking.id, providerRef, booking.bookingNumber, booking.depositCents)
     return { decision: 'flag-refund', booking: null }
   }
+
+  // Staff-level blocker filter shared by both paths below: the booking's own
+  // staff (or its service for legacy staff-less rows) plus legacy unassigned
+  // rows of the same service. Legacy rows block every staff member.
+  const staffBlockerOr = booking.assignedStaffId
+    ? [
+        { assignedStaffId: booking.assignedStaffId, paymentStatus: 'PAID' },
+        { assignedStaffId: booking.assignedStaffId, paymentStatus: 'PENDING', holdExpiresAt: { gt: new Date() } },
+        { assignedStaffId: null, serviceId: booking.serviceId, paymentStatus: 'PAID' },
+        { assignedStaffId: null, serviceId: booking.serviceId, paymentStatus: 'PENDING', holdExpiresAt: { gt: new Date() } },
+      ]
+    : [
+        { serviceId: booking.serviceId, paymentStatus: 'PAID' },
+        { serviceId: booking.serviceId, paymentStatus: 'PENDING', holdExpiresAt: { gt: new Date() } },
+      ]
 
   if (booking.paymentStatus === 'PENDING') {
     if (providerRef && booking.providerRef && providerRef !== booking.providerRef) {
@@ -189,31 +260,58 @@ export async function confirmBookingPaid(
       await flagForRefund(booking.id, null, booking.bookingNumber, booking.depositCents)
       return { decision: 'flag-refund', booking: null }
     }
-    const flipped = await prisma.booking.updateMany({
-      where: { id: booking.id, paymentStatus: 'PENDING' },
-      data: {
-        paymentStatus: 'PAID',
-        ...(providerRef ? { providerRef } : {}),
-        holdExpiresAt: null,
-        needsRefund: false,
-      },
+    const startMs = booking.startsAt.getTime()
+    const endMs = startMs + booking.durationMinSnapshot * 60000
+    const dayStr = tzDayStr(startMs, settings.timezone)
+    // Single salon+day lock (Roadmap Phase 4): creation, assignment and
+    // confirmation serialize on the same lock, so "any staff" checks spanning
+    // several staff members cannot deadlock.
+    const outcome = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('salon'), hashtext(${dayStr}))`
+      let free = true
+      if (booking.assignedStaffId) {
+        const blockers = await tx.booking.findMany({
+          where: {
+            id: { not: booking.id },
+            status: { not: 'CANCELLED' },
+            startsAt: { lt: new Date(endMs), gte: new Date(startMs - 1440 * 60000) },
+            OR: staffBlockerOr,
+          },
+          select: { startsAt: true, durationMinSnapshot: true },
+        })
+        free = !blockers.some((c) => {
+          const cEnd = c.startsAt.getTime() + c.durationMinSnapshot * 60000
+          return overlaps(startMs, endMs, c.startsAt.getTime(), cEnd)
+        })
+      }
+      const shouldAssign = free && booking.assignedStaffId && booking.status === 'UNASSIGNED'
+      const flipped = await tx.booking.updateMany({
+        where: { id: booking.id, paymentStatus: 'PENDING' },
+        data: {
+          paymentStatus: 'PAID',
+          ...(providerRef ? { providerRef } : {}),
+          ...(proof?.paymentId ? { providerPaymentId: proof.paymentId } : {}),
+          holdExpiresAt: null,
+          needsRefund: false,
+          ...(shouldAssign ? { status: 'ASSIGNED' } : {}),
+        },
+      })
+      if (flipped.count === 0) return 'lost-race' as const
+      if (shouldAssign) {
+        await tx.bookingAssignment.create({
+          data: {
+            bookingId: booking.id,
+            staffId: booking.assignedStaffId!,
+            assignedById: 'system',
+            assignedAt: new Date(),
+          },
+        })
+      }
+      return 'confirmed' as const
     })
-    if (flipped.count === 0) return { decision: 'already-paid', booking: null }
+    if (outcome === 'lost-race') return { decision: 'already-paid', booking: null }
     const fresh = await prisma.booking.findUnique({ where: { id: booking.id } })
-    return {
-      decision: 'confirm',
-      booking: fresh
-        ? {
-            id: fresh.id,
-            bookingNumber: fresh.bookingNumber,
-            serviceId: fresh.serviceId,
-            paymentStatus: fresh.paymentStatus,
-            providerRef: fresh.providerRef,
-            depositCents: fresh.depositCents,
-            startsAt: fresh.startsAt,
-          }
-        : null,
-    }
+    return { decision: 'confirm', booking: fresh ? toConfirmBooking(fresh) : null }
   }
 
   if (booking.paymentStatus === 'EXPIRED' || booking.paymentStatus === 'FAILED') {
@@ -221,17 +319,14 @@ export async function confirmBookingPaid(
     const endMs = startMs + booking.durationMinSnapshot * 60000
     const now = new Date()
     const dayStr = tzDayStr(startMs, settings.timezone)
-    const free = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${booking.serviceId}), hashtext(${dayStr}))`
+    const outcome = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('salon'), hashtext(${dayStr}))`
       const candidates = await tx.booking.findMany({
         where: {
-          serviceId: booking.serviceId,
           startsAt: { lt: new Date(endMs), gte: new Date(startMs - 1440 * 60000) },
+          status: { not: 'CANCELLED' },
           id: { not: booking.id },
-          OR: [
-            { paymentStatus: 'PAID' },
-            { paymentStatus: 'PENDING', holdExpiresAt: { gt: now } },
-          ],
+          OR: staffBlockerOr,
         },
         select: { startsAt: true, durationMinSnapshot: true },
       })
@@ -239,37 +334,39 @@ export async function confirmBookingPaid(
         const cEnd = c.startsAt.getTime() + c.durationMinSnapshot * 60000
         return overlaps(startMs, endMs, c.startsAt.getTime(), cEnd)
       })
-      return !isClash
+      if (isClash) return 'taken' as const
+      const shouldAssign = booking.assignedStaffId && booking.status !== 'ASSIGNED'
+      const flipped = await tx.booking.updateMany({
+        where: { id: booking.id, paymentStatus: { in: ['EXPIRED', 'FAILED'] } },
+        data: {
+          paymentStatus: 'PAID',
+          ...(providerRef ? { providerRef } : {}),
+          ...(proof?.paymentId ? { providerPaymentId: proof.paymentId } : {}),
+          holdExpiresAt: null,
+          needsRefund: false,
+          ...(shouldAssign ? { status: 'ASSIGNED' } : {}),
+        },
+      })
+      if (flipped.count === 0) return 'lost-race' as const
+      if (shouldAssign) {
+        await tx.bookingAssignment.create({
+          data: {
+            bookingId: booking.id,
+            staffId: booking.assignedStaffId!,
+            assignedById: 'system',
+            assignedAt: new Date(),
+          },
+        })
+      }
+      return 'confirmed' as const
     })
-    if (!free) {
+    if (outcome === 'taken') {
       await flagForRefund(booking.id, providerRef, booking.bookingNumber, booking.depositCents)
       return { decision: 'flag-refund', booking: null }
     }
-    const flipped = await prisma.booking.updateMany({
-      where: { id: booking.id, paymentStatus: { in: ['EXPIRED', 'FAILED'] } },
-      data: {
-        paymentStatus: 'PAID',
-        ...(providerRef ? { providerRef } : {}),
-        holdExpiresAt: null,
-        needsRefund: false,
-      },
-    })
-    if (flipped.count === 0) return { decision: 'already-paid', booking: null }
+    if (outcome === 'lost-race') return { decision: 'already-paid', booking: null }
     const fresh = await prisma.booking.findUnique({ where: { id: booking.id } })
-    return {
-      decision: 'confirm',
-      booking: fresh
-        ? {
-            id: fresh.id,
-            bookingNumber: fresh.bookingNumber,
-            serviceId: fresh.serviceId,
-            paymentStatus: fresh.paymentStatus,
-            providerRef: fresh.providerRef,
-            depositCents: fresh.depositCents,
-            startsAt: fresh.startsAt,
-          }
-        : null,
-    }
+    return { decision: 'confirm', booking: fresh ? toConfirmBooking(fresh) : null }
   }
 
   return { decision: 'mismatch', booking: null }
@@ -294,35 +391,59 @@ export async function finalizePaidBooking(input: {
   currency: string
 }): Promise<void> {
   try {
-    await sendMetaCapiEvent({
-      eventName: 'Purchase',
-      eventId: purchaseEventId(input.bookingId),
-      value: input.depositCents / 100,
-      currency: input.currency,
-    })
-
     const booking = await prisma.booking.findUnique({
       where: { id: input.bookingId },
       include: { service: { select: { name: true } } },
     })
-    if (booking) {
-      const dtBerlin = new Date(booking.startsAt).toLocaleString('de-DE', {
-        timeZone: 'Europe/Berlin',
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
+    if (!booking) return
+
+    // Meta CAPI is gated on explicit marketing consent: without it we send no
+    // server-side Purchase event and no (hashed) customer identifiers.
+    if (booking.marketingConsent) {
+      await sendMetaCapiEvent({
+        eventName: 'Purchase',
+        eventId: purchaseEventId(booking.id),
+        value: input.depositCents / 100,
+        currency: input.currency,
+        email: booking.customerEmail,
+        phone: booking.customerPhone,
+        fbp: booking.fbp,
+        fbc: booking.fbc,
       })
-      await notifyAdmins({
-        type: 'new_booking',
+    }
+
+    const dtBerlin = new Date(booking.startsAt).toLocaleString('de-DE', {
+      timeZone: 'Europe/Berlin',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    await notifyAdmins({
+      type: 'new_booking',
+      relatedEntityId: booking.id,
+      url: `/admin/bookings/${booking.id}`,
+      titleEn: `New booking (${booking.bookingNumber})`,
+      titleAr: `Neue Buchung (${booking.bookingNumber})`,
+      bodyEn: `${booking.service.name} · ${dtBerlin}`,
+      bodyAr: `${booking.service.name} · ${dtBerlin}`,
+    })
+    // Roadmap Phase 4: the customer-chosen staff member is notified
+    // directly on auto-assignment (sanitized, no customer PII).
+    if (booking.status === 'ASSIGNED' && booking.assignedStaffId) {
+      await notifyUser(booking.assignedStaffId, {
+        type: 'booking_assigned',
         relatedEntityId: booking.id,
-        url: `/admin/bookings/${booking.id}`,
-        titleEn: `New booking (${booking.bookingNumber})`,
-        titleAr: `Neue Buchung (${booking.bookingNumber})`,
+        url: '/admin/appointments?tab=my-bookings',
+        titleEn: `New booking assigned (${booking.bookingNumber})`,
+        titleAr: `Neuer Termin zugewiesen (${booking.bookingNumber})`,
         bodyEn: `${booking.service.name} · ${dtBerlin}`,
         bodyAr: `${booking.service.name} · ${dtBerlin}`,
       })
     }
+    // Roadmap Phase 7: customer confirmation mail (deduplicated outbox;
+    // skipped silently when the guest left no email).
+    await queueBookingMail(booking.id, 'booking_confirmed')
   }
   catch (e) {
     console.warn('[booking] finalize side effects failed:', (e as Error)?.message || e)

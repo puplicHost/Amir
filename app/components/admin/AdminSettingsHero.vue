@@ -147,27 +147,27 @@ async function saveInterval() {
 </script>
 
 <template>
-  <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
-    <h2 class="mb-1 font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+  <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
+    <h2 class="mb-1 font-heading text-base font-bold text-neutral-900 dark:text-neutral-100">
       {{ t('admin.hero.title') }}
     </h2>
-    <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">
+    <p class="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
       {{ t('admin.hero.desc') }}
     </p>
 
     <!-- Multi-file picker + drag-and-drop -->
     <label
-      class="group flex cursor-pointer items-center gap-3 rounded-md border border-dashed p-3 transition-colors hover:border-[#2B71AE] hover:bg-slate-50 dark:hover:bg-slate-800/50"
+      class="group flex cursor-pointer items-center gap-3 rounded-md border border-dashed p-3 transition-colors hover:border-primary hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
       :class="{ 'pointer-events-none opacity-50': !canManage || !remaining }"
-      :style="{ borderColor: dragOver ? '#2B71AE' : 'var(--color-border)' }"
+      :style="{ borderColor: dragOver ? 'rgb(var(--primary))' : 'var(--color-border)' }"
       @dragover.prevent="dragOver = true"
       @dragleave="dragOver = false"
       @drop="onDrop"
     >
-      <span class="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-slate-100 text-slate-400 dark:bg-[#0B1520]">
+      <span class="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-neutral-100 text-neutral-400 dark:bg-bg">
         <UploadCloud class="h-5 w-5" aria-hidden="true" />
       </span>
-      <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">
+      <span class="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
         {{ t('admin.hero.picker') }} ({{ t('admin.hero.dropHint') }})
       </span>
       <input
@@ -185,10 +185,10 @@ async function saveInterval() {
 
     <!-- Per-file upload status -->
     <ul v-if="uploads.length" class="mt-2 space-y-1 text-xs" aria-live="polite">
-      <li v-for="u in uploads" :key="u.name" class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+      <li v-for="u in uploads" :key="u.name" class="flex items-center gap-2 text-neutral-600 dark:text-neutral-300">
         <Loader2 v-if="u.state === 'uploading' || u.state === 'queued'" class="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
         <span class="truncate font-medium">{{ u.name }}</span>
-        <span class="shrink-0 text-slate-400">
+        <span class="shrink-0 text-neutral-400">
           {{ u.state === 'done' ? t('admin.hero.saved') : u.state === 'error' ? (u.error || t('admin.hero.uploadFailed')) : t('admin.hero.uploading') }}
         </span>
       </li>
@@ -218,7 +218,7 @@ async function saveInterval() {
           </div>
           <div class="min-w-0 flex-1 space-y-2">
             <label class="block">
-              <span class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+              <span class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400">
                 {{ t('admin.hero.altLabel') }}
               </span>
               <input
@@ -227,17 +227,17 @@ async function saveInterval() {
                 maxlength="200"
                 :placeholder="t('admin.hero.altPlaceholder')"
                 :disabled="!canManage || savingId === s.id"
-                class="h-9 w-full rounded-md border bg-transparent px-2.5 text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 disabled:opacity-50"
+                class="h-11 w-full rounded-md border bg-transparent px-2.5 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                 :style="{ borderColor: 'var(--color-border)' }"
                 @change="saveSlide(s, { altText: ($event.target as HTMLInputElement).value })"
               />
             </label>
-            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-300">
               <input
                 type="checkbox"
                 :checked="s.isActive"
                 :disabled="!canManage || savingId === s.id"
-                class="h-4 w-4 rounded accent-[#2B71AE] disabled:opacity-50"
+                class="h-4 w-4 rounded accent-primary disabled:opacity-50"
                 @change="saveSlide(s, { isActive: ($event.target as HTMLInputElement).checked })"
               />
               <span>{{ t('admin.hero.active') }}</span>
@@ -248,7 +248,7 @@ async function saveInterval() {
                 :disabled="!canManage || i === 0"
                 :title="t('admin.hero.moveUp')"
                 :aria-label="`${t('admin.hero.moveUp')} (${s.altText || s.imagePath})`"
-                class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-30 dark:text-slate-300 dark:hover:bg-slate-800"
+                class="inline-flex h-11 w-8 items-center justify-center rounded text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-30 dark:text-neutral-300 dark:hover:bg-neutral-800"
                 @click="move(s, -1)"
               >
                 <ArrowUp class="h-4 w-4" aria-hidden="true" />
@@ -258,7 +258,7 @@ async function saveInterval() {
                 :disabled="!canManage || i === slides.length - 1"
                 :title="t('admin.hero.moveDown')"
                 :aria-label="`${t('admin.hero.moveDown')} (${s.altText || s.imagePath})`"
-                class="inline-flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-30 dark:text-slate-300 dark:hover:bg-slate-800"
+                class="inline-flex h-11 w-8 items-center justify-center rounded text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-30 dark:text-neutral-300 dark:hover:bg-neutral-800"
                 @click="move(s, 1)"
               >
                 <ArrowDown class="h-4 w-4" aria-hidden="true" />
@@ -268,7 +268,7 @@ async function saveInterval() {
                 :disabled="!canManage || deletingId === s.id"
                 :title="t('admin.hero.delete')"
                 :aria-label="`${t('admin.hero.delete')} (${s.altText || s.imagePath})`"
-                class="inline-flex h-8 w-8 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                class="inline-flex h-11 w-8 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950/40"
                 @click="removeSlide(s)"
               >
                 <Trash2 class="h-4 w-4" aria-hidden="true" />
@@ -281,13 +281,13 @@ async function saveInterval() {
 
     <!-- Empty state -->
     <div v-else class="mt-4 rounded-md border border-dashed p-6 text-center" :style="{ borderColor: 'var(--color-border)' }">
-      <ImageIcon class="mx-auto mb-2 h-8 w-8 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-      <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('admin.hero.empty') }}</p>
+      <ImageIcon class="mx-auto mb-2 h-8 w-8 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ t('admin.hero.empty') }}</p>
     </div>
 
     <!-- Interval -->
     <div class="mt-4 border-t pt-4" :style="{ borderColor: 'var(--color-border)' }">
-      <label class="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+      <label class="flex flex-wrap items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-300">
         <span>{{ t('admin.hero.intervalLabel') }}</span>
         <input
           v-model.number="intervalSec"
@@ -296,12 +296,12 @@ async function saveInterval() {
           max="15"
           step="1"
           :disabled="!canManage || savingInterval"
-          class="h-9 w-20 rounded-md border bg-transparent px-2 text-center text-xs transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 disabled:opacity-50"
+          class="h-11 w-20 rounded-md border bg-transparent px-2 text-center text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
           :style="{ borderColor: 'var(--color-border)' }"
           @change="saveInterval"
         />
       </label>
-      <p class="mt-1.5 text-[11px] text-slate-400">{{ t('admin.hero.intervalHint') }}</p>
+      <p class="mt-1.5 text-[11px] text-neutral-400">{{ t('admin.hero.intervalHint') }}</p>
     </div>
   </div>
 </template>

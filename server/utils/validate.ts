@@ -72,13 +72,16 @@ export const workingHoursUpdateSchema = z.object({
   days: z.array(workingHoursDaySchema).min(1).max(7),
 })
 
-// ── Salon booking (Phase 2c, guest) ──
+// ── Salon booking (Phase 2c, guest; staff choice since Roadmap Phase 4) ──
 export const bookingCreateSchema = z.object({
   serviceSlug: z.string().trim().min(1).max(160),
   customerName: z.string().trim().min(2).max(120),
   customerPhone: salonPhone,
   customerEmail: z.string().trim().email().max(160).nullish().or(z.literal('')),
   startsAt: z.string().trim().datetime({ offset: true }),
+  locale: z.enum(['de', 'en']).nullish(),
+  whatsappReminder: z.boolean().optional(),
+  staffId: z.string().trim().min(1).max(100).nullish().or(z.literal('')),
   note: z.string().trim().max(1000).nullish(),
   idempotencyKey: z.string().trim().uuid().nullish(),
   marketingConsent: z.boolean().optional(),
@@ -104,6 +107,98 @@ export const refundHandledSchema = z.object({
   note: z.string().trim().max(500).optional(),
 })
 
+// ── Manual booking + reschedule (Roadmap Phase 5) ──
+export const manualSourceEnum = z.enum(['WALK_IN', 'WHATSAPP', 'PHONE'])
+export const manualPaymentModeEnum = z.enum(['paid_in_salon', 'pending', 'pay_link'])
+
+export const manualBookingSchema = z.object({
+  serviceId: z.string().trim().min(1).max(100),
+  staffId: z.string().trim().min(1).max(100).nullish().or(z.literal('')),
+  startsAt: z.string().trim().datetime({ offset: true }),
+  customerName: z.string().trim().min(2).max(120),
+  customerPhone: salonPhone,
+  customerEmail: z.string().trim().email().max(160).nullish().or(z.literal('')),
+  note: z.string().trim().max(1000).nullish(),
+  source: manualSourceEnum,
+  paymentMode: manualPaymentModeEnum,
+  paymentMethod: z.enum(['cash', 'card']).nullish(),
+})
+
+export const bookingRescheduleSchema = z.object({
+  startsAt: z.string().trim().datetime({ offset: true }),
+  staffId: z.string().trim().min(1).max(100).nullish().or(z.literal('')),
+})
+
+// ── Staff booking admin (Roadmap Phase 4) ──
+export const staffProfileSchema = z.object({
+  displayName: z.string().trim().min(2).max(120),
+  imagePath: z.string().trim().max(500).nullable().optional(),
+  isBookable: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(100000).optional(),
+})
+
+export const staffServicesSchema = z.object({
+  // Empty array = staff performs all services (default).
+  serviceIds: z.array(z.string().trim().min(1).max(100)).max(200),
+})
+
+export const staffScheduleUpdateSchema = z.object({
+  days: z.array(workingHoursDaySchema).min(1).max(7),
+})
+
+export const staffTimeOffCreateSchema = z.object({
+  startsAt: z.string().trim().datetime({ offset: true }),
+  endsAt: z.string().trim().datetime({ offset: true }),
+  reason: z.string().trim().max(500).nullish(),
+}).refine(d => Date.parse(d.endsAt) > Date.parse(d.startsAt), {
+  message: 'endsAt must be after startsAt',
+})
+
+export const salonClosureCreateSchema = z.object({
+  day: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'day must be YYYY-MM-DD'),
+  reason: z.string().trim().max(500).nullish(),
+})
+
+// ── Salon expenses (Roadmap Phase 10) ──
+export const expenseCategorySchema = z.object({
+  nameDe: z.string().trim().min(2).max(120),
+  nameEn: z.string().trim().min(2).max(120),
+  isActive: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(100000).optional(),
+})
+
+export const expenseSchema = z.object({
+  day: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'day must be YYYY-MM-DD'),
+  categoryId: z.string().trim().min(1).max(100),
+  amountEur: z.coerce.number().min(0.01).max(10000000),
+  description: z.string().trim().max(1000).nullish(),
+  vendor: z.string().trim().max(160).nullish(),
+  payMethod: z.enum(['cash', 'card', 'transfer', 'other']).optional(),
+  taxPercent: z.coerce.number().int().min(0).max(100).nullish(),
+})
+
+// ── Customer mail settings (Roadmap Phase 7) ──
+export const mailSettingsSchema = z.object({
+  mailProvider: z.enum(['log', 'http']).optional(),
+  mailFrom: z.string().trim().email().max(160).nullable().optional().or(z.literal('')),
+  mailFromName: z.string().trim().max(160).nullable().optional().or(z.literal('')),
+  mailHttpEndpoint: z.string().trim().url().max(500).nullable().optional().or(z.literal('')),
+  mailHttpKey: z.string().trim().max(1000).nullable().optional().or(z.literal('')),
+})
+
+export const testEmailSchema = z.object({
+  to: z.string().trim().email().max(160),
+})
+
+// ── Staff absence (Roadmap Phase 6) ──
+export const staffUnavailableSchema = z.object({
+  from: z.string().trim().datetime({ offset: true }),
+  to: z.string().trim().datetime({ offset: true }),
+  reason: z.string().trim().max(500).nullish(),
+}).refine(d => Date.parse(d.to) > Date.parse(d.from), {
+  message: 'to must be after from',
+})
+
 // ── Salon booking/payment settings (Phase 2b) ──
 export const paymentSettingsSchema = z.object({
   stripeEnabled: z.boolean().optional(),
@@ -125,6 +220,13 @@ export const bookingSettingsSchema = z.object({
   holdTtlMin: z.coerce.number().int().min(5).max(120).optional(),
   depositPercent: z.coerce.number().int().min(1).max(100).optional(),
   timezone: z.string().trim().max(60).optional(),
+  bookingMinLeadMin: z.coerce.number().int().min(0).max(1440).optional(),
+  manualHoldTtlMin: z.coerce.number().int().min(30).max(10080).optional(),
+  cancellationWindowHours: z.coerce.number().int().min(0).max(720).optional(),
+  reminderLeadMin: z.coerce.number().int().min(15).max(1440).optional(),
+  reminderEmailEnabled: z.boolean().optional(),
+  reassignmentWaDe: z.string().trim().max(1000).nullable().optional(),
+  reassignmentWaEn: z.string().trim().max(1000).nullable().optional(),
 })
 
 // ── Helper ──

@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { Activity, ArrowRight, FolderTree, History, Package, Wrench } from 'lucide-vue-next'
+import { Activity, ArrowRight, FolderTree, History, Package, Receipt, Users, Wrench } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
-const fetch = useRequestFetch()
 
 interface AdminActivityItem {
   id: string
@@ -20,38 +19,35 @@ interface AdminActivityItem {
 // lives on the dedicated /admin/activity page.
 const limit = 7
 
-// Client-only fetch: relative timestamps depend on wall-clock "now".
-const { data, refresh, pending } = await useAsyncData(
-  'admin-activity',
-  () => fetch<{ activities: AdminActivityItem[], total: number, page: number, pages: number }>(
-    '/api/admin/activity',
-    { params: { page: 1, limit } },
-  ),
-  { server: false },
-)
+// Shared header data (notifications + activity + inbox fetched in one group).
+const { data: headerData, invalidate, load } = useAdminHeader()
 
 const open = ref(false)
 
 let poller: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
-  poller = setInterval(() => refresh(), 30000)
+  poller = setInterval(() => { invalidate(); load() }, 30000)
 })
 onUnmounted(() => {
   if (poller) clearInterval(poller)
 })
 
-const items = computed(() => data.value?.activities || [])
-const total = computed(() => data.value?.total || 0)
+const items = computed(() => headerData.value?.activity?.activities || [])
+const total = computed(() => headerData.value?.activity?.total || 0)
 
 function activityIcon(entityType: string) {
   if (entityType === 'category') return FolderTree
   if (entityType === 'service') return Wrench
+  if (entityType === 'staff' || entityType === 'user') return Users
+  if (entityType === 'expense' || entityType === 'expense-category') return Receipt
   return Package
 }
 
 function activityLink(entry: AdminActivityItem) {
-  if (entry.entityType === 'category') return '/admin/categories'
-  if (entry.entityType === 'service') return '/admin/services'
+  if (entry.entityType === 'category') return '/admin/catalog?tab=categories'
+  if (entry.entityType === 'service') return '/admin/salon?tab=services'
+  if (entry.entityType === 'staff' || entry.entityType === 'user') return '/admin/salon?tab=team'
+  if (entry.entityType === 'expense' || entry.entityType === 'expense-category') return '/admin/finance?tab=expenses'
   return `/admin/products/${entry.entityId}/edit`
 }
 
@@ -64,6 +60,9 @@ function activityActionLabel(entry: AdminActivityItem) {
 function entityTypeLabel(entityType: string) {
   if (entityType === 'category') return locale.value === 'ar' ? 'قسم' : 'Category'
   if (entityType === 'service') return locale.value === 'ar' ? 'خدمة' : 'Service'
+  if (entityType === 'staff' || entityType === 'user') return locale.value === 'ar' ? 'موظف' : 'Staff'
+  if (entityType === 'expense') return locale.value === 'ar' ? 'مصروف' : 'Expense'
+  if (entityType === 'expense-category') return locale.value === 'ar' ? 'فئة مصروف' : 'Expense category'
   return locale.value === 'ar' ? 'منتج' : 'Product'
 }
 
@@ -96,10 +95,13 @@ function setOpen(v: boolean) {
   }
 }
 
-function toggle() {
+async function toggle() {
   const next = !open.value
   setOpen(next)
-  if (next) refresh()
+  if (next) {
+    await invalidate()
+    await load()
+  }
 }
 </script>
 
@@ -109,7 +111,7 @@ function toggle() {
       type="button"
       :aria-label="t('admin.latestActivity')"
       :title="t('admin.latestActivity')"
-      class="relative flex h-9 w-9 items-center justify-center rounded-md border text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+      class="relative flex h-11 w-9 items-center justify-center rounded-md border text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-800"
       :aria-expanded="open"
       @click="toggle"
     >
@@ -135,7 +137,7 @@ function toggle() {
     >
       <div
         v-if="open"
-        class="absolute end-0 top-full z-50 mt-2 flex max-h-[min(26rem,calc(100vh-5rem))] w-80 origin-top flex-col overflow-hidden rounded-xl border bg-white/95 shadow-2xl backdrop-blur-md sm:w-96 dark:bg-[#162032]/95"
+        class="absolute end-0 top-full z-50 mt-2 flex max-h-[min(26rem,calc(100vh-5rem))] w-80 origin-top flex-col overflow-hidden rounded-xl border bg-white/95 shadow-2xl backdrop-blur-md sm:w-96 dark:bg-neutral-900/95"
         :class="locale === 'ar' ? 'origin-top-left' : 'origin-top-right'"
         :style="{ borderColor: 'var(--color-border)' }"
         role="menu"
@@ -145,22 +147,22 @@ function toggle() {
           class="flex shrink-0 items-center justify-between border-b px-4 py-3"
           :style="{ borderColor: 'var(--color-border)' }"
         >
-          <p class="text-xs font-bold text-slate-900 dark:text-slate-100">
+          <p class="text-xs font-bold text-neutral-900 dark:text-neutral-100">
             {{ t('admin.latestActivity') }}
-            <span v-if="total" class="ms-1 font-mono text-[11px] text-slate-400">{{ total }}</span>
+            <span v-if="total" class="ms-1 font-mono text-[11px] text-neutral-400">{{ total }}</span>
           </p>
-          <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+          <span class="text-[11px] font-semibold text-neutral-400 dark:text-neutral-500">
             {{ t('admin.auditLog') }}
           </span>
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto">
-          <div v-if="pending && !items.length" class="space-y-2.5 p-4" aria-hidden="true">
+          <div v-if="!headerData.value && !items.length" class="space-y-2.5 p-4" aria-hidden="true">
             <div v-for="i in 3" :key="i" class="flex animate-pulse items-start gap-2.5">
-              <div class="mt-1 h-8 w-8 shrink-0 rounded-lg bg-slate-200 dark:bg-slate-700" />
+              <div class="mt-1 h-8 w-8 shrink-0 rounded-lg bg-neutral-200 dark:bg-neutral-700" />
               <div class="flex-1 space-y-1.5">
-                <div class="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
-                <div class="h-2.5 w-full rounded bg-slate-100 dark:bg-slate-800" />
+                <div class="h-3 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700" />
+                <div class="h-2.5 w-full rounded bg-neutral-100 dark:bg-neutral-800" />
               </div>
             </div>
           </div>
@@ -169,24 +171,24 @@ function toggle() {
             v-for="entry in items"
             :key="entry.id"
             :to="localePath(activityLink(entry))"
-            class="flex w-full items-start gap-2.5 border-b px-4 py-3 text-start transition-colors last:border-b-0 hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+            class="flex w-full items-start gap-2.5 border-b px-4 py-3 text-start transition-colors last:border-b-0 hover:bg-neutral-50 active:bg-neutral-100 dark:hover:bg-neutral-800/50 dark:active:bg-neutral-800"
             :style="{ borderColor: 'var(--color-border)' }"
             @click="setOpen(false)"
           >
             <span
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2B71AE]/10 text-[#2B71AE] dark:bg-[#2B71AE]/20 dark:text-blue-300"
+              class="flex h-11 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-neutral-300"
               aria-hidden="true"
             >
               <component :is="activityIcon(entry.entityType)" class="h-4 w-4" />
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-xs font-bold text-slate-900 dark:text-slate-100">
+              <span class="block truncate text-xs font-bold text-neutral-900 dark:text-neutral-100">
                 {{ entry.entityName }}
               </span>
-              <span class="mt-0.5 line-clamp-2 block text-[11px] text-slate-500 dark:text-slate-400">
+              <span class="mt-0.5 line-clamp-2 block text-[11px] text-neutral-500 dark:text-neutral-400">
                 {{ activityActionLabel(entry) }} · {{ entry.userName }}
               </span>
-              <span class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+              <span class="mt-1 flex items-center gap-1.5 text-[10px] text-neutral-400 dark:text-neutral-500">
                 <span>{{ entityTypeLabel(entry.entityType) }}</span>
                 <span aria-hidden="true">·</span>
                 <span>{{ formatRel(entry.createdAt) }}</span>
@@ -194,27 +196,27 @@ function toggle() {
             </span>
           </NuxtLink>
 
-          <div v-if="!pending && !items.length" class="flex flex-col items-center p-8 text-center">
-            <History class="mb-2 h-6 w-6 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">
+          <div v-if="headerData.value && !items.length" class="flex flex-col items-center p-8 text-center">
+            <History class="mb-2 h-6 w-6 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+            <p class="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
               {{ t('admin.noActivity') }}
             </p>
           </div>
         </div>
 
         <div
-          class="flex shrink-0 items-center justify-between gap-2 border-t bg-slate-50/70 px-4 py-2.5 dark:bg-slate-800/40"
+          class="flex shrink-0 items-center justify-between gap-2 border-t bg-neutral-50/70 px-4 py-2.5 dark:bg-neutral-800/40"
           :style="{ borderColor: 'var(--color-border)' }"
         >
-          <span v-if="total > limit" class="text-[11px] text-slate-500 dark:text-slate-400">
+          <span v-if="total > limit" class="text-[11px] text-neutral-500 dark:text-neutral-400">
             {{ locale === 'ar' ? `عرض أحدث ${items.length} من ${total}` : `Showing latest ${items.length} of ${total}` }}
           </span>
-          <span v-else class="text-[11px] text-slate-400 dark:text-slate-500">
+          <span v-else class="text-[11px] text-neutral-400 dark:text-neutral-500">
             {{ t('admin.latestActivities') }}
           </span>
           <NuxtLink
             :to="localePath('/admin/activity')"
-            class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#2B71AE]/10 px-3 py-1.5 text-xs font-bold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/20 dark:bg-[#F5CC07]/15 dark:text-[#F5CC07] dark:hover:bg-[#F5CC07]/25"
+            class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 dark:bg-primary/15 dark:text-primary dark:hover:bg-primary/25"
             @click="setOpen(false)"
           >
             <span>{{ t('admin.viewAllActivity') }}</span>

@@ -201,10 +201,11 @@ onBeforeUnmount(() => {
             <button
               v-if="searchQuery"
               type="button"
-              class="absolute end-2.5 p-1 text-slate-400 hover:text-text transition-colors"
+              class="absolute end-1 flex h-11 w-11 items-center justify-center text-slate-400 hover:text-text transition-colors"
+              :aria-label="t('common.clearSearch')"
               @click="searchQuery = ''"
             >
-              <RotateCcw class="h-3.5 w-3.5" />
+              <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -242,7 +243,7 @@ onBeforeUnmount(() => {
         class="rounded-2xl border border-border bg-bg p-12 sm:p-16 text-center shadow-xs"
       >
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Search class="h-8 w-8" />
+          <Search class="h-8 w-8" aria-hidden="true" />
         </div>
         <h3 class="font-heading text-xl sm:text-2xl font-bold text-text mb-2">
           {{ locale === 'de' ? 'Keine passenden Leistungen gefunden' : 'No Matching Services Found' }}
@@ -252,10 +253,10 @@ onBeforeUnmount(() => {
         </p>
         <button
           type="button"
-          class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-7 text-xs sm:text-sm font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
+          class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-7 text-xs sm:text-sm font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition cursor-pointer"
           @click="clearFilters"
         >
-          <RotateCcw class="h-4 w-4" />
+          <RotateCcw class="h-4 w-4" aria-hidden="true" />
           <span>{{ locale === 'de' ? 'Alle Leistungen anzeigen' : 'View All Services' }}</span>
         </button>
       </div>

@@ -113,16 +113,16 @@ const showMobileBottomBar = computed(() => {
   >
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
       <!-- Left: Brand Logo -->
-      <NuxtLink :to="localePath('/')" class="flex items-center shrink-0 focus-visible:outline-none">
+      <NuxtLink :to="localePath('/')" class="flex items-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2">
         <img
           src="/brand/logo-black-transparent-small.png"
-          alt="AMIR Frisur & Kosmetik Studio"
-          class="h-8 w-auto object-contain dark:hidden"
+          width="132" height="44" alt="AMIR Frisur & Kosmetik Studio"
+          class="h-11 w-auto object-contain dark:hidden"
         />
         <img
           src="/brand/logo-white-transparent-small.png"
-          alt="AMIR Frisur & Kosmetik Studio"
-          class="h-8 w-auto object-contain hidden dark:block"
+          width="132" height="44" alt="AMIR Frisur & Kosmetik Studio"
+          class="h-11 w-auto object-contain hidden dark:block"
         />
       </NuxtLink>
 
@@ -168,12 +168,13 @@ const showMobileBottomBar = computed(() => {
             </NuxtLink>
             <button
               type="button"
-              class="p-1 text-muted hover:text-brand-black dark:text-[#A6A6A6] dark:hover:text-white focus:outline-none"
-              aria-label="Toggle products categories"
+              class="flex h-11 w-11 items-center justify-center text-muted hover:text-brand-black dark:text-[#A6A6A6] dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+              :aria-label="t('nav.toggleCategories')"
               :aria-expanded="productsOpen"
+              aria-haspopup="true"
               @click="productsOpen = !productsOpen"
             >
-              <ChevronDown class="h-3.5 w-3.5 transition-transform duration-200" :class="{ 'rotate-180': productsOpen }" />
+              <ChevronDown class="h-3.5 w-3.5 transition-transform duration-200" :class="{ 'rotate-180': productsOpen }" aria-hidden="true" />
             </button>
           </div>
 
@@ -187,7 +188,7 @@ const showMobileBottomBar = computed(() => {
             leave-to-class="opacity-0 translate-y-1"
           >
             <div
-              v-if="productsOpen && categories.length > 0"
+              v-if="productsOpen"
               class="absolute left-0 top-full mt-2 w-56 rounded-[2px] border border-border dark:border-[#303636] bg-white dark:bg-[#121616] p-2 shadow-lg z-50"
             >
               <NuxtLink
@@ -244,10 +245,10 @@ const showMobileBottomBar = computed(() => {
           type="button"
           :aria-label="t('common.toggleLanguage')"
           :title="t('common.toggleLanguage')"
-          class="flex h-9 items-center gap-1.5 rounded-[2px] border border-border dark:border-[#303636] px-2.5 text-xs font-medium tracking-wider uppercase text-brand-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          class="flex h-11 items-center gap-1.5 rounded-[2px] border border-border dark:border-[#303636] px-2.5 text-xs font-medium tracking-wider uppercase text-brand-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           @click="toggleLocale"
         >
-          <Globe class="h-3.5 w-3.5" />
+          <Globe class="h-3.5 w-3.5" aria-hidden="true" />
           <span>{{ locale === 'de' ? 'EN' : 'DE' }}</span>
         </button>
 
@@ -256,14 +257,14 @@ const showMobileBottomBar = computed(() => {
           type="button"
           :aria-label="t('common.toggleTheme')"
           :title="t('common.toggleTheme')"
-          class="flex h-9 w-9 items-center justify-center rounded-[2px] border border-border dark:border-[#303636] text-brand-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          class="flex h-11 w-9 items-center justify-center rounded-[2px] border border-border dark:border-[#303636] text-brand-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           @click="toggleTheme"
         >
           <ClientOnly>
-            <Moon v-if="!isDark" class="h-4 w-4" />
-            <Sun v-else class="h-4 w-4 text-white" />
+            <Moon v-if="!isDark" class="h-4 w-4" aria-hidden="true" />
+            <Sun v-else class="h-4 w-4 text-white" aria-hidden="true" />
             <template #fallback>
-              <Moon class="h-4 w-4" />
+              <Moon class="h-4 w-4" aria-hidden="true" />
             </template>
           </ClientOnly>
         </button>
@@ -275,7 +276,7 @@ const showMobileBottomBar = computed(() => {
           :to="localePath('/services')"
           class="ml-2"
         >
-          <Calendar class="h-3.5 w-3.5" />
+          <Calendar class="h-3.5 w-3.5" aria-hidden="true" />
           <span>{{ t('nav.bookAppointment') }}</span>
         </Button>
       </div>
@@ -286,6 +287,7 @@ const showMobileBottomBar = computed(() => {
           v-if="!isLaunchMode"
           type="button"
           class="flex h-11 min-w-11 items-center justify-center rounded-[2px] border border-border dark:border-[#303636] px-2 text-xs font-medium tracking-wider uppercase text-brand-black dark:text-white"
+          :aria-label="t('nav.switchLanguage')"
           @click="toggleLocale"
         >
           {{ locale === 'de' ? 'EN' : 'DE' }}
@@ -294,12 +296,12 @@ const showMobileBottomBar = computed(() => {
         <button
           type="button"
           class="flex h-11 w-11 items-center justify-center rounded-[2px] border border-border dark:border-[#303636] text-brand-black dark:text-white"
-          :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
+          :aria-label="mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')"
           :aria-expanded="mobileOpen"
           @click="mobileOpen = !mobileOpen"
         >
-          <Menu v-if="!mobileOpen" class="h-5 w-5" />
-          <X v-else class="h-5 w-5" />
+          <Menu v-if="!mobileOpen" class="h-5 w-5" aria-hidden="true" />
+          <X v-else class="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -320,27 +322,28 @@ const showMobileBottomBar = computed(() => {
           class="fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#050808] text-brand-black dark:text-white"
           role="dialog"
           aria-modal="true"
-          aria-label="Mobile Navigation"
+          :aria-label="t('nav.mobileNav')"
+          @keydown.escape="mobileOpen = false"
         >
           <!-- Drawer Header -->
           <div class="flex h-16 items-center justify-between border-b border-border dark:border-[#303636] px-6">
             <img
               src="/brand/logo-black-transparent-small.png"
-              alt="AMIR"
-              class="h-8 w-auto object-contain dark:hidden"
+              width="132" height="44" alt="AMIR"
+              class="h-11 w-auto object-contain dark:hidden"
             />
             <img
               src="/brand/logo-white-transparent-small.png"
-              alt="AMIR"
-              class="h-8 w-auto object-contain hidden dark:block"
+              width="132" height="44" alt="AMIR"
+              class="h-11 w-auto object-contain hidden dark:block"
             />
             <button
               type="button"
               class="flex h-11 w-11 items-center justify-center rounded-[2px] border border-border dark:border-[#303636] text-brand-black dark:text-white"
-              aria-label="Close menu"
+              :aria-label="t('nav.closeMenu')"
               @click="mobileOpen = false"
             >
-              <X class="h-5 w-5" />
+              <X class="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
 
@@ -375,7 +378,7 @@ const showMobileBottomBar = computed(() => {
                 v-for="cat in categories"
                 :key="cat.id"
                 :to="localePath(`/products/${cat.slug}`)"
-                class="flex h-10 items-center text-sm text-muted dark:text-[#A6A6A6]"
+                class="flex h-11 items-center text-sm text-muted dark:text-[#A6A6A6]"
                 @click="mobileOpen = false"
               >
                 {{ cat.nameEn || cat.nameAr }}
@@ -408,7 +411,7 @@ const showMobileBottomBar = computed(() => {
               class="w-full"
               @click="mobileOpen = false"
             >
-              <Calendar class="h-4 w-4" />
+              <Calendar class="h-4 w-4" aria-hidden="true" />
               <span>{{ t('nav.bookAppointment') }}</span>
             </Button>
 
@@ -418,8 +421,8 @@ const showMobileBottomBar = computed(() => {
                 class="flex h-11 items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted dark:text-[#A6A6A6]"
                 @click="toggleTheme"
               >
-                <Moon v-if="!isDark" class="h-4 w-4" />
-                <Sun v-else class="h-4 w-4 text-white" />
+                <Moon v-if="!isDark" class="h-4 w-4" aria-hidden="true" />
+                <Sun v-else class="h-4 w-4 text-white" aria-hidden="true" />
                 <span>{{ isDark ? t('common.dark') : t('common.light') }}</span>
               </button>
 
@@ -429,7 +432,7 @@ const showMobileBottomBar = computed(() => {
                 class="flex h-11 items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted dark:text-[#A6A6A6]"
                 @click="toggleLocale"
               >
-                <Globe class="h-4 w-4" />
+                <Globe class="h-4 w-4" aria-hidden="true" />
                 <span>{{ locale === 'de' ? 'English (EN)' : 'Deutsch (DE)' }}</span>
               </button>
             </div>
@@ -443,6 +446,7 @@ const showMobileBottomBar = computed(() => {
       <div
         v-if="showMobileBottomBar"
         class="md:hidden fixed bottom-0 inset-x-0 z-30 p-3 bg-white/95 dark:bg-[#050808]/95 backdrop-blur-sm border-t border-border dark:border-[#303636]"
+        style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
       >
         <Button
           variant="solid"
@@ -450,10 +454,12 @@ const showMobileBottomBar = computed(() => {
           :to="localePath('/services')"
           class="w-full h-12 text-xs uppercase tracking-widest font-medium"
         >
-          <Calendar class="h-4 w-4" />
+          <Calendar class="h-4 w-4" aria-hidden="true" />
           <span>{{ t('nav.bookAppointment') }}</span>
         </Button>
       </div>
+      <!-- In-flow spacer so the fixed bar never covers footer content -->
+      <div v-if="showMobileBottomBar" class="md:hidden h-[84px]" aria-hidden="true" />
     </Teleport>
   </header>
 </template>

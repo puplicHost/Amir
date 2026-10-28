@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
   await notifyAdmins({
     type: 'booking_cancelled_by_staff',
     relatedEntityId: bookings[0]?.id || '',
-    url: '/admin/bookings?status=UNASSIGNED',
+    url: '/admin/appointments?tab=bookings&status=UNASSIGNED',
     titleEn: `Bookings cancelled by staff (${user.name})`,
     titleAr: `Termine von Mitarbeiter storniert (${user.name})`,
     bodyEn: `Staff ${user.name} cancelled ${bookingNumbers.join(', ')}. Reason: ${reason}`,

@@ -2,7 +2,7 @@
 import { Store } from 'lucide-vue-next'
 
 const { locale } = useI18n()
-const canManageSettings = useAdminCan('settings.manage')
+const canManageSettings = useAdminCan('settings.business')
 
 const {
   form, loading, statusMessage, isError, dirty, save, reset,
@@ -24,25 +24,25 @@ const {
 <template>
   <form class="space-y-4" @submit.prevent="save">
     <!-- Store Configuration Card -->
-    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
       <div class="mb-3 flex items-center gap-2">
-        <Store class="h-4 w-4 text-[#2B71AE]" aria-hidden="true" />
-        <h2 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100">
+        <Store class="h-4 w-4 text-primary" aria-hidden="true" />
+        <h2 class="font-heading text-base font-bold text-neutral-900 dark:text-neutral-100">
           {{ locale === 'ar' ? 'العملة والتصفح في المتجر' : 'Catalog & Currency Settings' }}
         </h2>
       </div>
 
       <div class="grid max-w-xl gap-4 sm:grid-cols-2">
         <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Default Currency Code</span>
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Default Currency Code</span>
           <input v-model="form.defaultCurrency" type="text" placeholder="EUR" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
-          <span class="mt-1 block text-[11px] text-slate-400">Default currency displayed across product pricing.</span>
+          <span class="mt-1 block text-[11px] text-neutral-400">Default currency displayed across product pricing.</span>
         </label>
 
         <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Products Per Page</span>
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Products Per Page</span>
           <input v-model.number="form.productsPerPage" type="number" min="4" max="100" :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" />
-          <span class="mt-1 block text-[11px] text-slate-400">Default number of items displayed per catalog pagination page.</span>
+          <span class="mt-1 block text-[11px] text-neutral-400">Default number of items displayed per catalog pagination page.</span>
         </label>
       </div>
     </div>
@@ -52,7 +52,7 @@ const {
       v-if="statusMessage"
       role="alert"
       aria-live="polite"
-      class="rounded-md border p-3 text-xs font-medium transition-all"
+      class="rounded-md border p-3 text-xs font-medium transition"
       :class="isError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'"
     >
       {{ statusMessage }}

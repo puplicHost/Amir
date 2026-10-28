@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       permission: 'inbox.manage',
       title: 'Neue Kundenanfrage',
       body: body.message.slice(0, 60),
-      url: '/admin/inbox',
+      url: '/admin/website?tab=inbox',
       type: 'new_contact_message',
     })
   }

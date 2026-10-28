@@ -1,8 +1,12 @@
 /**
- * Normalize an Egyptian national-format number (01XXXXXXXXX) to the
- * international format wa.me requires (20XXXXXXXXXX, no trunk zero).
- * Display text elsewhere keeps the original readable national format —
- * only the wa.me href uses this.
+ * Scope: the studio's OWN contact number only (see AppSocialLinks). That
+ * number may be stored in Egyptian national format (01XXXXXXXXX), so it is
+ * rewritten to 20XXXXXXXXXX (no trunk zero) for the wa.me href. Display text
+ * elsewhere keeps the original readable national format.
+ *
+ * Customer numbers (bookings/reminders) are German and MUST use
+ * `normalizePhoneForWa`/`waLink` from `shared/booking` instead — do not reuse
+ * this helper for them.
  */
 export function toWhatsAppIntl(raw: string | null | undefined): string {
   const digits = String(raw || '').replace(/[^0-9]/g, '')

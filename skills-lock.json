@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "ci-cd-best-practices": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "ci-cd-best-practices/SKILL.md",
+      "computedHash": "54d0b5e27e08397fea1e1edb5cd711e25fd5b9045ce816d6eb0d2533592c0fba"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
+    "jwt-security": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "jwt-security/SKILL.md",
+      "computedHash": "cba9b95813f0d847bb96ab7006aea408fb4a771ad7ee906e5282e9b27af39a00"
+    },
+    "nuxtjs-vue-typescript": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "nuxtjs-vue-typescript/SKILL.md",
+      "computedHash": "41681d0ec91cbd2a54c3ceae0cb1671a986c35be09c03b9d43fe3ad6f3ae8252"
+    },
+    "postgresql-best-practices": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "postgresql-best-practices/SKILL.md",
+      "computedHash": "c4b9c4a037c53069637ea3409455d3687990db16e0a3016ff18dada91e7c5cc3"
+    },
+    "prisma": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "prisma/SKILL.md",
+      "computedHash": "68b301772f4ce84b5b6128dfdabac298d76f009cec7c829f3bb77e7799bc173a"
+    },
+    "tailwindcss": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "tailwindcss/SKILL.md",
+      "computedHash": "51f6d4ef700306288468274f3363fcc39e0a79b2beae25d3bc56a60394eb4242"
+    },
+    "using-superpowers": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/using-superpowers/SKILL.md",
+      "computedHash": "ef8670c2a2d8e2f6ed52d6f3219759903300ca13afc5ec2e25826a735112562b"
+    }
+  }
+}

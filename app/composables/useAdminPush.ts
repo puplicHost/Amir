@@ -28,45 +28,14 @@ export async function useAdminPush() {
       }
     }
 
-    const { initializeApp, getApps, getApp } = await import('firebase/app')
-    const { getMessaging, getToken, onMessage } = await import('firebase/messaging')
-
-    const app = getApps().length
-      ? getApp()
-      : initializeApp({
-        apiKey: cfg.apiKey,
-        authDomain: cfg.authDomain,
-        projectId: cfg.projectId,
-        messagingSenderId: cfg.messagingSenderId,
-        appId: cfg.appId,
-      })
-
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    const messaging = getMessaging(app)
-    const token = await getToken(messaging, {
+    const { initFirebasePush } = await import('./useFirebasePush')
+    await initFirebasePush({
+      apiKey: cfg.apiKey,
+      authDomain: cfg.authDomain,
+      projectId: cfg.projectId,
+      messagingSenderId: cfg.messagingSenderId,
+      appId: cfg.appId,
       vapidKey: cfg.vapidKey,
-      serviceWorkerRegistration: registration,
-    })
-    if (!token) return
-
-    try {
-      await $fetch('/api/admin/notifications/register-token', {
-        method: 'POST',
-        body: { token },
-      })
-    }
-    catch {
-      console.warn('[push] Failed to register device token.')
-    }
-
-    const { push } = useAdminToast()
-    const tick = useAdminNotifTick()
-    onMessage(messaging, (payload) => {
-      const title = payload.notification?.title || (payload.data?.title as string) || 'AMIR'
-      const body = payload.notification?.body || (payload.data?.body as string) || ''
-      const url = (payload.data?.url as string) || '/admin'
-      push({ title, body, url })
-      tick.value += 1
     })
   }
   catch {

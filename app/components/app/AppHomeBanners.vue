@@ -72,7 +72,7 @@ function isFullWidth(b: any) {
         <!-- Section Content: Aligned with standard 7xl grid -->
         <div class="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24 text-center">
           <div class="mb-4 inline-flex items-center gap-1.5 rounded-full border border-cream/30 bg-cream/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-cream backdrop-blur-xs">
-            <Sparkles class="h-3.5 w-3.5" />
+            <Sparkles class="h-3.5 w-3.5" aria-hidden="true" />
             <span>{{ locale === 'ar' ? 'عرض خاص وتوريدات معتمدة' : 'Featured Industrial Offer' }}</span>
           </div>
 
@@ -87,10 +87,10 @@ function isFullWidth(b: any) {
           <NuxtLink
             v-if="btnOf(b) && b.buttonLinkValue"
             :to="localePath(b.buttonLinkValue)"
-            class="inline-flex h-12 items-center gap-2 rounded-xl bg-accent px-8 text-sm font-bold text-on-accent shadow-lg shadow-accent/20 transition-all hover:bg-accent-hover active:scale-[0.98] sm:text-base"
+            class="inline-flex h-12 items-center gap-2 rounded-xl bg-accent px-8 text-sm font-bold text-on-accent shadow-lg shadow-accent/20 transition hover:bg-accent-hover active:scale-[0.98] sm:text-base"
           >
             <span>{{ btnOf(b) }}</span>
-            <ArrowRight class="h-4 w-4 rtl:rotate-180" />
+            <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
           </NuxtLink>
         </div>
       </section>
@@ -103,7 +103,7 @@ function isFullWidth(b: any) {
       >
         <div class="mx-auto max-w-7xl">
           <div
-            class="relative mx-auto w-full overflow-hidden rounded-2xl border border-white/10 bg-navy text-white shadow-xl transition-all sm:max-w-[var(--banner-width)]"
+            class="relative mx-auto w-full overflow-hidden rounded-2xl border border-white/10 bg-navy text-white shadow-xl transition sm:max-w-[var(--banner-width)]"
             :style="{ '--banner-width': `${b.widthPercent}%`, backgroundColor: b.backgroundColor || undefined, color: b.textColor || undefined }"
           >
             <!-- Background Image -->
@@ -131,7 +131,7 @@ function isFullWidth(b: any) {
             <!-- Content -->
             <div class="relative z-10 px-6 py-10 text-center sm:px-10 sm:py-14">
               <div class="mb-3 inline-flex items-center gap-1.5 rounded-full border border-cream/30 bg-cream/10 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-cream backdrop-blur-xs">
-                <Sparkles class="h-3 w-3" />
+                <Sparkles class="h-3 w-3" aria-hidden="true" />
                 <span>{{ locale === 'ar' ? 'عرض خاص' : 'Featured Offer' }}</span>
               </div>
 
@@ -146,10 +146,10 @@ function isFullWidth(b: any) {
               <NuxtLink
                 v-if="btnOf(b) && b.buttonLinkValue"
                 :to="localePath(b.buttonLinkValue)"
-                class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-7 text-xs font-bold text-on-accent shadow-md transition-all hover:bg-accent-hover active:scale-[0.98] sm:text-sm"
+                class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-7 text-xs font-bold text-on-accent shadow-md transition hover:bg-accent-hover active:scale-[0.98] sm:text-sm"
               >
                 <span>{{ btnOf(b) }}</span>
-                <ArrowRight class="h-4 w-4 rtl:rotate-180" />
+                <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
               </NuxtLink>
             </div>
           </div>

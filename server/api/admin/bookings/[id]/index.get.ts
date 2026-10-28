@@ -28,10 +28,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
   }
 
+  const mailLog = await prisma.notificationOutbox.findMany({
+    where: { bookingId: booking.id },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: {
+      id: true, type: true, status: true, sendTo: true, subject: true,
+      attempts: true, lastError: true, sentAt: true, createdAt: true,
+    },
+  })
+
   return {
     booking: {
       ...booking,
       waLink: waLink(booking.customerPhone),
     },
+    mailLog,
   }
 })

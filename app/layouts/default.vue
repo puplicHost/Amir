@@ -19,7 +19,10 @@ const isAdminRoute = computed(() =>
     <AppAnnouncementBar v-if="!isAdminRoute" />
     <AppNavbar />
     <AppTicker />
-    <main>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-black">
+      {{ $t('nav.skipToContent') }}
+    </a>
+    <main id="main-content">
       <slot />
     </main>
     <AppFooter />

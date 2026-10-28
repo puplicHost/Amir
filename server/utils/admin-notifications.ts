@@ -45,10 +45,10 @@ export function resolveNotificationUrl(
     ? ALL_PERMISSIONS
     : getEffectivePermissions(user.role, user.permissions.map(p => p.permission))
   if (perms.includes('bookings.view_all') || perms.includes('bookings.assign')) {
-    return input.relatedEntityId ? `/admin/bookings/${input.relatedEntityId}` : '/admin/bookings'
+    return input.relatedEntityId ? `/admin/bookings/${input.relatedEntityId}` : '/admin/appointments?tab=bookings'
   }
   if (perms.includes('bookings.view_own')) {
-    return '/admin/my-bookings'
+    return '/admin/appointments?tab=my-bookings'
   }
   return '/admin/notifications'
 }

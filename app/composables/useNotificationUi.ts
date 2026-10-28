@@ -21,8 +21,8 @@ export function useNotificationUi() {
     },
     staff: {
       en: 'Staff', ar: 'الموظفون', icon: Users,
-      chip: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-      dot: 'bg-slate-400',
+      chip: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
+      dot: 'bg-neutral-400',
     },
     security: {
       en: 'Security & Alerts', ar: 'الأمان والتنبيهات', icon: ShieldAlert,

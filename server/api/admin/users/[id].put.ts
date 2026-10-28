@@ -146,7 +146,7 @@ export default defineEventHandler(async (event) => {
     await notifyAdmins({
       type: 'staff_updated',
       relatedEntityId: user.id,
-      url: '/admin/users',
+      url: '/admin/salon?tab=team&teamTab=users',
       titleEn: `Staff updated: ${user.name}`,
       titleAr: `Mitarbeiter aktualisiert: ${user.name}`,
       bodyEn: `${user.email} · ${changesEn.join(' · ')} · by ${actor.name}`,

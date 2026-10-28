@@ -20,7 +20,7 @@ const { data: general } = await useAsyncData('home-general', () => $fetch<any>('
 const { data: contact } = await useAsyncData('home-contact', () => $fetch<any>('/api/settings/contact'))
 const { data: services, pending: servicesPending } = await useAsyncData('home-services', () => $fetch<any[]>('/api/services'))
 const { data: categoryData } = await useAsyncData('home-categories', () => $fetch<{ categories: any[] } | any[]>('/api/categories/featured'))
-const { data: productData } = await useAsyncData('home-featured-products', () => $fetch<{ products: any[] }>('/api/products?limit=4'))
+const { data: productData } = await useAsyncData('home-featured-products', () => $fetch<{ products: any[] }>('/api/products/featured'))
 
 const categories = computed(() => {
   if (!categoryData.value) return []
@@ -334,10 +334,10 @@ catch { /* state not registered yet — mount layout already ran */ }
         <div class="mt-10 sm:mt-12 text-center">
           <NuxtLink
             :to="localePath('/products')"
-            class="inline-flex items-center gap-2 rounded-lg border-2 border-primary px-7 py-3 text-sm sm:text-base font-bold text-primary hover:bg-accent hover:text-on-accent active:scale-[0.98] transition-all"
+            class="inline-flex items-center gap-2 rounded-lg border-2 border-primary px-7 py-3 text-sm sm:text-base font-bold text-primary hover:bg-accent hover:text-on-accent active:scale-[0.98] transition"
           >
             <span>{{ t('home.allCategories') }}</span>
-            <ArrowRight class="h-4 w-4 rtl:rotate-180" />
+            <ArrowRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
           </NuxtLink>
         </div>
       </div>
@@ -409,7 +409,7 @@ catch { /* state not registered yet — mount layout already ran */ }
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6 items-stretch">
-          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 0ms">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-300 h-full flex flex-col" style="--reveal-delay: 0ms">
             <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">01</span>
             <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step1Title') }}
@@ -419,7 +419,7 @@ catch { /* state not registered yet — mount layout already ran */ }
             </p>
           </div>
 
-          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 70ms">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-300 h-full flex flex-col" style="--reveal-delay: 70ms">
             <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">02</span>
             <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step2Title') }}
@@ -429,7 +429,7 @@ catch { /* state not registered yet — mount layout already ran */ }
             </p>
           </div>
 
-          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 140ms">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-300 h-full flex flex-col" style="--reveal-delay: 140ms">
             <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">03</span>
             <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step3Title') }}
@@ -439,7 +439,7 @@ catch { /* state not registered yet — mount layout already ran */ }
             </p>
           </div>
 
-          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full flex flex-col" style="--reveal-delay: 210ms">
+          <div class="reveal relative rounded-lg sm:rounded-2xl bg-bg p-3 sm:p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition duration-300 h-full flex flex-col" style="--reveal-delay: 210ms">
             <span class="text-xl sm:text-3xl font-extrabold font-mono text-primary">04</span>
             <h3 class="font-heading text-sm sm:text-lg font-bold text-text mt-1 sm:mt-2 mb-1 sm:mb-2 line-clamp-2">
               {{ t('home.step4Title') }}

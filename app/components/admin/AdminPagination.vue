@@ -36,11 +36,11 @@ function goto(p: number) {
     class="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-xs sm:flex-row"
     :style="{ borderColor: 'var(--color-border)' }"
   >
-    <span class="text-slate-500">{{ summary }}</span>
+    <span class="text-neutral-500">{{ summary }}</span>
     <div class="flex items-center gap-1.5">
       <button
         type="button"
-        class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        class="inline-flex h-11 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
         :disabled="page <= 1"
         @click="goto(page - 1)"
       >
@@ -50,7 +50,7 @@ function goto(p: number) {
       </button>
       <button
         type="button"
-        class="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        class="inline-flex h-11 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
         :disabled="page >= pages"
         @click="goto(page + 1)"
       >

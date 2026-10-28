@@ -448,94 +448,94 @@ async function insertImage() {
 </script>
 
 <template>
-  <div class="rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-[#162032] overflow-hidden">
+  <div class="rounded-xl border border-neutral-200 bg-white shadow-xs dark:border-neutral-800 dark:bg-neutral-900 overflow-hidden">
     <!-- Toolbar (RTL) -->
     <div 
-      class="flex flex-wrap items-center justify-between gap-1 border-b border-slate-200/90 bg-slate-50/80 p-2 dark:border-slate-800 dark:bg-[#0B1520]"
+      class="flex flex-wrap items-center justify-between gap-1 border-b border-neutral-200/90 bg-neutral-50/80 p-2 dark:border-neutral-800 dark:bg-bg"
       :dir="dir"
     >
       <div class="flex flex-wrap items-center gap-0.5">
         <!-- B -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'عريض' : 'Bold'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'عريض' : 'Bold'" :aria-label="locale === 'ar' ? 'عريض' : 'Bold'"
           @click="exec('bold')"
         >
-          <Bold class="h-4 w-4" />
+          <Bold class="h-4 w-4" aria-hidden="true" />
         </button>
 
         <!-- I -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'مائل' : 'Italic'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'مائل' : 'Italic'" :aria-label="locale === 'ar' ? 'مائل' : 'Italic'"
           @click="exec('italic')"
         >
-          <Italic class="h-4 w-4" />
+          <Italic class="h-4 w-4" aria-hidden="true" />
         </button>
 
         <!-- U -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'تسطير' : 'Underline'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'تسطير' : 'Underline'" :aria-label="locale === 'ar' ? 'تسطير' : 'Underline'"
           @click="exec('underline')"
         >
-          <Underline class="h-4 w-4" />
+          <Underline class="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <span class="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-1 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- H2 -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'عنوان رئيسي H2' : 'Heading 2'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'عنوان رئيسي H2' : 'Heading 2'" :aria-label="locale === 'ar' ? 'عنوان رئيسي H2' : 'Heading 2'"
           @click="exec('formatBlock', '<h2>')"
         >
-          <Heading2 class="h-4 w-4" />
+          <Heading2 class="h-4 w-4" aria-hidden="true" />
         </button>
 
         <!-- H3 -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'عنوان فرعي H3' : 'Heading 3'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'عنوان فرعي H3' : 'Heading 3'" :aria-label="locale === 'ar' ? 'عنوان فرعي H3' : 'Heading 3'"
           @click="exec('formatBlock', '<h3>')"
         >
-          <Heading3 class="h-4 w-4" />
+          <Heading3 class="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <span class="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-1 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- Unordered List -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'قائمة نقطية' : 'Bullet List'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'قائمة نقطية' : 'Bullet List'" :aria-label="locale === 'ar' ? 'قائمة نقطية' : 'Bullet List'"
           @click="exec('insertUnorderedList')"
         >
-          <List class="h-4 w-4" />
+          <List class="h-4 w-4" aria-hidden="true" />
         </button>
 
         <!-- Ordered List -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'قائمة مرقمة' : 'Numbered List'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'قائمة مرقمة' : 'Numbered List'" :aria-label="locale === 'ar' ? 'قائمة مرقمة' : 'Numbered List'"
           @click="exec('insertOrderedList')"
         >
-          <ListOrdered class="h-4 w-4" />
+          <ListOrdered class="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <span class="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-1 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- Image Upload Button -->
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded bg-[#2B71AE]/10 px-2 text-xs font-bold text-[#2B71AE] hover:bg-[#2B71AE]/20 dark:bg-[#F5CC07]/15 dark:text-[#F5CC07] active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'إدراج صورة' : 'Insert Image'"
+          class="flex h-11 items-center gap-1 rounded bg-primary/10 px-2 text-xs font-bold text-primary hover:bg-primary/20 dark:bg-primary/15 dark:text-primary active:scale-95 transition"
+          :title="locale === 'ar' ? 'إدراج صورة' : 'Insert Image'" :aria-label="locale === 'ar' ? 'إدراج صورة' : 'Insert Image'"
           @click="openImageModal"
         >
           <ImageIcon class="h-3.5 w-3.5" />
@@ -545,48 +545,48 @@ async function insertImage() {
         <!-- Link -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'رابط' : 'Link'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'رابط' : 'Link'" :aria-label="locale === 'ar' ? 'رابط' : 'Link'"
           @click="promptLink"
         >
           <LinkIcon class="h-3.5 w-3.5" />
         </button>
 
-        <span class="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-1 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- Alignment -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'محاذاة يمين' : 'Align Right'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'محاذاة يمين' : 'Align Right'" :aria-label="locale === 'ar' ? 'محاذاة يمين' : 'Align Right'"
           @click="exec('justifyRight')"
         >
-          <AlignRight class="h-3.5 w-3.5" />
+          <AlignRight class="h-3.5 w-3.5" aria-hidden="true" />
         </button>
 
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'محاذاة وسط' : 'Align Center'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'محاذاة وسط' : 'Align Center'" :aria-label="locale === 'ar' ? 'محاذاة وسط' : 'Align Center'"
           @click="exec('justifyCenter')"
         >
-          <AlignCenter class="h-3.5 w-3.5" />
+          <AlignCenter class="h-3.5 w-3.5" aria-hidden="true" />
         </button>
 
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'محاذاة يسار' : 'Align Left'"
+          class="flex h-11 w-8 items-center justify-center rounded text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'محاذاة يسار' : 'Align Left'" :aria-label="locale === 'ar' ? 'محاذاة يسار' : 'Align Left'"
           @click="exec('justifyLeft')"
         >
-          <AlignLeft class="h-3.5 w-3.5" />
+          <AlignLeft class="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
 
       <!-- Preview Mode Toggle -->
       <button
         type="button"
-        class="inline-flex h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors"
+        class="inline-flex h-11 items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 transition-colors"
         @click="isPreview = !isPreview; selectedImage = null; imageBox = null"
       >
         <component :is="isPreview ? Pencil : Eye" class="h-3 w-3" />
@@ -601,7 +601,7 @@ async function insertImage() {
         v-show="!isPreview"
         ref="editorRef"
         contenteditable="true"
-        class="min-h-[320px] w-full p-4 text-sm text-slate-900 focus:outline-none dark:text-slate-100 prose prose-slate max-w-none dark:prose-invert [&_figure]:my-4 [&_figure]:cursor-pointer select-text"
+        class="min-h-[320px] w-full p-4 text-sm text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:text-neutral-100 prose prose-slate max-w-none dark:prose-invert [&_figure]:my-4 [&_figure]:cursor-pointer select-text"
         :dir="dir"
         :data-placeholder="placeholder"
         @input="onInput"
@@ -613,15 +613,15 @@ async function insertImage() {
       <!-- Rendered Customer Preview Area -->
       <div
         v-show="isPreview"
-        class="min-h-[320px] w-full bg-slate-50/50 p-4 text-sm text-slate-900 dark:bg-[#0B1520]/50 dark:text-slate-100 prose prose-slate max-w-none dark:prose-invert flow-root"
+        class="min-h-[320px] w-full bg-neutral-50/50 p-4 text-sm text-neutral-900 dark:bg-bg/50 dark:text-neutral-100 prose prose-slate max-w-none dark:prose-invert flow-root"
         :dir="dir"
-        v-html="modelValue || `<p class='text-slate-400 italic'>${locale === 'ar' ? 'لا يوجد محتوى للمعاينة' : 'No content to preview'}</p>`"
+        v-html="modelValue || `<p class='text-neutral-400 italic'>${locale === 'ar' ? 'لا يوجد محتوى للمعاينة' : 'No content to preview'}</p>`"
       />
 
       <!-- ── Google Docs Style Active Image Bounding Box & Resizers ── -->
       <div
         v-if="selectedImage && imageBox && !isPreview"
-        class="pointer-events-none absolute z-20 border-2 border-[#2B71AE] transition-all"
+        class="pointer-events-none absolute z-20 border-2 border-primary transition"
         :style="{
           top: `${imageBox.top}px`,
           left: `${imageBox.left}px`,
@@ -631,24 +631,24 @@ async function insertImage() {
       >
         <!-- Corner Resize Handles (Interactive) -->
         <div
-          class="resize-handle pointer-events-auto absolute -top-1.5 -left-1.5 h-3.5 w-3.5 cursor-nwse-resize rounded-xs border-2 border-white bg-[#2B71AE] shadow-xs active:scale-125"
+          class="resize-handle pointer-events-auto absolute -top-1.5 -left-1.5 h-3.5 w-3.5 cursor-nwse-resize rounded-xs border-2 border-white bg-primary shadow-xs active:scale-125"
           @mousedown="startResize('nw', $event)"
         />
         <div
-          class="resize-handle pointer-events-auto absolute -top-1.5 -right-1.5 h-3.5 w-3.5 cursor-nesw-resize rounded-xs border-2 border-white bg-[#2B71AE] shadow-xs active:scale-125"
+          class="resize-handle pointer-events-auto absolute -top-1.5 -right-1.5 h-3.5 w-3.5 cursor-nesw-resize rounded-xs border-2 border-white bg-primary shadow-xs active:scale-125"
           @mousedown="startResize('ne', $event)"
         />
         <div
-          class="resize-handle pointer-events-auto absolute -bottom-1.5 -left-1.5 h-3.5 w-3.5 cursor-nesw-resize rounded-xs border-2 border-white bg-[#2B71AE] shadow-xs active:scale-125"
+          class="resize-handle pointer-events-auto absolute -bottom-1.5 -left-1.5 h-3.5 w-3.5 cursor-nesw-resize rounded-xs border-2 border-white bg-primary shadow-xs active:scale-125"
           @mousedown="startResize('sw', $event)"
         />
         <div
-          class="resize-handle pointer-events-auto absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 cursor-nwse-resize rounded-xs border-2 border-white bg-[#2B71AE] shadow-xs active:scale-125"
+          class="resize-handle pointer-events-auto absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 cursor-nwse-resize rounded-xs border-2 border-white bg-primary shadow-xs active:scale-125"
           @mousedown="startResize('se', $event)"
         />
 
         <!-- Active Width Indicator Tag -->
-        <span class="absolute -top-6 start-0 rounded bg-[#2B71AE] px-1.5 py-0.5 text-[10px] font-mono font-bold text-white shadow-xs">
+        <span class="absolute -top-6 start-0 rounded bg-primary px-1.5 py-0.5 text-[10px] font-mono font-bold text-on-primary shadow-xs">
           {{ currentWidthPercent }}%
         </span>
       </div>
@@ -656,7 +656,7 @@ async function insertImage() {
       <!-- ── Google Docs Floating Toolbar (Move Up/Down / Wrapping / Width / Delete) ── -->
       <div
         v-if="selectedImage && imageBox && !isPreview"
-        class="google-docs-toolbar absolute z-30 flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl dark:border-slate-700 dark:bg-[#162032] transition-all"
+        class="google-docs-toolbar absolute z-30 flex flex-wrap items-center gap-1 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-2xl dark:border-neutral-700 dark:bg-neutral-900 transition"
         :style="{
           top: `${imageBox.top + imageBox.height + 8}px`,
           left: `${Math.max(10, Math.min(imageBox.left + (imageBox.width / 2) - 180, (editorContainerRef?.clientWidth || 700) - 370))}px`,
@@ -666,110 +666,110 @@ async function insertImage() {
         <!-- Move Up [↑] & Down [↓] buttons (like Google Docs reordering) -->
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'تحريك للأعلى (فوق النص)' : 'Move Up'"
+          class="flex h-11 w-8 items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'تحريك للأعلى (فوق النص)' : 'Move Up'" :aria-label="locale === 'ar' ? 'تحريك للأعلى (فوق النص)' : 'Move Up'"
           @click="moveImageUp"
         >
-          <ArrowUp class="h-4 w-4" />
+          <ArrowUp class="h-4 w-4" aria-hidden="true" />
         </button>
 
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'تحريك للأسفل (تحت النص)' : 'Move Down'"
+          class="flex h-11 w-8 items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
+          :title="locale === 'ar' ? 'تحريك للأسفل (تحت النص)' : 'Move Down'" :aria-label="locale === 'ar' ? 'تحريك للأسفل (تحت النص)' : 'Move Down'"
           @click="moveImageDown"
         >
-          <ArrowDown class="h-4 w-4" />
+          <ArrowDown class="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <span class="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-0.5 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- 1. Wrap Text Right -->
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all active:scale-95"
-          :class="currentWrapMode === 'wrap-right' ? 'bg-[#2B71AE] text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'"
-          :title="locale === 'ar' ? 'محاذاة يمين مع التفاف النص' : 'Wrap text right'"
+          class="flex h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition active:scale-95"
+          :class="currentWrapMode === 'wrap-right' ? 'bg-primary text-on-primary shadow-xs' : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'"
+          :title="locale === 'ar' ? 'محاذاة يمين مع التفاف النص' : 'Wrap text right'" :aria-label="locale === 'ar' ? 'محاذاة يمين مع التفاف النص' : 'Wrap text right'"
           @click="setWrapMode('wrap-right')"
         >
-          <AlignRight class="h-3.5 w-3.5" />
+          <AlignRight class="h-3.5 w-3.5" aria-hidden="true" />
           <span class="hidden sm:inline">{{ locale === 'ar' ? 'يمين' : 'Right' }}</span>
         </button>
 
         <!-- 2. Break Text / Center -->
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all active:scale-95"
-          :class="currentWrapMode === 'center' ? 'bg-[#2B71AE] text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'"
-          :title="locale === 'ar' ? 'في المنتصف (فصل النص)' : 'Break text / Center'"
+          class="flex h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition active:scale-95"
+          :class="currentWrapMode === 'center' ? 'bg-primary text-on-primary shadow-xs' : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'"
+          :title="locale === 'ar' ? 'في المنتصف (فصل النص)' : 'Break text / Center'" :aria-label="locale === 'ar' ? 'في المنتصف (فصل النص)' : 'Break text / Center'"
           @click="setWrapMode('center')"
         >
-          <AlignCenter class="h-3.5 w-3.5" />
+          <AlignCenter class="h-3.5 w-3.5" aria-hidden="true" />
           <span class="hidden sm:inline">{{ locale === 'ar' ? 'وسط' : 'Center' }}</span>
         </button>
 
         <!-- 3. Wrap Text Left -->
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all active:scale-95"
-          :class="currentWrapMode === 'wrap-left' ? 'bg-[#2B71AE] text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'"
-          :title="locale === 'ar' ? 'محاذاة يسار مع التفاف النص' : 'Wrap text left'"
+          class="flex h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition active:scale-95"
+          :class="currentWrapMode === 'wrap-left' ? 'bg-primary text-on-primary shadow-xs' : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'"
+          :title="locale === 'ar' ? 'محاذاة يسار مع التفاف النص' : 'Wrap text left'" :aria-label="locale === 'ar' ? 'محاذاة يسار مع التفاف النص' : 'Wrap text left'"
           @click="setWrapMode('wrap-left')"
         >
-          <AlignLeft class="h-3.5 w-3.5" />
+          <AlignLeft class="h-3.5 w-3.5" aria-hidden="true" />
           <span class="hidden sm:inline">{{ locale === 'ar' ? 'يسار' : 'Left' }}</span>
         </button>
 
         <!-- 4. Full Width -->
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all active:scale-95"
-          :class="currentWrapMode === 'full' ? 'bg-[#2B71AE] text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'"
-          :title="locale === 'ar' ? 'عرض كامل 100%' : 'Full width 100%'"
+          class="flex h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition active:scale-95"
+          :class="currentWrapMode === 'full' ? 'bg-primary text-on-primary shadow-xs' : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'"
+          :title="locale === 'ar' ? 'عرض كامل 100%' : 'Full width 100%'" :aria-label="locale === 'ar' ? 'عرض كامل 100%' : 'Full width 100%'"
           @click="setWrapMode('full')"
         >
-          <Maximize2 class="h-3.5 w-3.5" />
+          <Maximize2 class="h-3.5 w-3.5" aria-hidden="true" />
           <span class="hidden sm:inline">{{ locale === 'ar' ? 'عرض كامل' : '100%' }}</span>
         </button>
 
-        <span class="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-0.5 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- 5. Quick Width Selectors -->
         <button
           type="button"
-          class="flex h-7 items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          :class="currentWidthPercent === 25 ? 'bg-blue-50 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-300' : ''"
+          class="flex h-11 items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          :class="currentWidthPercent === 25 ? 'bg-neutral-50 text-primary dark:bg-neutral-950/50 dark:text-neutral-300' : ''"
           @click="setWidth(25)"
         >
           25%
         </button>
         <button
           type="button"
-          class="flex h-7 items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          :class="currentWidthPercent === 50 ? 'bg-blue-50 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-300' : ''"
+          class="flex h-11 items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          :class="currentWidthPercent === 50 ? 'bg-neutral-50 text-primary dark:bg-neutral-950/50 dark:text-neutral-300' : ''"
           @click="setWidth(50)"
         >
           50%
         </button>
         <button
           type="button"
-          class="flex h-7 items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          :class="currentWidthPercent === 75 ? 'bg-blue-50 text-[#2B71AE] dark:bg-blue-950/50 dark:text-blue-300' : ''"
+          class="flex h-11 items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          :class="currentWidthPercent === 75 ? 'bg-neutral-50 text-primary dark:bg-neutral-950/50 dark:text-neutral-300' : ''"
           @click="setWidth(75)"
         >
           75%
         </button>
 
-        <span class="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+        <span class="mx-0.5 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
 
         <!-- 6. Delete Image Button -->
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 active:scale-95 transition-all"
-          :title="locale === 'ar' ? 'حذف الصورة' : 'Delete image'"
+          class="flex h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 active:scale-95 transition"
+          :title="locale === 'ar' ? 'حذف الصورة' : 'Delete image'" :aria-label="locale === 'ar' ? 'حذف الصورة' : 'Delete image'"
           @click="deleteSelectedImage"
         >
-          <Trash2 class="h-3.5 w-3.5" />
+          <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
           <span class="hidden sm:inline">{{ locale === 'ar' ? 'حذف' : 'Delete' }}</span>
         </button>
       </div>
@@ -783,26 +783,27 @@ async function insertImage() {
       aria-modal="true"
     >
       <div 
-        class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#162032]"
+        class="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900"
         :dir="locale === 'ar' ? 'rtl' : 'ltr'"
       >
-        <div class="mb-4 flex items-center justify-between border-b pb-3 dark:border-slate-800">
-          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <ImageIcon class="h-4 w-4 text-[#2B71AE]" />
+        <div class="mb-4 flex items-center justify-between border-b pb-3 dark:border-neutral-800">
+          <h3 class="font-heading text-base font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+            <ImageIcon class="h-4 w-4 text-primary" />
             <span>{{ locale === 'ar' ? 'إدراج صورة داخل الشرح' : 'Insert Inline Image' }}</span>
           </h3>
           <button
             type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            class="flex h-11 w-7 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            :aria-label="t('common.close')"
             @click="imageModalOpen = false"
           >
-            <X class="h-4 w-4" />
+            <X class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
         <!-- Upload Zone -->
         <label
-          class="group block cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors hover:border-[#2B71AE] hover:bg-[#2B71AE]/5 dark:border-slate-700"
+          class="group block cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors hover:border-primary hover:bg-primary/5 dark:border-neutral-700"
           @dragover.prevent
           @drop="onDrop"
         >
@@ -810,11 +811,11 @@ async function insertImage() {
             <img :src="imagePreviewUrl" alt="Preview" class="h-full w-full object-contain" loading="lazy" />
           </div>
           <div v-else class="flex flex-col items-center">
-            <UploadCloud class="h-8 w-8 text-slate-400 transition-colors group-hover:text-[#2B71AE]" />
-            <span class="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <UploadCloud class="h-8 w-8 text-neutral-400 transition-colors group-hover:text-primary" aria-hidden="true" />
+            <span class="mt-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'اضغط لاختيار صورة أو اسحبها هنا' : 'Click to browse image or drag here' }}
             </span>
-            <span class="mt-1 text-[11px] text-slate-400">PNG, JPG, or WEBP (Max 2MB)</span>
+            <span class="mt-1 text-[11px] text-neutral-400">PNG, JPG, or WEBP (Max 2MB)</span>
           </div>
           <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onFileSelect" />
         </label>
@@ -826,12 +827,12 @@ async function insertImage() {
         <!-- Image Options -->
         <div class="mt-4 space-y-3">
           <label class="block">
-            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'الموضع المبدئي للصورة' : 'Initial Placement' }}
             </span>
             <select
               v-model="initialAlign"
-              class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-[#0B1520] dark:text-white"
+              class="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs text-neutral-800 dark:border-neutral-700 dark:bg-bg dark:text-white"
             >
               <option value="center">{{ locale === 'ar' ? 'في المنتصف (فصل النص)' : 'Break text / Centered' }}</option>
               <option value="right">{{ locale === 'ar' ? 'محاذاة لليمين مع التفاف النص' : 'Wrap text right' }}</option>
@@ -841,22 +842,22 @@ async function insertImage() {
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'تعليق توضيحي أسفل الصورة (اختياري)' : 'Caption (Optional)' }}
             </span>
             <input
               v-model="imageCaption"
               type="text"
               :placeholder="locale === 'ar' ? 'مثال: مخطط التوصيل للمتحكم...' : 'e.g. Pinout diagram...'"
-              class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-[#0B1520] dark:text-white"
+              class="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs text-neutral-800 dark:border-neutral-700 dark:bg-bg dark:text-white"
             />
           </label>
         </div>
 
-        <div class="mt-6 flex items-center justify-end gap-2 border-t pt-4 dark:border-slate-800">
+        <div class="mt-6 flex items-center justify-end gap-2 border-t pt-4 dark:border-neutral-800">
           <button
             type="button"
-            class="h-9 rounded-lg border border-slate-200 px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+            class="h-11 rounded-lg border border-neutral-200 px-4 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300"
             @click="imageModalOpen = false"
           >
             {{ locale === 'ar' ? 'إلغاء' : 'Cancel' }}
@@ -864,7 +865,7 @@ async function insertImage() {
           <button
             type="button"
             :disabled="!imageFile || uploadingImage"
-            class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#2B71AE] px-5 text-xs font-bold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-all"
+            class="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-xs font-bold text-on-primary hover:bg-primary/90 disabled:opacity-50 transition"
             @click="insertImage"
           >
             <span>{{ uploadingImage ? (locale === 'ar' ? 'جاري الرفع…' : 'Uploading…') : (locale === 'ar' ? 'إدراج الصورة' : 'Insert Image') }}</span>

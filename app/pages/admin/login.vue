@@ -33,7 +33,7 @@ async function login() {
     await refreshNuxtData('admin-session')
     const isStaffOnly = !res.user.isSuper && res.user.role === 'STAFF' && !res.user.permissions.includes('bookings.view_all')
     if (isStaffOnly) {
-      await navigateTo(localePath('/admin/my-bookings'))
+      await navigateTo({ path: localePath('/admin/appointments'), query: { tab: 'my-bookings' } })
     }
     else {
       await navigateTo(localePath('/admin'))
@@ -61,21 +61,22 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col justify-between bg-[#F8F9FA] px-4 py-8 dark:bg-[#0B1520]">
+  <div class="flex min-h-screen flex-col justify-between bg-surface px-4 py-8 dark:bg-bg">
     <!-- Top Bar: Back to Store & Toggles -->
     <div class="mx-auto flex w-full max-w-md items-center justify-between">
       <NuxtLink
         :to="localePath('/')"
         class="inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-brand-black dark:text-[#A6A6A6] dark:hover:text-white"
       >
-        <ArrowLeft class="h-3.5 w-3.5" aria-hidden="true" />
+        <ArrowLeft class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
         <span>{{ locale === 'de' ? 'Zurück zum Studio' : 'Back to Studio' }}</span>
       </NuxtLink>
 
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="flex h-8 items-center gap-1 rounded-[2px] border border-border px-2 text-xs font-medium text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
+          class="flex h-11 items-center gap-1 rounded-[2px] border border-border px-3 text-xs font-medium text-brand-black transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
+          :aria-label="t('nav.switchLanguage')"
           @click="toggleLocale"
         >
           <Globe class="h-3.5 w-3.5" aria-hidden="true" />
@@ -84,7 +85,9 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
 
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-[2px] border border-border text-brand-black transition-colors hover:bg-black/5 dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
+          class="flex h-11 w-11 items-center justify-center rounded-[2px] border border-border text-brand-black transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current dark:border-[#303636] dark:text-white dark:hover:bg-white/10"
+          :aria-label="t('common.toggleTheme')"
+          :aria-pressed="isDark"
           @click="toggleTheme"
         >
           <ClientOnly>
@@ -101,11 +104,11 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
     <!-- Login Card -->
     <div class="mx-auto w-full max-w-md my-auto">
       <div class="mb-6 flex flex-col items-center gap-2 text-center">
-        <img src="/brand/logo-black-transparent-small.png" alt="Amir" class="h-10 w-auto object-contain dark:hidden" />
-        <img src="/brand/logo-white-transparent-small.png" alt="Amir" class="h-10 w-auto object-contain hidden dark:block" />
-        <p class="text-xs font-medium text-muted uppercase tracking-wider dark:text-[#A6A6A6]">
+        <img src="/brand/logo-black-transparent-small.png" alt="Amir" width="120" height="40" class="h-10 w-auto object-contain dark:hidden" />
+        <img src="/brand/logo-white-transparent-small.png" alt="Amir" width="120" height="40" class="h-10 w-auto object-contain hidden dark:block" />
+        <h1 class="text-xs font-medium text-muted uppercase tracking-wider dark:text-[#A6A6A6]">
           {{ locale === 'de' ? 'Verwaltung' : 'Administration' }}
-        </p>
+        </h1>
       </div>
 
       <form
@@ -132,10 +135,12 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
               <input
                 v-model="email"
                 type="email"
+                name="email"
                 required
                 autocomplete="username"
-                placeholder="admin@amir.com"
-                class="h-10 w-full rounded-[2px] border bg-white ps-9 pe-3 text-xs text-brand-black transition-colors placeholder:text-muted focus:border-brand-black focus:outline-none focus:ring-1 focus:ring-brand-black dark:bg-[#050808] dark:text-white dark:border-[#303636] dark:focus:border-white"
+                spellcheck="false"
+                placeholder="admin@amir.com…"
+                class="h-11 w-full rounded-[2px] border bg-white ps-9 pe-3 text-xs text-brand-black transition-colors placeholder:text-muted focus:border-brand-black focus:outline-none focus:ring-1 focus:ring-brand-black dark:bg-[#050808] dark:text-white dark:border-[#303636] dark:focus:border-white"
               />
             </div>
           </label>
@@ -150,10 +155,12 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
               <input
                 v-model="password"
                 type="password"
+                name="password"
                 required
                 autocomplete="current-password"
+                spellcheck="false"
                 placeholder="••••••••"
-                class="h-10 w-full rounded-[2px] border bg-white ps-9 pe-3 text-xs text-brand-black transition-colors placeholder:text-muted focus:border-brand-black focus:outline-none focus:ring-1 focus:ring-brand-black dark:bg-[#050808] dark:text-white dark:border-[#303636] dark:focus:border-white"
+                class="h-11 w-full rounded-[2px] border bg-white ps-9 pe-3 text-xs text-brand-black transition-colors placeholder:text-muted focus:border-brand-black focus:outline-none focus:ring-1 focus:ring-brand-black dark:bg-[#050808] dark:text-white dark:border-[#303636] dark:focus:border-white"
               />
             </div>
           </label>
@@ -163,15 +170,17 @@ useHead(() => ({ title: `Admin Login | ${t('brand.name')}` }))
         <button
           type="submit"
           :disabled="pending"
-          class="mt-6 flex h-10 w-full items-center justify-center rounded-[2px] bg-[#050808] dark:bg-white text-xs font-medium tracking-wider uppercase text-white dark:text-[#050808] transition-colors hover:bg-[#262626] dark:hover:bg-[#E5E5E5] disabled:cursor-not-allowed disabled:opacity-50"
+          :aria-busy="pending"
+          class="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-[2px] bg-[#050808] dark:bg-white text-xs font-medium tracking-wider uppercase text-white dark:text-[#050808] transition-colors hover:bg-[#262626] dark:hover:bg-[#E5E5E5] disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <span v-if="pending" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
           <span>{{ pending ? (locale === 'de' ? 'Anmeldung…' : 'Authenticating…') : (locale === 'de' ? 'Anmelden' : 'Sign In') }}</span>
         </button>
       </form>
     </div>
 
     <!-- Footer Copyright -->
-    <div class="text-center text-[11px] text-slate-400">
+    <div class="text-center text-[11px] text-neutral-400">
       &copy; {{ new Date().getFullYear() }} {{ t('brand.name') }}. All rights reserved.
     </div>
   </div>

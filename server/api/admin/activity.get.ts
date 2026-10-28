@@ -1,12 +1,16 @@
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
+  const user = await requireAuth(event)
 
   const query = getQuery(event)
   const page = Math.max(1, Number(query.page) || 1)
   const limit = Math.min(50, Math.max(1, Number(query.limit) || 7))
-  const entityTypes = ['product', 'category', 'service', 'booking']
+  const entityTypes = ['product', 'category', 'service', 'booking', 'staff', 'expense', 'expense-category']
   const actions = ['created', 'updated', 'deleted', 'media']
   const where: Record<string, unknown> = {}
+  // Staff without company-wide booking visibility only see their own audit
+  // entries; managers/admins keep the full operational log.
+  const canViewAll = user.isSuper || user.permissions.includes('bookings.view_all')
+  if (!canViewAll) where.userId = user.userId
   if (typeof query.entityType === 'string' && entityTypes.includes(query.entityType)) {
     where.entityType = query.entityType
   }

@@ -3,44 +3,84 @@ import {
   Building2,
   CreditCard,
   Globe,
+  Mail,
   Megaphone,
+  Newspaper,
   Phone,
   Sliders,
   Store,
 } from 'lucide-vue-next'
+import type { Component } from 'vue'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: 'settings.view' })
+definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['settings.business', 'settings.payment', 'settings.meta', 'banners.manage'] })
 
 const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const settingsDirty = useSettingsDirtyFlag()
 
-const VALID_TABS = ['general', 'announcements', 'contact', 'seo', 'store', 'payment', 'booking', 'meta'] as const
+const canBusiness = useAdminCan('settings.business')
+const canPayment = useAdminCan('settings.payment')
+const canMeta = useAdminCan('settings.meta')
+const canBanners = useAdminCan('banners.manage')
 
-const activeTab = ref(
-  VALID_TABS.includes(route.query.tab as any) ? String(route.query.tab) : 'general',
-)
+type TabKey = 'general' | 'contact' | 'seo' | 'store' | 'payment' | 'booking' | 'mail' | 'meta' | 'website'
 
-// Keep tab in sync with the URL (back/forward navigation, deep links).
-watch(() => route.query.tab, (tab) => {
-  if (typeof tab === 'string' && VALID_TABS.includes(tab as any) && tab !== activeTab.value) {
-    activeTab.value = tab
-  }
+interface SettingsTab {
+  id: TabKey
+  label: string
+  icon: Component
+  permissions: ('settings.business' | 'settings.payment' | 'settings.meta' | 'banners.manage')[]
+}
+
+const permissionGranted = computed<Record<SettingsTab['permissions'][number], boolean>>(() => ({
+  'settings.business': canBusiness.value,
+  'settings.payment': canPayment.value,
+  'settings.meta': canMeta.value,
+  'banners.manage': canBanners.value,
+}))
+
+const ALL_TABS = computed<SettingsTab[]>(() => [
+  { id: 'general', label: locale.value === 'ar' ? 'عام والهوية' : 'General & Brand', icon: Sliders, permissions: ['settings.business'] },
+  { id: 'contact', label: locale.value === 'ar' ? 'التواصل والموقع' : 'Contact & Social', icon: Phone, permissions: ['settings.business'] },
+  { id: 'seo', label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI Discovery', icon: Globe, permissions: ['settings.business'] },
+  { id: 'store', label: locale.value === 'ar' ? 'تهيئة المتجر' : 'Store Config', icon: Store, permissions: ['settings.business'] },
+  { id: 'payment', label: t('payment.title'), icon: CreditCard, permissions: ['settings.payment'] },
+  { id: 'booking', label: t('salon.title'), icon: Building2, permissions: ['settings.business'] },
+  { id: 'mail', label: t('mail.title'), icon: Mail, permissions: ['settings.business'] },
+  { id: 'meta', label: locale.value === 'ar' ? 'تكامل ميتا' : 'Meta Integration', icon: Megaphone, permissions: ['settings.meta'] },
+  { id: 'website', label: t('admin.websiteSettings'), icon: Newspaper, permissions: ['banners.manage', 'settings.business'] },
+].filter(tab => tab.permissions.some(p => permissionGranted.value[p])))
+
+const allowedTabs = computed(() => ALL_TABS.value.map(tab => tab.id))
+
+const requestedTab = computed(() => (typeof route.query.tab === 'string' ? route.query.tab : ''))
+
+const activeTab = computed<TabKey | ''>(() => {
+  const requested = requestedTab.value as TabKey
+  if (allowedTabs.value.includes(requested)) return requested
+  return allowedTabs.value[0] ?? ''
 })
 
-const tabs = computed(() => [
-  { id: 'general', label: locale.value === 'ar' ? 'عام والهوية' : 'General & Brand', icon: Sliders },
-  { id: 'announcements', label: locale.value === 'ar' ? 'الإشعارات والبنرات' : 'Announcements & Banners', icon: Megaphone },
-  { id: 'contact', label: locale.value === 'ar' ? 'التواصل والموقع' : 'Contact & Social', icon: Phone },
-  { id: 'seo', label: locale.value === 'ar' ? 'السيو والذكاء الاصطناعي' : 'SEO & AI Discovery', icon: Globe },
-  { id: 'store', label: locale.value === 'ar' ? 'تهيئة المتجر' : 'Store Config', icon: Store },
-  { id: 'payment', label: t('payment.title'), icon: CreditCard },
-  { id: 'booking', label: t('salon.title'), icon: Building2 },
-  { id: 'meta', label: locale.value === 'ar' ? 'تكامل ميتا' : 'Meta Integration', icon: Megaphone },
-])
-
 const { confirm: confirmDialog } = useAdminConfirm()
+
+// Keep the URL authoritative: unknown/legacy tabs are replaced with the first
+// allowed section. The old "announcements" tab now lives in Website & Banners.
+watch([requestedTab, allowedTabs], () => {
+  if (!import.meta.client) return
+  if (requestedTab.value === 'announcements') {
+    if (allowedTabs.value.includes('website')) {
+      router.replace({ path: route.path, query: { ...route.query, tab: 'website' } })
+    }
+    else if (allowedTabs.value.length) {
+      router.replace({ path: route.path, query: { ...route.query, tab: allowedTabs.value[0] } })
+    }
+    return
+  }
+  if (allowedTabs.value.length && !allowedTabs.value.includes(requestedTab.value as TabKey)) {
+    router.replace({ path: route.path, query: { ...route.query, tab: allowedTabs.value[0] } })
+  }
+}, { immediate: true })
 
 async function switchTab(id: string) {
   if (id === activeTab.value) return
@@ -55,75 +95,52 @@ async function switchTab(id: string) {
     })
     if (!confirmed) return
   }
-  activeTab.value = id
-  router.replace({ query: { tab: id } })
+  router.replace({ path: route.path, query: { ...route.query, tab: id } })
 }
 </script>
 
 <template>
   <div>
-    <!-- Header -->
     <AdminPageHeader
       :title="t('admin.settings')"
       :description="locale === 'ar' ? 'تخصيص هوية المنصة، بيانات الاتصال، وإعدادات محركات البحث.' : 'Configure brand identity, contact channels, and search indexing metadata.'"
     />
 
-    <!-- Tabs Navigation Bar -->
-    <div
-      class="mb-6 flex gap-1 overflow-x-auto border-b"
-      :style="{ borderColor: 'var(--color-border)' }"
-      role="tablist"
+    <AdminTabs
+      :model-value="activeTab"
+      :tabs="ALL_TABS"
+      id-prefix="settings"
       :aria-label="locale === 'ar' ? 'أقسام الإعدادات' : 'Settings sections'"
-    >
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        type="button"
-        role="tab"
-        :aria-selected="activeTab === tab.id"
-        class="inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors"
-        :class="[
-          activeTab === tab.id
-            ? 'border-[#2B71AE] text-[#2B71AE] dark:border-[#F5CC07] dark:text-[#F5CC07]'
-            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:hover:text-slate-300'
-        ]"
-        @click="switchTab(tab.id)"
-      >
-        <component :is="tab.icon" class="h-4 w-4" aria-hidden="true" />
-        <span>{{ tab.label }}</span>
-        <span
-          v-if="activeTab === tab.id"
-          class="h-1.5 w-1.5 rounded-full bg-[#2B71AE] dark:bg-[#F5CC07]"
-          aria-hidden="true"
-        />
-      </button>
-    </div>
+      @update:model-value="switchTab"
+    />
 
-    <!-- Active Tab Content Area (wide enough for 2-3 column grids) -->
     <div class="max-w-5xl">
-      <div v-if="activeTab === 'general'" role="tabpanel">
+      <div v-if="activeTab === 'general'" id="settings-panel-general" role="tabpanel" aria-labelledby="settings-tab-general">
         <AdminSettingsGeneral />
       </div>
-      <div v-else-if="activeTab === 'announcements'" role="tabpanel">
-        <AdminSettingsAnnouncements />
-      </div>
-      <div v-else-if="activeTab === 'contact'" role="tabpanel">
+      <div v-else-if="activeTab === 'contact'" id="settings-panel-contact" role="tabpanel" aria-labelledby="settings-tab-contact">
         <AdminSettingsContact />
       </div>
-      <div v-else-if="activeTab === 'seo'" role="tabpanel">
+      <div v-else-if="activeTab === 'seo'" id="settings-panel-seo" role="tabpanel" aria-labelledby="settings-tab-seo">
         <AdminSettingsSeo />
       </div>
-      <div v-else-if="activeTab === 'store'" role="tabpanel">
+      <div v-else-if="activeTab === 'store'" id="settings-panel-store" role="tabpanel" aria-labelledby="settings-tab-store">
         <AdminSettingsStore />
       </div>
-      <div v-else-if="activeTab === 'payment'" role="tabpanel">
+      <div v-else-if="activeTab === 'payment'" id="settings-panel-payment" role="tabpanel" aria-labelledby="settings-tab-payment">
         <AdminSettingsPayment />
       </div>
-      <div v-else-if="activeTab === 'booking'" role="tabpanel">
+      <div v-else-if="activeTab === 'booking'" id="settings-panel-booking" role="tabpanel" aria-labelledby="settings-tab-booking">
         <AdminSettingsBooking />
       </div>
-      <div v-else-if="activeTab === 'meta'" role="tabpanel">
+      <div v-else-if="activeTab === 'mail'" id="settings-panel-mail" role="tabpanel" aria-labelledby="settings-tab-mail">
+        <AdminSettingsMail />
+      </div>
+      <div v-else-if="activeTab === 'meta'" id="settings-panel-meta" role="tabpanel" aria-labelledby="settings-tab-meta">
         <AdminSettingsMeta />
+      </div>
+      <div v-else-if="activeTab === 'website'" id="settings-panel-website" role="tabpanel" aria-labelledby="settings-tab-website">
+        <AdminSettingsWebsite />
       </div>
     </div>
   </div>

@@ -49,7 +49,7 @@ function toggleMode() {
         </div>
         <button
           type="button"
-          class="h-10 px-4 text-xs tracking-wider uppercase font-medium rounded-[2px] border border-border hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          class="h-11 px-4 text-xs tracking-wider uppercase font-medium rounded-[2px] border border-border hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           @click="toggleMode"
         >
           Mode: {{ colorMode.value }}
@@ -162,19 +162,19 @@ function toggleMode() {
         <h3 class="text-xs uppercase tracking-wider text-muted mb-3">Service Section Line Icons (Custom)</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div class="p-6 rounded-[2px] border border-border flex flex-col items-center gap-3 text-center">
-            <IconDamen class="h-8 w-8 text-text" />
+            <IconDamen class="h-11 w-8 text-text" />
             <span class="text-xs font-medium uppercase tracking-wider">Damen</span>
           </div>
           <div class="p-6 rounded-[2px] border border-border flex flex-col items-center gap-3 text-center">
-            <IconHerren class="h-8 w-8 text-text" />
+            <IconHerren class="h-11 w-8 text-text" />
             <span class="text-xs font-medium uppercase tracking-wider">Herren</span>
           </div>
           <div class="p-6 rounded-[2px] border border-border flex flex-col items-center gap-3 text-center">
-            <IconKinder class="h-8 w-8 text-text" />
+            <IconKinder class="h-11 w-8 text-text" />
             <span class="text-xs font-medium uppercase tracking-wider">Kinder</span>
           </div>
           <div class="p-6 rounded-[2px] border border-border flex flex-col items-center gap-3 text-center">
-            <IconKosmetik class="h-8 w-8 text-text" />
+            <IconKosmetik class="h-11 w-8 text-text" />
             <span class="text-xs font-medium uppercase tracking-wider">Kosmetik</span>
           </div>
         </div>
@@ -189,17 +189,17 @@ function toggleMode() {
 
         <h3 class="text-xs uppercase tracking-wider text-muted mt-8 mb-3">Utility Icons (lucide-vue-next, 1.5 Stroke)</h3>
         <div class="flex flex-wrap items-center gap-4 text-muted">
-          <Calendar class="h-6 w-6" :stroke-width="1.5" />
-          <Clock class="h-6 w-6" :stroke-width="1.5" />
-          <MapPin class="h-6 w-6" :stroke-width="1.5" />
-          <Phone class="h-6 w-6" :stroke-width="1.5" />
-          <Mail class="h-6 w-6" :stroke-width="1.5" />
-          <Menu class="h-6 w-6" :stroke-width="1.5" />
-          <ArrowRight class="h-6 w-6" :stroke-width="1.5" />
-          <Check class="h-6 w-6" :stroke-width="1.5" />
-          <ChevronRight class="h-6 w-6" :stroke-width="1.5" />
-          <Users class="h-6 w-6" :stroke-width="1.5" />
-          <Sparkles class="h-6 w-6" :stroke-width="1.5" />
+          <Calendar class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Clock class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <MapPin class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Phone class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Mail class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Menu class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <ArrowRight class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Check class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <ChevronRight class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Users class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
+          <Sparkles class="h-6 w-6" :stroke-width="1.5" aria-hidden="true" />
         </div>
       </section>
 

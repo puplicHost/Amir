@@ -77,7 +77,7 @@ onUnmounted(() => {
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-lg rounded-[2px] border border-border dark:border-[#303636] bg-white dark:bg-[#121616] p-6 sm:p-8 shadow-xl transition-all"
+        class="w-full max-w-lg rounded-[2px] border border-border dark:border-[#303636] bg-white dark:bg-[#121616] p-6 sm:p-8 shadow-xl transition"
       >
         <div class="mb-4 flex items-center justify-between border-b border-border dark:border-[#303636] pb-3">
           <h2 id="consent-settings-title" class="font-display text-xl font-medium tracking-tight text-brand-black dark:text-white">
@@ -85,11 +85,11 @@ onUnmounted(() => {
           </h2>
           <button
             type="button"
-            class="rounded-[2px] p-1 text-muted hover:text-brand-black dark:hover:text-white focus:outline-none"
+            class="flex h-11 w-11 items-center justify-center rounded-[2px] text-muted hover:text-brand-black dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
             :aria-label="t('common.close')"
             @click="closeSettings"
           >
-            <X class="h-4 w-4" />
+            <X class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -106,7 +106,7 @@ onUnmounted(() => {
           <div class="rounded-[2px] border border-border dark:border-[#303636] bg-surface dark:bg-[#050808] p-4">
             <div class="flex items-center justify-between gap-3 mb-1">
               <div class="flex items-center gap-2">
-                <ShieldCheck class="h-4 w-4 text-brand-black dark:text-white" />
+                <ShieldCheck class="h-4 w-4 text-brand-black dark:text-white" aria-hidden="true" />
                 <span class="font-display text-base font-medium text-brand-black dark:text-white">{{ t('consent.necessaryTitle') }}</span>
               </div>
               <span class="text-[10px] font-medium tracking-wider uppercase px-2 py-0.5 border border-border dark:border-[#303636] text-muted dark:text-[#A6A6A6]">
@@ -164,7 +164,7 @@ onUnmounted(() => {
       aria-modal="false"
       aria-labelledby="consent-banner-title"
       aria-describedby="consent-banner-desc"
-      class="fixed bottom-0 inset-x-0 z-40 border-t border-border dark:border-[#303636] bg-white/95 dark:bg-[#050808]/95 backdrop-blur-md p-4 sm:p-6 shadow-lg transition-all"
+      class="fixed bottom-0 inset-x-0 z-40 border-t border-border dark:border-[#303636] bg-white/95 dark:bg-[#050808]/95 backdrop-blur-md p-4 sm:p-6 shadow-lg transition"
     >
       <div class="mx-auto max-w-7xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
         <div class="max-w-3xl space-y-1.5">
@@ -202,7 +202,7 @@ onUnmounted(() => {
             size="sm"
             @click="settingsModalOpen = true"
           >
-            <Sliders class="h-3.5 w-3.5" />
+            <Sliders class="h-3.5 w-3.5" aria-hidden="true" />
             <span>{{ t('consent.settings') }}</span>
           </Button>
         </div>

@@ -68,6 +68,7 @@ interface Existing {
   price: string | number
   categoryId: string
   isActive: boolean
+  featuredOnHomepage: boolean
   attributes: Attr[]
   seo: Record<string, string | null> | null
   images: ProductImage[]
@@ -99,6 +100,7 @@ const form = reactive({
   descriptionAr: props.existing?.descriptionAr || '',
   descriptionEn: props.existing?.descriptionEn || '',
   isActive: props.existing?.isActive ?? true,
+  featuredOnHomepage: props.existing?.featuredOnHomepage ?? false,
   price: props.existing ? String(props.existing.price) : '',
   attributes: (props.existing?.attributes || []).map(a => ({ ...a })),
   metaTitleAr: props.existing?.seo?.metaTitleAr || '',
@@ -421,6 +423,7 @@ async function saveAll() {
       descriptionAr: form.descriptionAr || null,
       descriptionEn: form.descriptionEn || null,
       isActive: form.isActive,
+      featuredOnHomepage: form.featuredOnHomepage,
       price: Number(form.price),
       attributes: form.attributes.filter(a => (a.keyEn.trim() || a.keyAr.trim()) && (a.valueEn.trim() || a.valueAr.trim())),
       seo: {
@@ -453,10 +456,27 @@ async function saveAll() {
 
     // Upload new image files
     const newFiles = localImages.value.filter(i => i.file).map(i => i.file!)
+    let uploadedImages: ProductImage[] = []
     if (newFiles.length > 0) {
       const fd = new FormData()
       for (const f of newFiles) fd.append('images', f)
-      await $fetch(`/api/admin/products/${productId}/images`, { method: 'POST', body: fd })
+      const res = await $fetch<{ images: ProductImage[] }>(`/api/admin/products/${productId}/images`, { method: 'POST', body: fd })
+      uploadedImages = res.images || []
+    }
+
+    // Persist the visual order/cover chosen in the editor (including existing
+    // images that were reordered and new uploads interleaved with them).
+    const existingIds = new Set(localImages.value.filter(i => i.id).map(i => i.id!))
+    const freshUploads = uploadedImages.filter(i => !existingIds.has(i.id!))
+    let freshIndex = 0
+    const orderedIds = localImages.value
+      .map(img => img.id || freshUploads[freshIndex++]?.id)
+      .filter((id): id is string => Boolean(id))
+    if (orderedIds.length > 0) {
+      await $fetch(`/api/admin/products/${productId}/images/order`, {
+        method: 'PUT',
+        body: { order: orderedIds },
+      })
     }
 
     // Process video changes
@@ -497,7 +517,7 @@ async function saveAll() {
       locale.value === 'ar' ? `تم حفظ كافة بيانات ومواصفات المنتج "${form.nameAr || form.nameEn}".` : `All data and media for "${form.nameEn || form.nameAr}" have been saved.`,
     )
 
-    await navigateTo(localePath('/admin/products'))
+    await navigateTo({ path: localePath('/admin/catalog'), query: { tab: 'products' } })
   }
   catch (e: any) {
     const msg = e?.data?.message || (locale.value === 'ar' ? 'حدث خطأ أثناء حفظ المنتج.' : 'Failed to save product.')
@@ -512,13 +532,13 @@ async function saveAll() {
   }
 }
 
-const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition-colors focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520] dark:focus:border-[#2B71AE]'
+const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg dark:focus:border-primary'
 </script>
 
 <template>
   <div class="space-y-6">
     <!-- Top Persistent Controls Header: Wizard Step Navigator + Save Button -->
-    <div class="rounded-md border bg-white p-3.5 shadow-xs dark:bg-[#162032]" :style="{ borderColor: 'var(--color-border)' }">
+    <div class="rounded-md border bg-white p-3.5 shadow-xs dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <!-- Step Navigation Indicator -->
         <ol class="flex flex-wrap items-center gap-1.5 text-xs" aria-label="Product form wizard">
@@ -529,17 +549,16 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           >
             <button
               type="button"
-              class="flex items-center gap-2 rounded-md px-3 py-1.5 font-medium transition-all"
+              class="flex items-center gap-2 rounded-md px-3 py-1.5 font-medium transition"
               :class="[
                 stepErrors[s.id]
                   ? 'border border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-500/50'
                   : step === s.id
-                    ? 'bg-[#2B71AE] text-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    ? 'bg-primary text-on-primary shadow-xs font-semibold'
+                    : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
               ]"
               :title="stepErrors[s.id] || s.label"
-              @click="goToStep(s.id)"
-            >
+              @click="goToStep(s.id)" :aria-label="stepErrors[s.id] || s.label">
               <span
                 class="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
                 :class="[
@@ -547,7 +566,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
                     ? 'bg-rose-600 text-white'
                     : step === s.id
                       ? 'bg-white/20 text-white'
-                      : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                      : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300'
                 ]"
               >
                 <AlertCircle v-if="stepErrors[s.id]" class="h-3 w-3" aria-hidden="true" />
@@ -555,7 +574,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
               </span>
               <span>{{ s.label }}</span>
             </button>
-            <span v-if="idx < steps.length - 1" class="hidden text-slate-300 sm:inline dark:text-slate-700">›</span>
+            <span v-if="idx < steps.length - 1" class="hidden text-neutral-300 sm:inline-block dark:text-neutral-700 rtl:rotate-180" aria-hidden="true">›</span>
           </li>
         </ol>
 
@@ -564,7 +583,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           <button
             type="button"
             :disabled="saving"
-            class="inline-flex h-9 items-center gap-2 rounded-md bg-[#F5CC07] px-5 text-xs font-bold text-slate-950 shadow-xs transition-all hover:bg-yellow-400 active:scale-[0.98] disabled:opacity-50"
+            class="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-5 text-xs font-bold text-on-primary shadow-xs transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
             @click="saveAll"
           >
             <Save class="h-4 w-4" aria-hidden="true" />
@@ -580,38 +599,38 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
       role="alert"
       class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 p-3.5 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
     >
-      <AlertCircle class="h-4 w-4 shrink-0" />
+      <AlertCircle class="h-4 w-4 shrink-0" aria-hidden="true" />
       <span>{{ error }}</span>
     </div>
 
     <!-- Step 1: Basic Information -->
     <div
       v-show="step === 1"
-      class="rounded-md border bg-white p-6 shadow-xs dark:bg-[#162032]"
+      class="rounded-md border bg-white p-6 shadow-xs dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
-      <h2 class="mb-1 font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
+      <h2 class="mb-1 font-heading text-lg font-bold text-neutral-900 dark:text-neutral-100">
         {{ locale === 'ar' ? 'البيانات الأساسية للمنتج' : 'Basic Product Information' }}
       </h2>
-      <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-5 text-xs text-neutral-500 dark:text-neutral-400">
         {{ locale === 'ar' ? 'حدد اسم المنتج باللغتين العربية والإنجليزية وتصنيف الفئة المناسب.' : 'Provide dual-language titles and choose the appropriate category.' }}
       </p>
 
       <div class="space-y-4">
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Name (EN) *</span>
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Name (EN) *</span>
             <input v-model="form.nameEn" type="text" required placeholder="e.g. Arduino Uno R3" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Name (AR) *</span>
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Name (AR) *</span>
             <input v-model="form.nameAr" type="text" required placeholder="مثال: أردوينو أونو R3" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Category *</span>
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Category *</span>
             <select v-model="form.categoryId" required :class="inputCls" :style="{ borderColor: 'var(--color-border)' }">
               <option value="">{{ locale === 'ar' ? 'اختر الفئة…' : 'Select a category…' }}</option>
               <option v-for="c in catData?.categories || []" :key="c.id" :value="c.id">
@@ -620,7 +639,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             </select>
           </label>
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Slug (URL identifier)</span>
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Slug (URL identifier)</span>
             <input v-model="form.slug" type="text" placeholder="Auto-generated if empty" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
@@ -628,7 +647,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <!-- Rich Text Editor for Descriptions (Change 9) -->
         <div class="space-y-4">
           <div>
-            <label class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'الوصف الكامل للمنتج (بالعربية) *' : 'Full Product Description (Arabic) *' }}
             </label>
             <AdminRichEditor
@@ -639,7 +658,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           </div>
 
           <div>
-            <label class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               {{ locale === 'ar' ? 'الوصف الكامل للمنتج (بالإنجليزية)' : 'Full Product Description (English)' }}
             </label>
             <AdminRichEditor
@@ -651,35 +670,35 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         </div>
 
         <!-- Tag Input for Keywords (Change 7) -->
-        <div class="rounded-lg border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+        <div class="rounded-lg border border-neutral-200 bg-neutral-50/50 p-4 dark:border-neutral-700 dark:bg-neutral-800/30">
           <div class="mb-2 flex items-center justify-between">
-            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
               <span>{{ locale === 'ar' ? 'الكلمات التعريفية للبحث' : 'Search Keywords' }}</span>
               <span 
-                class="inline-flex cursor-help items-center justify-center text-slate-400 hover:text-[#2B71AE]"
+                class="inline-flex cursor-help items-center justify-center text-neutral-400 hover:text-primary"
                 :title="locale === 'ar' ? 'هذه الكلمات تساعد العملاء في إيجاد المنتج عند البحث في الموقع' : 'These keywords help customers find the product when searching on the site'"
               >
                 ⓘ
               </span>
             </label>
-            <span class="font-mono text-[11px] text-slate-500">
+            <span class="font-mono text-[11px] text-neutral-500">
               {{ keywordTags.length }} / 20 {{ locale === 'ar' ? 'كلمة' : 'tags' }}
             </span>
           </div>
 
           <!-- Tags display + Inline text input -->
           <div 
-            class="flex min-h-[46px] flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-2 focus-within:border-[#2B71AE] focus-within:ring-2 focus-within:ring-[#2B71AE]/20 dark:border-slate-700 dark:bg-[#0B1520]"
+            class="flex min-h-[46px] flex-wrap items-center gap-1.5 rounded-lg border border-neutral-200 bg-white p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 dark:border-neutral-700 dark:bg-bg"
           >
             <span
               v-for="(tag, i) in keywordTags"
               :key="tag"
-              class="inline-flex items-center gap-1.5 rounded-full bg-[#EFF6FF] px-3 py-1 text-[13px] font-medium text-[#2B71AE] dark:bg-[#1e3a5f] dark:text-[#9ccaff]"
+              class="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-[13px] font-medium text-primary dark:bg-neutral-800 dark:text-neutral-300"
             >
               <span>{{ tag }}</span>
               <button
                 type="button"
-                class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-slate-400 hover:bg-[#2B71AE]/20 hover:text-[#2B71AE] dark:hover:text-white"
+                class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-neutral-400 hover:bg-primary/20 hover:text-primary dark:hover:text-on-primary"
                 @click="removeKeyword(i)"
               >
                 ×
@@ -691,21 +710,27 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
               v-model="keywordInput"
               type="text"
               :placeholder="keywordTags.length ? '' : (locale === 'ar' ? 'اكتب كلمة ثم اضغط Enter أو فاصلة...' : 'Type a keyword and press Enter...')"
-              class="min-w-[150px] flex-1 bg-transparent px-1.5 py-0.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none dark:text-white"
+              class="min-w-[150px] flex-1 rounded bg-transparent px-1.5 py-0.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-white"
               @keydown="handleKeywordKeydown"
               @blur="addKeyword"
             />
           </div>
 
-          <p class="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
+          <p class="mt-2 text-[13px] text-neutral-500 dark:text-neutral-400">
             {{ locale === 'ar' ? 'مثال: مولتيميتر، جهاز قياس، فلوك، multimeter، Fluke 87V' : 'Example: multimeter, measuring device, fluke, multimeter, Fluke 87V' }}
           </p>
         </div>
 
         <div class="pt-2">
-          <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
-            <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded accent-[#2B71AE]" />
+          <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+            <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded accent-primary" />
             <span>{{ locale === 'ar' ? 'المنتج نشط ومتاح للشراء في الموقع العام' : 'Active and visible on public storefront' }}</span>
+          </label>
+        </div>
+        <div class="pt-2">
+          <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+            <input v-model="form.featuredOnHomepage" type="checkbox" class="h-4 w-4 rounded accent-primary" />
+            <span>{{ locale === 'ar' ? 'إظهار المنتج في الصفحة الرئيسية' : 'Featured on homepage' }}</span>
           </label>
         </div>
       </div>
@@ -714,22 +739,22 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
     <!-- Step 2: Pricing -->
     <div
       v-show="step === 2"
-      class="rounded-md border bg-white p-6 shadow-xs dark:bg-[#162032]"
+      class="rounded-md border bg-white p-6 shadow-xs dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
-      <h2 class="mb-1 font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
+      <h2 class="mb-1 font-heading text-lg font-bold text-neutral-900 dark:text-neutral-100">
         {{ locale === 'de' ? 'Preise' : 'Pricing' }}
       </h2>
-      <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-5 text-xs text-neutral-500 dark:text-neutral-400">
         {{ locale === 'de' ? 'Aktuellen Verkaufspreis in EUR festlegen.' : 'Set current retail price in EUR.' }}
       </p>
 
       <div class="grid max-w-xl gap-4 sm:grid-cols-2">
         <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Price (EUR) *</span>
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Price (EUR) *</span>
           <div class="relative">
             <input v-model="form.price" type="number" min="0" step="0.01" required placeholder="0.00" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
-            <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EUR</span>
+            <span class="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">EUR</span>
           </div>
         </label>
       </div>
@@ -738,21 +763,21 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
     <!-- Step 3: Attributes & Specifications -->
     <div
       v-show="step === 3"
-      class="rounded-md border bg-white p-6 shadow-xs dark:bg-[#162032]"
+      class="rounded-md border bg-white p-6 shadow-xs dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
       <div class="mb-4 flex items-center justify-between">
         <div>
-          <h2 class="font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
+          <h2 class="font-heading text-lg font-bold text-neutral-900 dark:text-neutral-100">
             {{ locale === 'ar' ? 'المواصفات الفنية' : 'Technical Specifications' }}
           </h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">
+          <p class="text-xs text-neutral-500 dark:text-neutral-400">
             {{ locale === 'ar' ? 'أضف معايير ومواصفات المنتج كأزواج مفتاح وقيمة باللغتين.' : 'Add structured product specs like Voltage, Dimensions, Microcontroller model, etc.' }}
           </p>
         </div>
         <button
           type="button"
-          class="inline-flex h-8 items-center gap-1 rounded-md border border-[#2B71AE] px-3 text-xs font-semibold text-[#2B71AE] transition-colors hover:bg-[#2B71AE]/10 dark:text-blue-400"
+          class="inline-flex h-11 items-center gap-1 rounded-md border border-primary px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 dark:text-neutral-400"
           @click="addAttr"
         >
           <Plus class="h-3.5 w-3.5" aria-hidden="true" />
@@ -773,7 +798,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           <input v-model="a.valueAr" placeholder="القيمة (AR): مثال: 5 فولت" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           <button
             type="button"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-rose-200 text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/40"
+            class="flex h-11 w-10 shrink-0 items-center justify-center rounded-md border border-rose-200 text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/40"
             :aria-label="locale === 'ar' ? 'حذف المواصفة' : 'Remove specification'"
             @click="form.attributes.splice(i, 1)"
           >
@@ -781,7 +806,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           </button>
         </div>
       </div>
-      <div v-else class="rounded-md border border-dashed p-6 text-center text-xs text-slate-400" :style="{ borderColor: 'var(--color-border)' }">
+      <div v-else class="rounded-md border border-dashed p-6 text-center text-xs text-neutral-400" :style="{ borderColor: 'var(--color-border)' }">
         {{ locale === 'ar' ? 'لا توجد مواصفات فنية مسجلة. اضغط على "إضافة مواصفة" لإدراج واحدة.' : 'No technical specifications added yet. Click "Add Specification" to create one.' }}
       </div>
     </div>
@@ -789,27 +814,27 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
     <!-- Step 4: Images & Media -->
     <div
       v-show="step === 4"
-      class="rounded-md border bg-white p-6 shadow-xs dark:bg-[#162032]"
+      class="rounded-md border bg-white p-6 shadow-xs dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
-      <h2 class="mb-1 font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
+      <h2 class="mb-1 font-heading text-lg font-bold text-neutral-900 dark:text-neutral-100">
         {{ locale === 'ar' ? 'معرض صور المنتج' : 'Product Image Gallery' }}
       </h2>
-      <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-5 text-xs text-neutral-500 dark:text-neutral-400">
         {{ locale === 'ar' ? 'الصورة الأولى تعتبر صورة الغلاف الرئيسية للمنتج. يمكنك ترتيب الصور بالأسهم وحذف أي صورة.' : 'The first image acts as the primary catalog cover. Reorder using directional controls.' }}
       </p>
 
       <!-- Dropzone -->
       <label
-        class="group block cursor-pointer rounded-md border-2 border-dashed p-8 text-center transition-colors hover:border-[#2B71AE] hover:bg-[#2B71AE]/5"
+        class="group block cursor-pointer rounded-md border-2 border-dashed p-8 text-center transition-colors hover:border-primary hover:bg-primary/5"
         :style="{ borderColor: 'var(--color-border)' }"
       >
         <div class="flex flex-col items-center">
-          <UploadCloud class="h-8 w-8 text-slate-400 transition-colors group-hover:text-[#2B71AE]" aria-hidden="true" />
-          <span class="mt-2 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <UploadCloud class="h-8 w-8 text-neutral-400 transition-colors group-hover:text-primary" aria-hidden="true" />
+          <span class="mt-2 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
             {{ locale === 'ar' ? 'اضغط لاختيار الصور أو اسحبها هنا' : 'Click to browse images or drag & drop files here' }}
           </span>
-          <span class="mt-1 block text-[11px] text-slate-400">JPG, PNG, or WEBP. Max 5MB each.</span>
+          <span class="mt-1 block text-[11px] text-neutral-400">JPG, PNG, or WEBP. Max 5MB each.</span>
         </div>
         <input type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFiles" />
       </label>
@@ -819,24 +844,24 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <div
           v-for="(img, i) in localImages"
           :key="img.id || img.path"
-          class="group relative overflow-hidden rounded-md border bg-slate-50 p-1.5 dark:bg-[#0B1520]"
-          :class="{ 'ring-2 ring-[#2B71AE]': i === 0 }"
+          class="group relative overflow-hidden rounded-md border bg-neutral-50 p-1.5 dark:bg-bg"
+          :class="{ 'ring-2 ring-primary': i === 0 }"
           :style="{ borderColor: 'var(--color-border)' }"
         >
-          <div class="aspect-square w-full overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
+          <div class="aspect-square w-full overflow-hidden rounded bg-neutral-200 dark:bg-neutral-800">
             <img :src="img.path" :alt="`Product photo ${i + 1}`" class="h-full w-full object-cover" loading="lazy" />
           </div>
 
           <span
             v-if="i === 0"
-            class="absolute start-2.5 top-2.5 rounded-full bg-[#F5CC07] px-2 py-0.5 text-[10px] font-bold text-slate-900 shadow-xs"
+            class="absolute start-2.5 top-2.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-on-primary shadow-xs"
           >
             Cover
           </span>
 
           <span
             v-if="img.file"
-            class="absolute end-2.5 top-2.5 rounded-full bg-blue-600 text-white px-1.5 py-0.2 text-[9px] font-bold shadow-xs"
+            class="absolute end-2.5 top-2.5 rounded-full bg-neutral-600 text-white px-1.5 py-0.2 text-[9px] font-bold shadow-xs"
           >
             New
           </span>
@@ -844,29 +869,26 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           <div class="mt-1.5 flex items-center justify-between gap-1 pt-1 text-xs">
             <button
               type="button"
-              class="flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700"
+              class="flex h-11 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-200 disabled:opacity-30 dark:hover:bg-neutral-700"
               :disabled="i === 0"
               :title="locale === 'ar' ? 'تحريك للأمام' : 'Move left'"
-              @click="moveImage(i, -1)"
-            >
+              @click="moveImage(i, -1)" :aria-label="locale === 'ar' ? 'تحريك للأمام' : 'Move left'">
               <ChevronLeft v-if="locale === 'en'" class="h-3.5 w-3.5" aria-hidden="true" />
               <ChevronRight v-else class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
             <button
               type="button"
-              class="flex h-7 items-center justify-center rounded px-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+              class="flex h-11 items-center justify-center rounded px-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               :title="locale === 'ar' ? 'حذف الصورة' : 'Delete photo'"
-              @click="removeImage(i)"
-            >
+              @click="removeImage(i)" :aria-label="locale === 'ar' ? 'حذف الصورة' : 'Delete photo'">
               <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
             <button
               type="button"
-              class="flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-700"
+              class="flex h-11 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-200 disabled:opacity-30 dark:hover:bg-neutral-700"
               :disabled="i === localImages.length - 1"
               :title="locale === 'ar' ? 'تحريك للخلف' : 'Move right'"
-              @click="moveImage(i, 1)"
-            >
+              @click="moveImage(i, 1)" :aria-label="locale === 'ar' ? 'تحريك للخلف' : 'Move right'">
               <ChevronRight v-if="locale === 'en'" class="h-3.5 w-3.5" aria-hidden="true" />
               <ChevronLeft v-else class="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -875,16 +897,16 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
       </div>
 
       <!-- Video Section -->
-      <div class="mt-8 border-t border-slate-200/80 dark:border-slate-800 pt-6">
-        <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
+      <div class="mt-8 border-t border-neutral-200/80 dark:border-neutral-800 pt-6">
+        <h3 class="font-heading text-base font-bold text-neutral-900 dark:text-neutral-100 mb-1">
           {{ locale === 'ar' ? 'فيديو المنتج (اختياري)' : 'Product Demonstration Video (Optional)' }}
         </h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
           {{ locale === 'ar' ? 'أضف رابط فيديو من يوتيوب أو فيميو أو ارفع ملف فيديو مباشر للمنتج.' : 'Attach a YouTube/Vimeo URL or select a direct video file.' }}
         </p>
 
         <!-- Current Video Preview -->
-        <div v-if="video && !removeVideoOnSave" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#0B1520] max-w-xl space-y-3">
+        <div v-if="video && !removeVideoOnSave" class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-bg max-w-xl space-y-3">
           <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
             <iframe
               v-if="video.type === 'youtube' || video.type === 'vimeo'"
@@ -901,13 +923,13 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           </div>
 
           <div class="flex items-center justify-between text-xs pt-1">
-            <span class="font-mono text-slate-500 truncate max-w-xs">{{ video.url }}</span>
+            <span class="font-mono text-neutral-500 truncate max-w-xs">{{ video.url }}</span>
             <button
               type="button"
               class="inline-flex items-center gap-1 text-rose-600 hover:underline dark:text-rose-400 font-semibold"
               @click="removeVideo"
             >
-              <Trash2 class="h-3.5 w-3.5" />
+              <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
               <span>{{ locale === 'ar' ? 'إزالة الفيديو' : 'Remove Video' }}</span>
             </button>
           </div>
@@ -919,7 +941,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             <button
               type="button"
               class="rounded-lg px-3 py-1.5 font-semibold transition-colors"
-              :class="videoMode === 'url' ? 'bg-[#2B71AE] text-white' : 'border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+              :class="videoMode === 'url' ? 'bg-primary text-on-primary' : 'border border-neutral-200 bg-white text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'"
               @click="videoMode = 'url'"
             >
               {{ locale === 'ar' ? 'رابط فيديو (YouTube / Vimeo)' : 'Video URL (YouTube / Vimeo)' }}
@@ -927,7 +949,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             <button
               type="button"
               class="rounded-lg px-3 py-1.5 font-semibold transition-colors"
-              :class="videoMode === 'upload' ? 'bg-[#2B71AE] text-white' : 'border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+              :class="videoMode === 'upload' ? 'bg-primary text-on-primary' : 'border border-neutral-200 bg-white text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'"
               @click="videoMode = 'upload'"
             >
               {{ locale === 'ar' ? 'رفع ملف فيديو مباشر' : 'Upload Video File' }}
@@ -946,7 +968,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             <button
               type="button"
               :disabled="!videoUrlInput.trim()"
-              class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-colors"
+              class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-on-primary hover:bg-primary/90 disabled:opacity-50 transition-colors"
               @click="attachVideoUrl"
             >
               <span>{{ locale === 'ar' ? 'إرفاق الرابط' : 'Attach Video' }}</span>
@@ -955,14 +977,14 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
 
           <!-- Upload Mode -->
           <div v-else>
-            <label class="flex cursor-pointer items-center justify-between rounded-md border border-dashed p-4 hover:border-[#2B71AE] hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50 transition-colors">
+            <label class="flex cursor-pointer items-center justify-between rounded-md border border-dashed p-4 hover:border-primary hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800/50 transition-colors">
               <div class="flex items-center gap-3">
-                <Video class="h-6 w-6 text-slate-400" />
+                <Video class="h-6 w-6 text-neutral-400" aria-hidden="true" />
                 <div>
-                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
+                  <span class="text-xs font-semibold text-neutral-700 dark:text-neutral-200 block">
                     {{ locale === 'ar' ? 'اختر ملف فيديو (MP4, WebM)' : 'Choose a video file (MP4, WebM)' }}
                   </span>
-                  <span class="text-[11px] text-slate-400 block">Max 50MB</span>
+                  <span class="text-[11px] text-neutral-400 block">Max 50MB</span>
                 </div>
               </div>
               <input type="file" accept="video/mp4,video/webm" class="hidden" @change="onVideoFileUpload" />
@@ -972,11 +994,11 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
       </div>
 
       <!-- Technical Documents Section -->
-      <div class="mt-8 border-t border-slate-200/80 dark:border-slate-800 pt-6">
-        <h3 class="font-heading text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
+      <div class="mt-8 border-t border-neutral-200/80 dark:border-neutral-800 pt-6">
+        <h3 class="font-heading text-base font-bold text-neutral-900 dark:text-neutral-100 mb-1">
           {{ locale === 'ar' ? 'كتيبات المواصفات والملفات الفنية (PDF)' : 'Technical Documents & Datasheets (PDF)' }}
         </h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
           {{ locale === 'ar' ? 'أرفق ملفات PDF مثل كتيبات المواصفات (Datasheets) أو مخططات التوصيل (Schematics).' : 'Attach PDF datasheets, schematics, or user guides for clients.' }}
         </p>
 
@@ -985,32 +1007,31 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           <div
             v-for="(doc, i) in localDocuments"
             :key="doc.id || doc.labelEn + i"
-            class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#0B1520]"
+            class="flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-bg"
           >
             <div class="flex items-center gap-2.5 min-w-0">
-              <FileText class="h-5 w-5 text-rose-500 shrink-0" />
+              <FileText class="h-5 w-5 text-rose-500 shrink-0" aria-hidden="true" />
               <div class="min-w-0">
-                <span class="font-bold text-xs text-slate-900 dark:text-slate-100 block truncate">{{ doc.labelEn }}</span>
-                <span v-if="doc.labelAr" class="text-[10px] text-slate-500 block truncate">{{ doc.labelAr }}</span>
+                <span class="font-bold text-xs text-neutral-900 dark:text-neutral-100 block truncate">{{ doc.labelEn }}</span>
+                <span v-if="doc.labelAr" class="text-[10px] text-neutral-500 block truncate">{{ doc.labelAr }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span v-if="doc.file" class="rounded bg-blue-100 text-blue-700 px-1.5 py-0.2 text-[9px] font-bold">New</span>
+              <span v-if="doc.file" class="rounded bg-neutral-100 text-neutral-700 px-1.5 py-0.2 text-[9px] font-bold">New</span>
               <button
                 type="button"
                 class="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-1.5 rounded transition-colors"
                 :title="locale === 'ar' ? 'حذف المستند' : 'Remove document'"
-                @click="removeDocument(i)"
-              >
-                <Trash2 class="h-3.5 w-3.5" />
+                @click="removeDocument(i)" :aria-label="locale === 'ar' ? 'حذف المستند' : 'Remove document'">
+                <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
         </div>
 
         <!-- Add Document Form -->
-        <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#0B1520] max-w-xl space-y-3">
-          <span class="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">
+        <div class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-bg max-w-xl space-y-3">
+          <span class="text-xs font-bold text-neutral-800 dark:text-neutral-200 block mb-1">
             {{ locale === 'ar' ? 'إرفاق ملف PDF جديد' : 'Attach New PDF Document' }}
           </span>
 
@@ -1036,16 +1057,16 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
             <input
               type="file"
               accept="application/pdf"
-              class="block w-full text-xs text-slate-500 file:me-3 file:rounded-md file:border-0 file:bg-[#2B71AE]/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#2B71AE] hover:file:bg-[#2B71AE]/20 cursor-pointer"
+              class="block w-full text-xs text-neutral-500 file:me-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20 cursor-pointer"
               @change="onDocFileSelected"
             />
             <button
               type="button"
               :disabled="!docFile"
-              class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#2B71AE] px-4 text-xs font-semibold text-white hover:bg-[#285E8E] disabled:opacity-50 transition-colors w-full sm:w-auto"
+              class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-on-primary hover:bg-primary/90 disabled:opacity-50 transition-colors w-full sm:w-auto"
               @click="addDocument"
             >
-              <UploadCloud class="h-3.5 w-3.5" />
+              <UploadCloud class="h-3.5 w-3.5" aria-hidden="true" />
               <span>{{ locale === 'ar' ? 'إضافة المستند' : 'Add Document' }}</span>
             </button>
           </div>
@@ -1056,54 +1077,54 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
     <!-- Step 5: SEO & Discovery -->
     <div
       v-show="step === 5"
-      class="rounded-md border bg-white p-6 shadow-xs dark:bg-[#162032]"
+      class="rounded-md border bg-white p-6 shadow-xs dark:bg-neutral-900"
       :style="{ borderColor: 'var(--color-border)' }"
     >
-      <h2 class="mb-1 font-heading text-lg font-bold text-slate-900 dark:text-slate-100">
+      <h2 class="mb-1 font-heading text-lg font-bold text-neutral-900 dark:text-neutral-100">
         {{ locale === 'ar' ? 'محركات البحث واكتشاف الذكاء الاصطناعي' : 'SEO & AI Search Discovery' }}
       </h2>
-      <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-5 text-xs text-neutral-500 dark:text-neutral-400">
         {{ locale === 'ar' ? 'تحسين ظهور هذا المنتج في محركات البحث التقليدية ومحركات إجابات الذكاء الاصطناعي.' : 'Configure search metadata, canonical keywords, and structured text context.' }}
       </p>
 
       <div class="space-y-4">
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title (EN)</span>
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Meta Title (EN)</span>
             <input v-model="form.metaTitleEn" type="text" placeholder="e.g. Arduino Uno R3 | Amir" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Title (AR)</span>
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Meta Title (AR)</span>
             <input v-model="form.metaTitleAr" type="text" placeholder="مثال: لوحة أردوينو أونو | أمير" dir="rtl" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Description (EN)</span>
-            <textarea v-model="form.metaDescriptionEn" rows="2" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" placeholder="Concise search result snippet..." />
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Meta Description (EN)</span>
+            <textarea v-model="form.metaDescriptionEn" rows="2" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg" :style="{ borderColor: 'var(--color-border)' }" placeholder="Concise search result snippet..." />
           </label>
           <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Meta Description (AR)</span>
-            <textarea v-model="form.metaDescriptionAr" rows="2" dir="rtl" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]" :style="{ borderColor: 'var(--color-border)' }" placeholder="وصف موجز يظهر في نتائج البحث..." />
+            <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Meta Description (AR)</span>
+            <textarea v-model="form.metaDescriptionAr" rows="2" dir="rtl" class="w-full rounded-md border bg-white p-2.5 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg" :style="{ borderColor: 'var(--color-border)' }" placeholder="وصف موجز يظهر في نتائج البحث..." />
           </label>
         </div>
 
         <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Keywords (Comma-separated)</span>
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Keywords (Comma-separated)</span>
           <input v-model="form.keywords" type="text" placeholder="arduino, microcontroller, iot, robotics, egypt" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
         </label>
 
         <label class="block">
-          <span class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">GEO & AI Search Content</span>
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">GEO & AI Search Content</span>
           <textarea
             v-model="form.geoContent"
             rows="3"
-            class="w-full rounded-md border bg-white p-3 text-xs focus:border-[#2B71AE] focus:outline-none focus:ring-2 focus:ring-[#2B71AE]/20 dark:bg-[#0B1520]"
+            class="w-full rounded-md border bg-white p-3 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-bg"
             :style="{ borderColor: 'var(--color-border)' }"
             placeholder="Describe this product in 2-3 clear sentences for AI search engines: what it is, who uses it, and what problem it solves in Egypt."
           />
-          <span class="mt-1 block text-[11px] text-slate-400">Used in JSON-LD schema and AI search indexation.</span>
+          <span class="mt-1 block text-[11px] text-neutral-400">Used in JSON-LD schema and AI search indexation.</span>
         </label>
       </div>
     </div>
@@ -1113,7 +1134,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
       <!-- Previous Step Button -->
       <button
         type="button"
-        class="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        class="inline-flex h-11 items-center gap-2 rounded-md border px-4 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
         :disabled="step === 1"
         @click="step--"
       >
@@ -1127,7 +1148,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <button
           v-if="step < 5"
           type="button"
-          class="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          class="inline-flex h-11 items-center gap-2 rounded-md border border-neutral-300 bg-white px-5 text-xs font-semibold text-neutral-700 shadow-2xs transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
           @click="next"
         >
           <span>{{ locale === 'ar' ? 'الخطوة التالية' : 'Next Step' }}</span>
@@ -1139,7 +1160,7 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
         <button
           type="button"
           :disabled="saving"
-          class="inline-flex h-10 items-center gap-2 rounded-md bg-[#F5CC07] px-7 text-xs font-bold text-slate-950 shadow-xs transition-all hover:bg-yellow-400 active:scale-[0.98] disabled:opacity-50"
+          class="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-7 text-xs font-bold text-on-primary shadow-xs transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           @click="saveAll"
         >
           <Save class="h-4 w-4" aria-hidden="true" />

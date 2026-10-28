@@ -1,10 +1,10 @@
 import {
   daysFromToday,
   isOnSlotStep,
-  overlaps,
   parseDayStr,
   tzDayStr,
   tzParts,
+  wallToUtcMs,
 } from '../../utils/booking-slots'
 import { depositCentsFor } from '../../../shared/booking'
 import {
@@ -15,6 +15,15 @@ import {
   newIdempotencyKey,
   newPublicToken,
 } from '../../utils/booking-payments'
+import {
+  isSalonClosedOnDay,
+  isStaffBusy,
+  isStaffOnTimeOff,
+  loadDayBookings,
+  pickStaffForSlot,
+  slotFitsHours,
+  staffScheduleForDay,
+} from '../../utils/staff-availability'
 import { bookingCreateSchema, parseBody } from '../../utils/validate'
 import { BOOKING_HORIZON_DAYS_DEFAULT } from '../../../shared/booking'
 
@@ -22,6 +31,8 @@ import { BOOKING_HORIZON_DAYS_DEFAULT } from '../../../shared/booking'
 // from the service row — nothing price-related is trusted from the client.
 // Overlap is re-checked inside the transaction so two customers cannot take
 // the same slot. Payment happens in a second step (POST …/pay).
+// Roadmap Phase 4: the customer chooses a staff member (or "any"); the slot
+// is held for that staff member while PENDING and auto-assigned on payment.
 export default defineEventHandler(async (event) => {
   const body = await parseBody(event, bookingCreateSchema)
   const settings = await getBookingSettings()
@@ -44,6 +55,8 @@ export default defineEventHandler(async (event) => {
         depositCents: existing.depositCents,
         currency: settings.currency,
         paymentStatus: existing.paymentStatus,
+        assignedStaffId: existing.assignedStaffId,
+        staffChoice: (existing as any).staffChoice ?? 'ANY',
         gateways,
         created: false,
       }
@@ -58,13 +71,20 @@ export default defineEventHandler(async (event) => {
   if (startsAt.getTime() <= now.getTime()) {
     throw createError({ statusCode: 400, statusMessage: 'Slot must be in the future' })
   }
+  if (startsAt.getTime() < now.getTime() + settings.bookingMinLeadMin * 60000) {
+    throw createError({ statusCode: 400, statusMessage: 'Slot is too soon to book online' })
+  }
   const dayStr = tzDayStr(startsAt.getTime(), tz)
-  if (!parseDayStr(dayStr)) throw createError({ statusCode: 400, statusMessage: 'Invalid date' })
+  const dayParts = parseDayStr(dayStr)
+  if (!dayParts) throw createError({ statusCode: 400, statusMessage: 'Invalid date' })
   const ahead = daysFromToday(dayStr, tzDayStr(now.getTime(), tz))
   if (ahead < 0 || ahead > BOOKING_HORIZON_DAYS_DEFAULT) {
     throw createError({ statusCode: 400, statusMessage: 'Date is outside the booking horizon' })
   }
 
+  if (await isSalonClosedOnDay(dayStr)) {
+    throw createError({ statusCode: 409, statusMessage: 'Salon is closed on this day' })
+  }
   const dayWeekday = tzParts(Date.parse(`${dayStr}T12:00:00Z`), tz).weekday
   const hours = await prisma.workingHours.findUnique({ where: { weekday: dayWeekday } })
   if (!hours || hours.isClosed) {
@@ -79,37 +99,86 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Slot is outside working hours' })
   }
 
+  // Requested staff: specific id or ANY (missing/empty/'any').
+  const requestedStaffId = body.staffId && body.staffId !== 'any' ? body.staffId : null
+  const staffChoice = requestedStaffId ? 'SPECIFIC' : 'ANY'
+  if (requestedStaffId) {
+    const target = await prisma.adminUser.findUnique({
+      where: { id: requestedStaffId },
+      include: { staffProfile: true, staffServices: { select: { serviceId: true } } },
+    })
+    if (!target || !target.isActive || target.role !== 'STAFF') {
+      throw createError({ statusCode: 400, statusMessage: 'Selected staff member is not available' })
+    }
+    if (target.staffProfile && target.staffProfile.isBookable === false) {
+      throw createError({ statusCode: 400, statusMessage: 'Selected staff member is not available' })
+    }
+    if (target.staffServices.length > 0 && !target.staffServices.some(s => s.serviceId === service.id)) {
+      throw createError({ statusCode: 400, statusMessage: 'Selected staff member does not offer this service' })
+    }
+    const dayHours = await staffScheduleForDay(
+      target.id, dayWeekday, { openMin: hours.openMin, closeMin: hours.closeMin, isClosed: hours.isClosed },
+    )
+    if (!slotFitsHours(wallMin, service.durationMin, dayHours)) {
+      throw createError({ statusCode: 409, statusMessage: 'Selected staff member is not available at this time' })
+    }
+    if (await isStaffOnTimeOff(target.id, startsAt.getTime(), startsAt.getTime() + service.durationMin * 60000)) {
+      throw createError({ statusCode: 409, statusMessage: 'Selected staff member is not available at this time' })
+    }
+  }
+
   const startMs = startsAt.getTime()
   const endMs = startMs + service.durationMin * 60000
   const depositCents = depositCentsFor(service.priceAbCents, settings.depositPercent)
   const holdExpiresAt = new Date(now.getTime() + settings.holdTtlMin * 60000)
+  const dayStartMs = wallToUtcMs(dayParts.year, dayParts.month, dayParts.day, 0, 0, tz)
+  const dayEndMs = wallToUtcMs(dayParts.year, dayParts.month, dayParts.day, 23, 59, tz) + 59999
+
+  // Refuse before creating a PENDING hold when no gateway can take the
+  // deposit: otherwise the customer gets a reservation that can never be paid
+  // and silently expires. Client-side gateway flags are not authoritative.
+  const gateways = await getGatewayStatus()
+  if (!gateways.stripe && !gateways.paypal) {
+    console.warn('[bookings] deposit payment unavailable: no gateway enabled or configured')
+    throw createError({ statusCode: 503, statusMessage: 'Online payment is currently unavailable' })
+  }
 
   const created = await prisma.$transaction(async (tx) => {
-    // Serialize creation per service + salon-local calendar day: concurrent
+    // Serialize creation per salon + salon-local calendar day: concurrent
     // requests for any overlapping slots on this day queue here, then re-check
-    // overlaps below inside the same lock.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${service.id}), hashtext(${dayStr}))`
+    // overlaps below inside the same lock. One lock (not per staff) keeps
+    // "any staff" checks across several staff members deadlock-free.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('salon'), hashtext(${dayStr}))`
     await tx.booking.updateMany({
       where: { paymentStatus: 'PENDING', holdExpiresAt: { lt: now } },
       data: { paymentStatus: 'EXPIRED' },
     })
-    const candidates = await tx.booking.findMany({
-      where: {
+    const dayRows = await loadDayBookings(startMs - 1440 * 60000, endMs, now.getTime(), tx)
+    let assignedStaffId: string
+    if (requestedStaffId) {
+      if (isStaffBusy(requestedStaffId, service.id, startMs, endMs, dayRows)) {
+        throw createError({ statusCode: 409, statusMessage: 'Slot just got booked' })
+      }
+      assignedStaffId = requestedStaffId
+    }
+    else {
+      const picked = await pickStaffForSlot({
         serviceId: service.id,
-        startsAt: { lt: new Date(endMs), gte: new Date(startMs - 1440 * 60000) },
-        OR: [
-          { paymentStatus: 'PAID' },
-          { paymentStatus: 'PENDING', holdExpiresAt: { gt: now } },
-        ],
-      },
-      select: { startsAt: true, durationMinSnapshot: true },
-    })
-    const isClash = candidates.some((c) => {
-      const cEnd = c.startsAt.getTime() + c.durationMinSnapshot * 60000
-      return overlaps(startMs, endMs, c.startsAt.getTime(), cEnd)
-    })
-    if (isClash) {
-      throw createError({ statusCode: 409, statusMessage: 'Slot just got booked' })
+        startMs,
+        endMs,
+        wallMin,
+        durationMin: service.durationMin,
+        weekday: dayWeekday,
+        salon: { openMin: hours.openMin, closeMin: hours.closeMin, isClosed: hours.isClosed },
+        dayRows,
+        dayStartMs,
+        dayEndMs,
+        client: tx,
+      })
+      if (!picked) {
+        throw createError({ statusCode: 409, statusMessage: 'Slot just got booked' })
+      }
+      assignedStaffId = picked.id
     }
     // bookingNumber retry on (unlikely) collision.
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -130,6 +199,11 @@ export default defineEventHandler(async (event) => {
             providerRef: null,
             idempotencyKey: body.idempotencyKey || newIdempotencyKey(),
             status: 'UNASSIGNED',
+            staffChoice,
+            assignedStaffId,
+            locale: body.locale || 'de',
+            manageToken: newPublicToken(),
+            whatsappReminder: Boolean(body.whatsappReminder),
             notes: body.note?.trim() || null,
             holdExpiresAt,
             publicToken: newPublicToken(),
@@ -148,7 +222,6 @@ export default defineEventHandler(async (event) => {
 
   // NOTE: requires the 2c migration (Booking.publicToken) to be applied.
   await expireHolds(now).catch(() => null)
-  const gateways = await getGatewayStatus()
   return {
     token: (created as any).publicToken,
     bookingNumber: created.bookingNumber,
@@ -156,6 +229,8 @@ export default defineEventHandler(async (event) => {
     depositCents: created.depositCents,
     currency: settings.currency,
     paymentStatus: created.paymentStatus,
+    assignedStaffId: (created as any).assignedStaffId ?? null,
+    staffChoice,
     gateways,
     created: true,
   }
