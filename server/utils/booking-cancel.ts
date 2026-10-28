@@ -7,6 +7,7 @@ import { isStatusTransitionAllowed } from '../../shared/booking.ts'
 import { refundDeposit } from './refunds.ts'
 import { notifyAdmins, notifyUser } from './admin-notifications.ts'
 import { queueCancelMails } from './outbox.ts'
+import { getSiteSettings } from './site-settings.ts'
 
 export type CancelBy = 'CUSTOMER' | 'ADMIN' | 'STAFF'
 export type RefundMode = 'auto' | 'full' | 'none' | 'custom' | 'outside'
@@ -81,7 +82,7 @@ export async function cancelBookingAndRefund(input: {
 
   const reason = input.reason?.trim() || null
   const canAuto = amountToRefund > 0
-    && (booking.paymentProvider === 'stripe' || booking.paymentProvider === 'paypal')
+    && booking.paymentProvider === 'paypal'
     && Boolean((booking as any).providerPaymentId)
 
   // Guarded flip: exactly one concurrent canceller wins; losers replay.
@@ -145,7 +146,7 @@ export async function cancelBookingAndRefund(input: {
         row = await prisma.bookingRefund.findUnique({ where: { idempotencyKey } })
       }
       if (row && row.status !== 'SUCCEEDED') {
-        const settings = await prisma.siteSettings.findFirst()
+        const settings = await getSiteSettings()
         const attempt = await refundDeposit({
           paymentProvider: booking.paymentProvider,
           providerPaymentId: (booking as any).providerPaymentId,
@@ -205,7 +206,7 @@ export async function cancelBookingAndRefund(input: {
     })
   }
 
-  const settings = await prisma.siteSettings.findFirst()
+  const settings = await getSiteSettings()
   await queueCancelMails(booking.id, {
     refundedCents: refundStatus === 'SUCCEEDED' ? refundedCents : 0,
     currency: (settings as any)?.defaultCurrency || 'EUR',

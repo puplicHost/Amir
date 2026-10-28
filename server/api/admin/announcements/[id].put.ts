@@ -1,24 +1,24 @@
-import { createError, defineEventHandler, readBody } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { announcementItemSchema, parseBody } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'banners.manage')
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'ID required' })
 
-  const body = await readBody(event)
+  // AUDIT P3-08: validated partial update (text length, type/link enums).
+  const body = await parseBody(event, announcementItemSchema)
 
   const item = await prisma.announcementItem.update({
     where: { id },
     data: {
-      textAr: body.textAr !== undefined ? String(body.textAr).trim() : undefined,
-      textEn: body.textEn !== undefined ? (body.textEn ? String(body.textEn).trim() : null) : undefined,
+      textAr: body.textAr !== undefined ? body.textAr : undefined,
+      textEn: body.textEn !== undefined ? (body.textEn || null) : undefined,
       type: body.type !== undefined ? body.type : undefined,
       linkType: body.linkType !== undefined ? body.linkType : undefined,
-      linkValue: body.linkValue !== undefined ? (body.linkValue ? String(body.linkValue).trim() : null) : undefined,
-      isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
-      sortOrder: body.sortOrder !== undefined ? Number(body.sortOrder) : undefined,
+      linkValue: body.linkValue !== undefined ? (body.linkValue || null) : undefined,
+      isActive: body.isActive,
+      sortOrder: body.sortOrder,
     },
   })
 

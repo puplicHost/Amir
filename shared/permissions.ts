@@ -22,6 +22,7 @@ export const PERMISSION_GROUPS = {
   users: ['users.manage'],
   notifications: ['notifications.view'],
   expenses: ['expenses.view', 'expenses.manage', 'expenses.export'],
+  activity: ['activity.view_all', 'activity.view_own'],
 } as const
 
 export const ALL_PERMISSIONS: string[] = Object.values(PERMISSION_GROUPS).flat()
@@ -51,12 +52,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<'ADMIN' | 'MANAGER' | 'STAFF', rea
     'inbox.manage',
     'banners.manage',
     'notifications.view',
+    'activity.view_all',
   ],
   STAFF: [
     'bookings.view_own',
     'bookings.cancel_own',
     'bookings.complete',
     'notifications.view',
+    'activity.view_own',
   ],
 }
 

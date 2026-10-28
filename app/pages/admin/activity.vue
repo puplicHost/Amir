@@ -10,7 +10,11 @@ import {
   Wrench,
 } from 'lucide-vue-next'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({
+  layout: 'admin',
+  middleware: 'admin-auth',
+  requiredPermission: ['activity.view_all', 'activity.view_own'],
+})
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()

@@ -1,6 +1,6 @@
 import { defineEventHandler, readMultipartFormData, createError } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 import { saveBrandImage } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
@@ -14,10 +14,6 @@ export default defineEventHandler(async (event) => {
   // Content-validated + re-encoded to WebP (never trust extension/MIME).
   const relativePath = await saveBrandImage('settings', 'logo', file.data, 600)
 
-  await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: { logoPath: relativePath },
-    create: { siteNameAr: 'AMIR', siteNameEn: 'Amir', logoPath: relativePath },
-  })
+  await upsertSiteSettings({ logoPath: relativePath }, { siteNameAr: 'AMIR', siteNameEn: 'Amir' })
   return { success: true, path: relativePath }
 })

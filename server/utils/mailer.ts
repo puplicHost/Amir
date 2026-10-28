@@ -2,8 +2,12 @@
 // Providers: 'log' (server log, default — no dependency, no account) and
 // 'http' (generic JSON API via fetch — no dependency). Secrets are
 // AES-256-GCM encrypted in settings and never returned raw.
+//
+// AUDIT P2-01: a logged message is a SIMULATION, never a delivered message.
+// Callers must inspect `simulated` and must not record a SENT delivery state.
 
 import { decryptData } from './encryption.ts'
+import { getSiteSettings } from './site-settings.ts'
 
 export interface MailMessage {
   to: string
@@ -21,8 +25,16 @@ export interface MailSettings {
   httpKey: string | null
 }
 
+export interface MailSendResult {
+  provider: string
+  /** True when the message was only written to the server log. */
+  simulated: boolean
+  /** True only when an upstream provider accepted the message. */
+  accepted: boolean
+}
+
 export async function getMailSettings(): Promise<MailSettings> {
-  const s = await prisma.siteSettings.findFirst()
+  const s = await getSiteSettings()
   let httpKey: string | null = null
   if ((s as any)?.mailHttpKey) {
     try {
@@ -54,8 +66,8 @@ export function siteBaseUrl(): string {
   }
 }
 
-/** Send one message. Throws on failure (outbox retries). Never throws for 'log'. */
-export async function sendMail(msg: MailMessage): Promise<void> {
+/** Send one message. Throws on real provider failure (outbox retries). */
+export async function sendMail(msg: MailMessage): Promise<MailSendResult> {
   const settings = await getMailSettings()
   if (settings.provider === 'http') {
     if (!settings.httpEndpoint) throw new Error('Mail HTTP endpoint not configured')
@@ -83,7 +95,10 @@ export async function sendMail(msg: MailMessage): Promise<void> {
     finally {
       clearTimeout(timer)
     }
-    return
+    return { provider: 'http', simulated: false, accepted: true }
   }
+
+  // Log simulation: useful locally, never evidence of delivery.
   console.log(`[mail:${settings.provider}] to=${msg.to} subject=${msg.subject}\n${msg.text}`)
+  return { provider: settings.provider || 'log', simulated: true, accepted: false }
 }

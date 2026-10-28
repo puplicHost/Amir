@@ -23,6 +23,7 @@ const from = ref(firstThisMonth)
 const to = ref(todayBerlinISO())
 const categoryId = ref('')
 const search = ref('')
+const page = ref(1)
 
 const { data, refresh, pending } = await useAsyncData('admin-expenses', () =>
   fetch<any>('/api/admin/expenses', {
@@ -31,14 +32,21 @@ const { data, refresh, pending } = await useAsyncData('admin-expenses', () =>
       to: to.value || undefined,
       categoryId: categoryId.value || undefined,
       search: search.value.trim() || undefined,
+      page: page.value,
     },
   }),
 )
-watch([from, to, categoryId], () => refresh())
+watch([from, to, categoryId], () => {
+  page.value = 1
+  refresh()
+})
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(search, () => {
   if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => refresh(), 400)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    refresh()
+  }, 400)
 })
 onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer)
@@ -47,8 +55,14 @@ onUnmounted(() => {
 const rows = computed(() => data.value?.expenses || [])
 const categories = computed(() => data.value?.categories || [])
 const total = computed(() => data.value?.total || 0)
+const totalCount = computed(() => Number(data.value?.totalCount || rows.value.length))
+const pages = computed(() => Number(data.value?.pages || 1))
 const byCategory = computed(() => data.value?.byCategory || [])
 const byMonth = computed(() => data.value?.byMonth || [])
+function changePage(next: number) {
+  page.value = next
+  refresh()
+}
 const catName = (id: string) => {
   const c = categories.value.find((x: any) => x.id === id)
   return locale.value === 'de' ? (c?.nameDe || '') : (c?.nameEn || c?.nameDe || '')
@@ -319,6 +333,14 @@ async function toggleCategory(c: any) {
           <AdminEmptyState :title="t('expenses.none')" :description="t('expenses.noneHint')" :icon="Receipt" />
         </div>
       </div>
+      <AdminPagination
+        v-if="pages > 1"
+        :page="page"
+        :pages="pages"
+        :total="totalCount"
+        :item-name="t('expenses.title')"
+        @change="changePage"
+      />
     </div>
 
     <!-- Categories -->

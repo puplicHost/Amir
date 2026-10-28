@@ -21,6 +21,11 @@ const {
 
 // No pre-ticked boxes for marketing
 const marketingChoice = ref(false)
+const settingsDialogRef = ref<HTMLElement | null>(null)
+
+// P2-12: keyboard focus stays inside the settings dialog and returns to the
+// trigger when it closes. The first-layer banner is non-modal, so no trap.
+useFocusTrap(settingsDialogRef, settingsModalOpen, { onEscape: closeSettings })
 
 const isVisible = computed(() => {
   if (isAdminRoute.value) return false
@@ -71,6 +76,7 @@ onUnmounted(() => {
     <!-- Granular Settings Modal -->
     <div
       v-if="settingsModalOpen"
+      ref="settingsDialogRef"
       role="dialog"
       aria-modal="true"
       aria-labelledby="consent-settings-title"

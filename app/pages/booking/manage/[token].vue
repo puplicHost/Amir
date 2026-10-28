@@ -24,11 +24,17 @@ const reason = ref('')
 const cancelling = ref(false)
 const formError = ref('')
 const done = ref<{ refundStatus: string } | null>(null)
+const cancelDialogRef = ref<HTMLElement | null>(null)
+
+// P2-12: trap focus in the cancel confirmation and restore it on close.
+useFocusTrap(cancelDialogRef, confirmOpen, {
+  onEscape: () => {
+    if (!cancelling.value) confirmOpen.value = false
+  },
+})
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString(locale.value === 'de' ? 'de-DE' : 'en-US', {
-    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
-  })
+  return formatDateTime(iso, intlLocale(locale.value), booking.value?.timezone || DEFAULT_SALON_TIMEZONE)
 }
 
 async function cancel() {
@@ -63,7 +69,7 @@ const cancelled = computed(() => booking.value?.status === 'CANCELLED' || done.v
     </nav>
 
     <div class="rounded-xl border border-border bg-surface p-4 sm:p-6">
-      <h1 class="font-heading text-xl font-extrabold tracking-tight text-text mb-1">{{ booking.serviceName }}</h1>
+      <h1 class="font-heading text-xl font-extrabold tracking-tight text-text mb-1">{{ locale === 'en' ? (booking.serviceNameEn || booking.serviceName) : booking.serviceName }}</h1>
       <p class="text-sm text-muted mb-1">{{ fmtDate(booking.startsAt) }} · {{ booking.durationMinSnapshot }} {{ t('services.minutes') }}</p>
       <p v-if="booking.staffName" class="text-sm text-muted mb-1">{{ booking.staffName }}</p>
       <p class="text-xs text-muted mb-4">{{ t('booking.bookingNo') }}: <span class="font-mono break-all">{{ booking.bookingNumber }}</span></p>
@@ -89,6 +95,7 @@ const cancelled = computed(() => booking.value?.status === 'CANCELLED' || done.v
 
     <div
       v-if="confirmOpen"
+      ref="cancelDialogRef"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       role="dialog"
       aria-modal="true"

@@ -19,9 +19,11 @@ export default defineEventHandler(async (event) => {
     where.OR = [
       { nameEn: { contains: s, mode: 'insensitive' } },
       { nameAr: { contains: s, mode: 'insensitive' } },
+      { nameDe: { contains: s, mode: 'insensitive' } },
       { slug: { contains: s, mode: 'insensitive' } },
       { category: { is: { nameEn: { contains: s, mode: 'insensitive' } } } },
       { category: { is: { nameAr: { contains: s, mode: 'insensitive' } } } },
+      { category: { is: { nameDe: { contains: s, mode: 'insensitive' } } } },
       { seo: { is: { keywords: { contains: s, mode: 'insensitive' } } } },
     ]
   }
@@ -93,8 +95,9 @@ export default defineEventHandler(async (event) => {
         slug: true,
         nameAr: true,
         nameEn: true,
+        nameDe: true,
         price: true,
-        category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
+        category: { select: { id: true, slug: true, nameAr: true, nameEn: true, nameDe: true } },
         images: { where: { isCover: true }, take: 1, select: { path: true } },
       },
     }),

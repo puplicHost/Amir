@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { H3Event } from 'h3'
+import { BANNER_PLACEMENTS, BANNER_WIDTHS } from '../../shared/constants/banners'
 import {
   ADMIN_ROLES,
   BOOKING_STATUSES,
@@ -31,6 +32,9 @@ export const serviceCreateSchema = z.object({
   section: serviceSectionEnum,
   name: z.string().trim().min(2).max(160),
   description: z.string().max(10000).nullish(),
+  // AUDIT P2-11: optional English service copy; German remains the source.
+  nameEn: z.string().trim().max(160).nullish(),
+  descriptionEn: z.string().max(10000).nullish(),
   priceAbCents: z.coerce.number().int().min(0).max(100_000_000),
   durationMin: z.coerce.number().int().min(5).max(1440).nullish(),
   needsDurationReview: z.boolean().nullish(),
@@ -70,6 +74,8 @@ export const workingHoursDaySchema = z.object({
 
 export const workingHoursUpdateSchema = z.object({
   days: z.array(workingHoursDaySchema).min(1).max(7),
+  // AUDIT P1-03: revision returned by GET. null means "no rows existed".
+  expectedRevision: z.string().datetime().nullable(),
 })
 
 // ── Salon booking (Phase 2c, guest; staff choice since Roadmap Phase 4) ──
@@ -80,6 +86,10 @@ export const bookingCreateSchema = z.object({
   customerEmail: z.string().trim().email().max(160).nullish().or(z.literal('')),
   startsAt: z.string().trim().datetime({ offset: true }),
   locale: z.enum(['de', 'en']).nullish(),
+  // AUDIT P1-01: contract/privacy acknowledgement is mandatory and validated
+  // server-side. The client cannot opt out by omitting or falsifying the flags.
+  acceptTerms: z.literal(true),
+  acceptPrivacy: z.literal(true),
   whatsappReminder: z.boolean().optional(),
   staffId: z.string().trim().min(1).max(100).nullish().or(z.literal('')),
   note: z.string().trim().max(1000).nullish(),
@@ -105,6 +115,17 @@ export const staffCancelSchema = z.object({
 
 export const refundHandledSchema = z.object({
   note: z.string().trim().max(500).optional(),
+})
+
+// AUDIT P2-07: password rotation. Length is the primary requirement; bcrypt
+// handles storage. Additional composition rules are intentionally avoided.
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(12).max(200),
+})
+
+export const passwordResetSchema = z.object({
+  newPassword: z.string().min(12).max(200),
 })
 
 // ── Manual booking + reschedule (Roadmap Phase 5) ──
@@ -201,10 +222,6 @@ export const staffUnavailableSchema = z.object({
 
 // ── Salon booking/payment settings (Phase 2b) ──
 export const paymentSettingsSchema = z.object({
-  stripeEnabled: z.boolean().optional(),
-  stripePublishableKey: z.string().trim().max(200).nullable().optional(),
-  stripeSecretKey: z.string().trim().max(500).nullable().optional(),
-  stripeWebhookSecret: z.string().trim().max(500).nullable().optional(),
   paypalEnabled: z.boolean().optional(),
   paypalClientId: z.string().trim().max(200).nullable().optional(),
   paypalSecret: z.string().trim().max(500).nullable().optional(),
@@ -229,9 +246,197 @@ export const bookingSettingsSchema = z.object({
   reassignmentWaEn: z.string().trim().max(1000).nullable().optional(),
 })
 
+// ── Admin CMS payloads (AUDIT P3-08) ──
+// Every admin write that used raw readBody now validates through a Zod schema so
+// unknown keys are stripped and wrong shapes fail with a 400 instead of a 500.
+
+const optionalText = (max: number) => z.string().trim().max(max).nullish()
+
+const bannerPlacementEnum = z.enum(
+  BANNER_PLACEMENTS.map(p => p.value) as unknown as [string, ...string[]],
+)
+
+export const bannerSchema = z.object({
+  titleAr: z.string().trim().min(1).max(200).optional(),
+  titleEn: z.string().trim().min(1).max(200).optional(),
+  descriptionAr: optionalText(2000),
+  descriptionEn: optionalText(2000),
+  buttonTextAr: optionalText(120),
+  buttonTextEn: optionalText(120),
+  backgroundImagePath: optionalText(1000),
+  buttonLinkType: optionalText(50),
+  buttonLinkValue: optionalText(1000),
+  backgroundColor: optionalText(50),
+  textColor: optionalText(50),
+  placement: bannerPlacementEnum.optional(),
+  widthPercent: z.coerce.number().int().refine(
+    v => (BANNER_WIDTHS as readonly number[]).includes(v),
+    { message: 'Invalid banner width' },
+  ).optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(100000).optional(),
+})
+
+export const bannerCreateSchema = bannerSchema.extend({
+  titleAr: z.string().trim().min(1).max(200),
+  titleEn: z.string().trim().min(1).max(200),
+})
+
+export const announcementItemSchema = z.object({
+  textAr: z.string().trim().max(500).optional(),
+  textEn: optionalText(500),
+  type: z.enum(['general', 'product', 'service']).optional(),
+  linkType: z.enum(['none', 'product', 'service', 'url']).optional(),
+  linkValue: optionalText(1000),
+  isActive: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(10000).optional(),
+})
+
+export const announcementCreateSchema = announcementItemSchema.extend({
+  textAr: z.string().trim().min(1).max(500),
+})
+
+export const announcementSettingsSchema = z.object({
+  announcementActive: z.boolean().optional(),
+  announcementBgColor: optionalText(50),
+})
+
+const productAttributeSchema = z.object({
+  keyAr: z.string().max(300).optional(),
+  keyEn: z.string().max(300).optional(),
+  valueAr: z.string().max(3000).optional(),
+  valueEn: z.string().max(3000).optional(),
+})
+
+const productSeoSchema = z.object({
+  metaTitleAr: optionalText(300),
+  metaTitleEn: optionalText(300),
+  metaDescriptionAr: optionalText(1000),
+  metaDescriptionEn: optionalText(1000),
+  keywords: optionalText(2000),
+  geoContent: optionalText(20000),
+})
+
+export const productCreateSchema = z.object({
+  nameAr: z.string().trim().min(1).max(300),
+  nameEn: z.string().trim().min(1).max(300),
+  // AUDIT P2-11: optional German copy.
+  nameDe: optionalText(300),
+  slug: optionalText(200),
+  categoryId: z.string().trim().min(1).max(100),
+  descriptionAr: optionalText(50000),
+  descriptionEn: optionalText(50000),
+  descriptionDe: optionalText(50000),
+  price: z.coerce.number().min(0).max(10000000),
+  isActive: z.boolean().optional(),
+  featuredOnHomepage: z.boolean().optional(),
+  attributes: z.array(productAttributeSchema).max(200).optional(),
+  seo: productSeoSchema.nullish(),
+})
+
+export const productUpdateSchema = productCreateSchema.partial()
+
+export const categoryCreateSchema = z.object({
+  nameAr: z.string().trim().min(1).max(300),
+  nameEn: z.string().trim().min(1).max(300),
+  nameDe: optionalText(300),
+  slug: optionalText(200),
+  descriptionAr: optionalText(20000),
+  descriptionEn: optionalText(20000),
+  descriptionDe: optionalText(20000),
+  coverVideoUrl: optionalText(1000),
+  featuredOnHomepage: z.boolean().optional(),
+  showOnHome: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(100000).optional(),
+})
+
+export const categoryUpdateSchema = categoryCreateSchema.partial()
+
+export const generalSettingsSchema = z.object({
+  siteNameAr: z.string().trim().max(200).optional(),
+  siteNameEn: z.string().trim().max(200).optional(),
+  taglineAr: optionalText(500),
+  taglineEn: optionalText(500),
+  bannerTextAr: optionalText(1000),
+  bannerTextEn: optionalText(1000),
+  bannerButtonTextAr: optionalText(200),
+  bannerButtonTextEn: optionalText(200),
+  bannerButtonUrl: optionalText(1000),
+  offerEndDate: optionalText(60).refine(
+    v => !v || !Number.isNaN(Date.parse(v)),
+    { message: 'offerEndDate must be a valid date' },
+  ),
+  announcementActive: z.boolean().optional(),
+  announcementBgColor: optionalText(50),
+  primaryDarkColor: z.string().trim().max(50).optional(),
+  primaryColor: z.string().trim().max(50).optional(),
+  accentColor: z.string().trim().max(50).optional(),
+})
+
+export const contactSettingsSchema = z.object({
+  contactPhone1: optionalText(60),
+  contactPhone2: optionalText(60),
+  contactWhatsapp: optionalText(60),
+  contactEmail: z.string().trim().email().max(200).nullish(),
+  contactAddressAr: optionalText(1000),
+  contactAddressEn: optionalText(1000),
+  googleMapsEmbedUrl: optionalText(2000),
+  socialFacebook: optionalText(2000),
+  socialInstagram: optionalText(2000),
+  socialTiktok: optionalText(2000),
+  socialYoutube: optionalText(2000),
+  socialLinkedin: optionalText(2000),
+  socialX: optionalText(2000),
+})
+
+export const seoSettingsSchema = z.object({
+  seoMetaTitleTemplateAr: optionalText(300),
+  seoMetaTitleTemplateEn: optionalText(300),
+  seoMetaDescriptionAr: optionalText(1000),
+  seoMetaDescriptionEn: optionalText(1000),
+  seoKeywords: optionalText(2000),
+  geoDescription: optionalText(20000),
+})
+
+export const storeSettingsSchema = z.object({
+  defaultCurrency: z.string().trim().regex(/^[A-Z]{3}$/, 'Currency must be a 3-letter ISO code').optional(),
+  productsPerPage: z.coerce.number().int().min(1).max(100).optional(),
+})
+
+export const tickerSettingsSchema = z.object({
+  tickerTextAr: optionalText(500),
+  tickerTextEn: optionalText(500),
+  tickerActive: z.boolean().optional(),
+  tickerSpeed: z.coerce.number().int().min(5).max(120).optional(),
+})
+
+export const metaSettingsSchema = z.object({
+  pixelId: z.string().trim().max(40).regex(/^\d*$/, 'Pixel ID must be numeric').nullish(),
+  testEventCode: optionalText(100),
+  enabled: z.boolean().optional(),
+  accessToken: z.string().trim().max(1000).optional(),
+})
+
+export const pushTokenSchema = z.object({
+  token: z.string().trim().min(10).max(4096),
+})
+
+export const optionalPushTokenSchema = z.object({
+  token: z.string().trim().min(10).max(4096).optional(),
+})
+
+export const productImageOrderSchema = z.object({
+  order: z.array(z.string().trim().min(1).max(100)).min(1).max(100),
+})
+
+export const productVideoUrlSchema = z.object({
+  url: z.string().trim().url().max(2000).refine(v => /^https?:\/\//i.test(v), {
+    message: 'Video URL must start with http(s)://',
+  }),
+})
+
 // ── Helper ──
-export async function parseBody<T extends z.ZodTypeAny>(event: H3Event, schema: T): Promise<z.infer<T>> {
-  const raw = await readBody(event)
+export async function parseBody<T extends z.ZodTypeAny>(event: H3Event, schema: T): Promise<z.infer<T>> {  const raw = await readBody(event)
   const parsed = schema.safeParse(raw ?? {})
   if (!parsed.success) {
     const first = parsed.error.issues[0]

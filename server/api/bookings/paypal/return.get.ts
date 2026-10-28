@@ -58,11 +58,16 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, failed(ours))
   }
   catch (e) {
-    // Capture may have raced with the APPROVED webhook (ALREADY_CAPTURED):
-    // trust the stored booking state before declaring failure.
+    // Capture may have raced with the APPROVED webhook (ORDER_ALREADY_CAPTURED):
+    // trust authoritative state before declaring failure. If PayPal says the
+    // order is already captured but our row is not PAID yet, send the customer
+    // to the success page, which polls until the webhook confirms.
     const fresh = await prisma.booking.findUnique({ where: { id: booking.id } }).catch(() => null)
-    if (fresh?.paymentStatus === 'PAID') return sendRedirect(event, done(ours))
-    console.warn('[paypal-return]', (e as Error)?.message || e)
+    const message = String((e as Error)?.message || '')
+    if (fresh?.paymentStatus === 'PAID' || /already captured|ORDER_ALREADY_CAPTURED/i.test(message)) {
+      return sendRedirect(event, done(ours))
+    }
+    console.warn('[paypal-return]', message || e)
     return sendRedirect(event, failed(ours))
   }
 })

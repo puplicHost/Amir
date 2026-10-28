@@ -45,8 +45,10 @@ async function sendTest() {
   if (!testTo.value.trim()) return
   testSending.value = true
   try {
-    await $fetch('/api/admin/settings/mail-test', { method: 'POST', body: { to: testTo.value.trim() } })
-    testMsg.value = t('mail.testOk')
+    const res = await $fetch<{ success: boolean, simulated: boolean, message?: string }>('/api/admin/settings/mail-test', { method: 'POST', body: { to: testTo.value.trim() } })
+    testMsg.value = res.simulated
+      ? (res.message || 'Simulated only: configure a real mail provider.')
+      : t('mail.testOk')
   }
   catch (e: any) {
     testMsg.value = e?.data?.message || e?.data?.statusMessage || t('mail.testFail')

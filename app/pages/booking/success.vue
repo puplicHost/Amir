@@ -12,12 +12,14 @@ interface BookingStatus {
   paymentStatus: string
   status: string
   serviceName: string
+  serviceNameEn?: string | null
   serviceSlug: string
   durationMin: number
   startsAt: string
   depositCents: number
   currency: string
-  gateways: { stripe: boolean, paypal: boolean }
+  timezone?: string
+  gateways: { paypal: boolean }
   eventId?: string
 }
 
@@ -90,9 +92,7 @@ onBeforeUnmount(() => {
 useHead(() => ({ title: `${t('booking.successTitle')} | ${t('brand.name')}` }))
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString(locale.value === 'ar' ? 'ar-EG' : 'de-DE', {
-    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
-  })
+  return formatDateTime(iso, intlLocale(locale.value), data.value?.timezone || DEFAULT_SALON_TIMEZONE)
 }
 </script>
 
@@ -119,7 +119,7 @@ function fmtDate(iso: string): string {
         </div>
         <div class="flex justify-between gap-4">
           <dt class="text-muted">{{ t('booking.service') }}</dt>
-          <dd class="font-bold text-text">{{ data.serviceName }}</dd>
+          <dd class="font-bold text-text">{{ locale === 'en' ? (data.serviceNameEn || data.serviceName) : data.serviceName }}</dd>
         </div>
         <div class="flex justify-between gap-4">
           <dt class="text-muted">{{ t('services.duration') }}</dt>
@@ -131,7 +131,7 @@ function fmtDate(iso: string): string {
         </div>
         <div class="flex justify-between gap-4">
           <dt class="text-muted">{{ t('booking.depositDue') }}</dt>
-          <dd class="font-mono font-bold text-text">{{ centsToEur(Number(data.depositCents)) }} {{ data.currency }}</dd>
+          <dd class="font-mono font-bold text-text">{{ centsToEur(Number(data.depositCents)) }}</dd>
         </div>
       </dl>
       <!-- UX-05: surface the customer manage/cancel link (previously email-only). -->

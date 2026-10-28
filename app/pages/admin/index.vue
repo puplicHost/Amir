@@ -16,7 +16,13 @@ import {
 } from 'lucide-vue-next'
 import { centsToEur } from '~~/shared/booking'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
+definePageMeta({
+  layout: 'admin',
+  middleware: 'admin-auth',
+  // AUDIT P3-09: dashboard is an operations view. Staff without company-wide
+  // booking access are redirected to their own bookings by the middleware.
+  requiredPermission: ['bookings.view_all', 'products.view', 'services.manage', 'settings.business'],
+})
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -94,7 +100,6 @@ const bookingStats = computed(() => data.value?.bookings || null)
 const bookingCards = computed(() => {
   const b = bookingStats.value
   if (!b) return []
-  const currency = 'EUR'
   return [
     {
       label: t('admin.bookingsToday'),
@@ -122,7 +127,7 @@ const bookingCards = computed(() => {
     },
     {
       label: t('admin.revenuePaid'),
-      value: `${centsToEur(b.revenueCents)} ${currency}`,
+      value: centsToEur(b.revenueCents),
       icon: Coins,
       to: '/admin/appointments?tab=bookings&status=PAID',
       iconBg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',

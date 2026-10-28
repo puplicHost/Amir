@@ -23,11 +23,13 @@ import {
 } from 'lucide-vue-next'
 
 import AdminRichEditor from './AdminRichEditor.vue'
+import { localizedText } from '../../utils/content.ts'
 
 interface Category {
   id: string
   nameAr: string
   nameEn: string
+  nameDe?: string | null
   slug: string
 }
 interface Attr {
@@ -62,9 +64,11 @@ interface Existing {
   id: string
   nameAr: string
   nameEn: string
+  nameDe?: string | null
   slug: string
   descriptionAr: string | null
   descriptionEn: string | null
+  descriptionDe?: string | null
   price: string | number
   categoryId: string
   isActive: boolean
@@ -95,10 +99,13 @@ const saving = ref(false)
 const form = reactive({
   nameAr: props.existing?.nameAr || '',
   nameEn: props.existing?.nameEn || '',
+  // AUDIT P2-11: optional German copy. Empty = fall back to English.
+  nameDe: props.existing?.nameDe || '',
   slug: props.existing?.slug || '',
   categoryId: props.existing?.categoryId || '',
   descriptionAr: props.existing?.descriptionAr || '',
   descriptionEn: props.existing?.descriptionEn || '',
+  descriptionDe: props.existing?.descriptionDe || '',
   isActive: props.existing?.isActive ?? true,
   featuredOnHomepage: props.existing?.featuredOnHomepage ?? false,
   price: props.existing ? String(props.existing.price) : '',
@@ -418,10 +425,12 @@ async function saveAll() {
     const payload = {
       nameAr: form.nameAr.trim(),
       nameEn: form.nameEn.trim(),
+      nameDe: form.nameDe.trim() || null,
       slug: form.slug.trim() || undefined,
       categoryId: form.categoryId,
       descriptionAr: form.descriptionAr || null,
       descriptionEn: form.descriptionEn || null,
+      descriptionDe: form.descriptionDe || null,
       isActive: form.isActive,
       featuredOnHomepage: form.featuredOnHomepage,
       price: Number(form.price),
@@ -628,13 +637,20 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
           </label>
         </div>
 
+        <!-- AUDIT P2-11: German catalog copy. Leave empty to fall back to English. -->
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Name (DE)</span>
+          <input v-model="form.nameDe" type="text" placeholder="z. B. Arduino Uno R3" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+          <span class="mt-1 block text-[11px] text-neutral-500 dark:text-neutral-400">Optional. Falls back to the English name when empty.</span>
+        </label>
+
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Category *</span>
             <select v-model="form.categoryId" required :class="inputCls" :style="{ borderColor: 'var(--color-border)' }">
               <option value="">{{ locale === 'ar' ? 'اختر الفئة…' : 'Select a category…' }}</option>
               <option v-for="c in catData?.categories || []" :key="c.id" :value="c.id">
-                {{ locale === 'ar' ? (c.nameAr || c.nameEn) : c.nameEn }}
+                {{ localizedText(locale, { de: c.nameDe, en: c.nameEn, ar: c.nameAr }) }}
               </option>
             </select>
           </label>
@@ -665,6 +681,18 @@ const inputCls = 'h-10 w-full rounded-md border bg-white px-3 text-sm transition
               v-model="form.descriptionEn"
               dir="ltr"
               placeholder="Write a detailed product description... you can add illustrative images"
+            />
+          </div>
+
+          <!-- AUDIT P2-11: optional German description; falls back to English. -->
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              Produktbeschreibung (Deutsch)
+            </label>
+            <AdminRichEditor
+              v-model="form.descriptionDe"
+              dir="ltr"
+              placeholder="Optionale deutsche Beschreibung. Leer = englische Beschreibung wird angezeigt."
             />
           </div>
         </div>

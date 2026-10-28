@@ -16,10 +16,11 @@ if (error.value || !service.value) {
   throw createError({ statusCode: 404, statusMessage: 'Service not found', fatal: true })
 }
 
-/** Translated display name (DB stores German; EN comes from i18n). */
+/** Translated display name: explicit English DB copy, then i18n, then German. */
 const serviceDisplayName = computed(() => {
   const srv: any = service.value
   const fallback = srv?.name || ''
+  if (locale.value === 'en' && srv?.nameEn) return srv.nameEn
   if (!srv?.slug) return fallback
   const key = `serviceNames.${srv.slug}`
   try {
@@ -36,9 +37,8 @@ useHead(() => ({
   title: `${serviceDisplayName.value || service.value.name} | ${t('brand.name')}`,
 }))
 
-const todayStr = new Date().toISOString().slice(0, 10)
-const date = ref(todayStr)
-const form = reactive({ name: '', phone: '', email: '', note: '', whatsappReminder: false })
+const date = ref('')
+const form = reactive({ name: '', phone: '', email: '', note: '', whatsappReminder: false, acceptTerms: false })
 const formError = ref('')
 const slots = ref<{ startsAt: string, available: boolean }[]>([])
 const slotsPending = ref(false)
@@ -47,8 +47,18 @@ const creating = ref(false)
 const paying = ref(false)
 const createdToken = ref('')
 const depositCents = ref(0)
-const gateways = ref({ stripe: false, paypal: false })
+const gateways = ref({ paypal: false })
 const currency = ref('EUR')
+// AUDIT P2-04/P2-05: salon-local calendar day and explicit zone from the
+// server. A UTC ISO slice would default to the previous day before ~02:00.
+const { data: bookingConfig } = await useAsyncData('booking-config', () =>
+  $fetch<any>('/api/settings/booking-public').catch(() => null),
+)
+const salonTimezone = ref(String(bookingConfig.value?.timezone || DEFAULT_SALON_TIMEZONE))
+const horizonDays = ref(Number(bookingConfig.value?.horizonDays) || 60)
+const minDate = ref(todayInZone(salonTimezone.value))
+date.value = minDate.value
+const maxDate = computed(() => addDaysToDayStr(minDate.value, Math.max(0, horizonDays.value - 1)))
 // UX-04: stable per-attempt key so a double-submit cannot create two bookings.
 const idempotencyKey = ref('')
 
@@ -91,9 +101,13 @@ async function loadSlots() {
     const res = await $fetch<{
       slots: { startsAt: string, available: boolean }[]
       cancelWindowHours?: number
+      timezone?: string
+      horizonDays?: number
     }>(`/api/availability?${new URLSearchParams({ service: slug, date: date.value, staff: selectedStaff.value })}`)
     slots.value = res.slots || []
     if (typeof res.cancelWindowHours === 'number') cancelWindowHours.value = res.cancelWindowHours
+    if (res.timezone) salonTimezone.value = res.timezone
+    if (typeof res.horizonDays === 'number') horizonDays.value = res.horizonDays
   }
   catch (e: any) {
     slots.value = []
@@ -123,16 +137,18 @@ onMounted(() => {
 })
 
 function slotLabel(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleTimeString(locale.value === 'de' ? 'de-DE' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+  return formatTimeInZone(iso, salonTimezone.value, locale.value)
 }
 
 function slotDay(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString(locale.value === 'de' ? 'de-DE' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })
+  return formatDateInZone(iso, salonTimezone.value, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }, locale.value)
 }
 
-async function payFor(token: string, provider: 'stripe' | 'paypal') {
+async function payFor(token: string) {
   paying.value = true
   trackInitiateCheckout({
     value: depositCents.value ? depositCents.value / 100 : undefined,
@@ -141,7 +157,7 @@ async function payFor(token: string, provider: 'stripe' | 'paypal') {
   try {
     const res = await $fetch<{ redirectUrl: string }>(`/api/bookings/${token}/pay`, {
       method: 'POST',
-      body: { provider },
+      body: { provider: 'paypal' },
     })
     if (!res.redirectUrl) throw new Error('no redirect')
     await navigateTo(res.redirectUrl, { external: true })
@@ -189,6 +205,10 @@ async function createBooking() {
     formError.value = locale.value === 'de' ? 'Bitte wählen Sie zuerst einen Termin.' : 'Please pick a slot first.'
     return
   }
+  if (!form.acceptTerms) {
+    formError.value = t('booking.consentRequired')
+    return
+  }
   creating.value = true
   // UX-04: reuse the same key across retries of this attempt; a new slot
   // selection clears it (see watch below) so a fresh booking can be made.
@@ -200,7 +220,7 @@ async function createBooking() {
       token: string
       depositCents: number
       currency: string
-      gateways: { stripe: boolean, paypal: boolean }
+      gateways: { paypal: boolean }
     }>('/api/bookings', {
       method: 'POST',
       body: {
@@ -210,6 +230,8 @@ async function createBooking() {
         customerEmail: form.email.trim() || undefined,
         startsAt: selectedStart.value,
         locale: locale.value === 'en' ? 'en' : 'de',
+        acceptTerms: form.acceptTerms,
+        acceptPrivacy: form.acceptTerms,
         whatsappReminder: form.whatsappReminder,
         staffId: selectedStaff.value === 'any' ? undefined : selectedStaff.value,
         note: form.note.trim() || undefined,
@@ -257,6 +279,10 @@ async function createBooking() {
         :src="service.coverImagePath"
         :alt="serviceDisplayName"
         class="h-20 w-20 shrink-0 rounded-xl border object-cover sm:h-24 sm:w-24"
+        loading="eager"
+        decoding="async"
+        width="192"
+        height="192"
         :style="{ borderColor: 'var(--color-border)' }"
       />
       <div class="min-w-0">
@@ -325,6 +351,8 @@ async function createBooking() {
             width="88" height="88"
             :alt="st.displayName"
             class="h-11 w-11 shrink-0 rounded-full border object-cover"
+            loading="lazy"
+            decoding="async"
             :style="{ borderColor: 'var(--color-border)' }"
           />
           <span v-else class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300" aria-hidden="true">
@@ -343,6 +371,8 @@ async function createBooking() {
       <input
         v-model="date"
         type="date"
+        :min="minDate"
+        :max="maxDate"
         :aria-label="t('booking.pickSlot')"
         class="mb-4 h-11 rounded-md border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none dark:bg-[#0B1520]"
         :style="{ borderColor: 'var(--color-border)' }"
@@ -398,11 +428,27 @@ async function createBooking() {
         <span class="text-[11px] text-muted">{{ t('booking.waReminderOptIn') }}</span>
       </label>
 
+      <label class="mt-4 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-white/60 p-3 dark:bg-[#0B1520]">
+        <input
+          v-model="form.acceptTerms"
+          type="checkbox"
+          required
+          class="mt-0.5 h-4 w-4 rounded accent-emerald-600"
+          :aria-describedby="'booking-consent-hint'"
+        />
+        <span id="booking-consent-hint" class="text-[11px] leading-relaxed text-muted">
+          {{ t('booking.consentAgree') }}
+          <NuxtLink :to="localePath('/agb')" target="_blank" class="font-semibold text-primary underline underline-offset-2">{{ t('legal.agbTitle') }}</NuxtLink>
+          {{ t('booking.consentAnd') }}
+          <NuxtLink :to="localePath('/datenschutz')" target="_blank" class="font-semibold text-primary underline underline-offset-2">{{ t('legal.datenschutzTitle') }}</NuxtLink>.
+        </span>
+      </label>
+
       <p class="mt-4 text-[11px] text-muted">{{ t('manage.policyShort', { hours: cancelWindowHours }) }}</p>
 
       <button
         type="button"
-        :disabled="creating || !selectedStart"
+        :disabled="creating || !selectedStart || !form.acceptTerms"
         class="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-7 text-sm font-bold text-on-accent shadow-xs hover:bg-accent-hover active:scale-95 transition disabled:opacity-50"
         @click="createBooking"
       >
@@ -410,27 +456,17 @@ async function createBooking() {
       </button>
     </section>
 
-    <!-- Deposit disclosure + gateway choice (UX-01: always shown before redirect) -->
-    <section v-if="createdToken && (gateways.stripe || gateways.paypal)" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
+    <!-- Deposit disclosure + PayPal checkout (UX-01: always shown before redirect) -->
+    <section v-if="createdToken && gateways.paypal" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
       <h2 class="font-heading text-base font-bold text-text mb-2">{{ t('booking.payWith') }}</h2>
-      <p class="mb-1 text-sm font-bold text-text">{{ t('booking.depositDue') }}: {{ centsToEur(depositCents) }} {{ currency }}</p>
-      <p class="mb-4 text-xs text-muted">{{ t('booking.depositNote', { amount: centsToEur(depositCents), currency }) }}</p>
+      <p class="mb-1 text-sm font-bold text-text">{{ t('booking.depositDue') }}: {{ centsToEur(depositCents) }}</p>
+      <p class="mb-4 text-xs text-muted">{{ t('booking.depositNote', { amount: centsToEur(depositCents) }) }}</p>
       <div class="flex flex-wrap gap-3">
         <button
-          v-if="gateways.stripe"
-          type="button"
-          :disabled="paying"
-          class="inline-flex h-11 items-center rounded-xl bg-accent px-6 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition disabled:opacity-50"
-          @click="payFor(createdToken, 'stripe')"
-        >
-          {{ t('booking.stripe') }}
-        </button>
-        <button
-          v-if="gateways.paypal"
           type="button"
           :disabled="paying"
           class="inline-flex h-11 items-center rounded-xl border border-border bg-white px-6 text-sm font-bold text-text hover:bg-border/40 active:scale-95 transition disabled:opacity-50 dark:bg-[#0B1520]"
-          @click="payFor(createdToken, 'paypal')"
+          @click="payFor(createdToken)"
         >
           {{ t('booking.paypal') }}
         </button>
@@ -438,7 +474,7 @@ async function createBooking() {
     </section>
 
     <!-- No gateway -->
-    <section v-if="createdToken && !gateways.stripe && !gateways.paypal" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-900 dark:border-yellow-900/40 dark:bg-yellow-950/20 dark:text-yellow-200">
+    <section v-if="createdToken && !gateways.paypal" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-900 dark:border-yellow-900/40 dark:bg-yellow-950/20 dark:text-yellow-200">
       {{ t('booking.blocked') }}
     </section>
   </div>

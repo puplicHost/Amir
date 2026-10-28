@@ -41,6 +41,9 @@ function formatAb(priceAbCents: number): string {
         :src="props.cover"
         :alt="props.name"
         loading="lazy"
+        decoding="async"
+        width="800"
+        height="1000"
         class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105"
         draggable="false"
       />

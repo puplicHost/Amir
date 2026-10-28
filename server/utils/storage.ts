@@ -204,6 +204,19 @@ export async function saveReceipt(expenseId: string, data: Buffer): Promise<stri
   return `/uploads/expenses/${filename}`
 }
 
+/**
+ * AUDIT P3-06: delete a replaced expense receipt. Confined to the expenses/
+ * directory so a malformed DB value can never remove another upload scope.
+ * Callers treat this as best-effort after the replacement row is committed.
+ */
+export async function deleteReceiptFile(receiptPath: string): Promise<void> {
+  const parts = (receiptPath || '').replace(/^\/uploads\//, '').split('/')
+  const full = resolveUploadPath(parts)
+  if (!full) return
+  if (!full.startsWith(join(storageRoot(), 'expenses') + sep)) return
+  await rm(full, { force: true })
+}
+
 /** Delete a previously stored service cover file (by public path). */
 export async function deleteServiceCoverFile(imagePath: string): Promise<void> {
   const parts = (imagePath || '').replace(/^\/uploads\//, '').split('/')

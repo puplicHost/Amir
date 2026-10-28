@@ -1,4 +1,21 @@
 import { notifyAdmins } from './admin-notifications.ts'
+import { getBookingSettings } from './booking-payments.ts'
+import { parseDayStr, tzDayStr } from './booking-slots.ts'
+import { isStatusTransitionAllowed } from '../../shared/booking.ts'
+
+function dayRange(startDay: string, endDay: string): string[] {
+  const start = parseDayStr(startDay)
+  const end = parseDayStr(endDay)
+  if (!start || !end) return []
+  const days: string[] = []
+  const cursor = Date.UTC(start.year, start.month - 1, start.day)
+  const last = Date.UTC(end.year, end.month - 1, end.day)
+  // Defensive cap: absence ranges are short; never hold hundreds of locks.
+  for (let ms = cursor; ms <= last && days.length < 370; ms += 86400000) {
+    days.push(new Date(ms).toISOString().slice(0, 10))
+  }
+  return days
+}
 
 export interface AbsenceResult {
   timeOffId: string
@@ -20,7 +37,17 @@ export async function recordAbsence(input: {
 }): Promise<AbsenceResult> {
   const fromMs = input.from.getTime()
   const toMs = input.to.getTime()
+  const settings = await getBookingSettings()
+  const firstDay = tzDayStr(fromMs, settings.timezone)
+  const lastDay = tzDayStr(Math.max(fromMs, toMs - 1), settings.timezone)
+  const lockedDays = dayRange(firstDay, lastDay)
   const result = await prisma.$transaction(async (tx) => {
+    // AUDIT P2-02: take the same salon+day locks used by booking creation,
+    // assignment and payment confirmation. Otherwise a concurrent booking can
+    // be assigned to this staff member between the check and the time-off write.
+    for (const day of lockedDays) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('salon'), hashtext(${day}))`
+    }
     const timeOff = await tx.staffTimeOff.create({
       data: {
         staffId: input.staffId,
@@ -43,6 +70,10 @@ export async function recordAbsence(input: {
       return b.startsAt.getTime() < toMs && end > fromMs
     })
     for (const b of affected) {
+      // AUDIT P3-05: release only through the shared lifecycle guard.
+      if (!isStatusTransitionAllowed(b.status, 'UNASSIGNED', { paymentStatus: 'PAID', needsRefund: false })) {
+        throw createError({ statusCode: 409, statusMessage: `Booking ${b.bookingNumber} cannot be unassigned` })
+      }
       await tx.bookingAssignment.updateMany({
         where: { bookingId: b.id, staffId: input.staffId, unassignedAt: null },
         data: { unassignedAt: new Date(), reason: input.reason || 'Staff unavailable' },

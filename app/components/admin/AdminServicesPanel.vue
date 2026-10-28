@@ -41,7 +41,9 @@ const serviceForm = reactive({
   section: 'DAMEN',
   slug: '',
   name: '',
+  nameEn: '',
   description: '',
+  descriptionEn: '',
   priceEur: '',
   durationMin: 30,
   needsDurationReview: true,
@@ -65,7 +67,9 @@ function openCreateService() {
     section: 'DAMEN',
     slug: '',
     name: '',
+    nameEn: '',
     description: '',
+    descriptionEn: '',
     priceEur: '',
     durationMin: 30,
     needsDurationReview: true,
@@ -86,7 +90,9 @@ function openEditService(s: any) {
     section: s.section || 'DAMEN',
     slug: s.slug || '',
     name: s.name || '',
+    nameEn: s.nameEn || '',
     description: s.description || '',
+    descriptionEn: s.descriptionEn || '',
     priceEur: s.priceAbCents !== undefined && s.priceAbCents !== null ? (Number(s.priceAbCents) / 100).toFixed(2) : '',
     durationMin: s.durationMin ?? 30,
     needsDurationReview: s.needsDurationReview !== false,
@@ -141,7 +147,9 @@ async function saveService() {
       section: serviceForm.section,
       slug: serviceForm.slug.trim() || undefined,
       name: serviceForm.name.trim(),
+      nameEn: serviceForm.nameEn.trim() || undefined,
       description: serviceForm.description.trim() || undefined,
+      descriptionEn: serviceForm.descriptionEn.trim() || undefined,
       priceAbCents: cents,
       durationMin: serviceForm.durationMin,
       needsDurationReview: serviceForm.needsDurationReview,
@@ -518,6 +526,17 @@ async function toggleFeatured(service: any) {
           <label class="block">
             <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Description (DE)</span>
             <textarea v-model="serviceForm.description" rows="3" class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+
+          <!-- AUDIT P2-11: optional English copy; blank falls back to German. -->
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Name (EN) — optional</span>
+            <input v-model="serviceForm.nameEn" type="text" dir="ltr" placeholder="Wash, cut, blow-dry, short" class="h-11 w-full rounded-md border bg-transparent px-3 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Description (EN) — optional</span>
+            <textarea v-model="serviceForm.descriptionEn" rows="3" dir="ltr" class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" :style="{ borderColor: 'var(--color-border)' }" />
           </label>
 
           <!-- Cover image (service card, like category covers) -->

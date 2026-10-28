@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { getSiteSettings } from '../../utils/site-settings'
 
 // Public feed: active homepage banners (sorted) + announcement ticker.
 export default defineEventHandler(async () => {
@@ -7,7 +8,7 @@ export default defineEventHandler(async () => {
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     }),
-    prisma.siteSettings.findUnique({ where: { id: 1 } }),
+    getSiteSettings(),
   ])
   return {
     banners,

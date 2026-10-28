@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { Boxes } from 'lucide-vue-next'
+import { localizedText } from '../../utils/content.ts'
 
 interface Card {
   id?: string
   slug: string
   nameAr: string
   nameEn: string
+  nameDe?: string | null
   price: string | number | null
   coverImage: string | null
   brand?: string | null
-  category: { slug: string, nameAr: string, nameEn: string }
+  category: { slug: string, nameAr: string, nameEn: string, nameDe?: string | null }
 }
 
 defineProps<{ product: Card }>()
@@ -17,7 +19,8 @@ defineProps<{ product: Card }>()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 
-const name = (p: Card) => (locale.value === 'ar' ? p.nameAr : p.nameEn)
+// AUDIT P2-11: German UI prefers nameDe, then falls back to English.
+const name = (p: Card) => localizedText(locale.value, { de: p.nameDe, en: p.nameEn, ar: p.nameAr })
 
 /** Brand label only when a brand exists. */
 const brandOf = (p: Card) => p.brand?.trim() || ''
@@ -46,6 +49,9 @@ function hasPrice(price: Card['price']): boolean {
         :alt="name(product)"
         class="absolute inset-0 h-full w-full object-cover transition-transform duration-200 motion-safe:transition-transform group-hover:scale-[1.03]"
         loading="lazy"
+        decoding="async"
+        width="800"
+        height="1000"
       />
       <div v-else class="absolute inset-0 flex items-center justify-center text-muted">
         <Boxes class="h-8 w-8" :stroke-width="1.5" aria-hidden="true" />

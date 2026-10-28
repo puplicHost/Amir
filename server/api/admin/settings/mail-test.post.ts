@@ -8,15 +8,23 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'settings.business')
   const body = await parseBody(event, testEmailSchema)
   try {
-    await sendMail({
+    const result = await sendMail({
       to: body.to,
       subject: 'AMIR test mail',
       text: 'This is a test mail from your AMIR studio. If you received it, customer mails are configured correctly.',
       html: '<p>This is a test mail from your AMIR studio. If you received it, customer mails are configured correctly.</p>',
     })
+    // AUDIT P2-01: a logged test is explicitly reported as simulated.
+    return {
+      success: result.accepted,
+      simulated: result.simulated,
+      provider: result.provider,
+      message: result.simulated
+        ? 'Simulated only: the "log" provider writes to the server log and does not deliver email.'
+        : 'Test mail accepted by the configured provider.',
+    }
   }
   catch (e: any) {
     throw createError({ statusCode: 502, statusMessage: `Test mail failed: ${String((e as Error)?.message || e).slice(0, 200)}` })
   }
-  return { success: true }
 })

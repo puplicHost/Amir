@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Copy, Filter, Loader2, Package, Pencil, Plus, RotateCcw, Search, Share2, Tag, Trash2, User } from 'lucide-vue-next'
+import { localizedText } from '../../utils/content.ts'
 
 
 interface Row {
@@ -7,10 +8,11 @@ interface Row {
   slug: string
   nameAr: string
   nameEn: string
+  nameDe?: string | null
   price: string | number
   isActive: boolean
   featuredOnHomepage: boolean
-  category: { id: string, slug: string, nameAr: string, nameEn: string }
+  category: { id: string, slug: string, nameAr: string, nameEn: string, nameDe?: string | null }
   images: { path: string }[]
   seo?: { keywords: string | null } | null
   lastAudit?: { action: string, details: string | null, userName: string, createdAt: string } | null
@@ -281,7 +283,7 @@ async function shareProduct(p: Row) {
         >
           <option value="">{{ locale === 'ar' ? 'جميع الفئات' : 'All Categories' }}</option>
           <option v-for="c in catData?.categories || []" :key="c.id" :value="c.id">
-            {{ locale === 'ar' ? (c.nameAr || c.nameEn) : c.nameEn }}
+            {{ localizedText(locale, { de: c.nameDe, en: c.nameEn, ar: c.nameAr }) }}
           </option>
         </select>
 

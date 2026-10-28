@@ -6,14 +6,24 @@
 export const SERVICE_SECTIONS = ['DAMEN', 'HERREN', 'KINDER', 'KOSMETIK'] as const
 export type ServiceSection = (typeof SERVICE_SECTIONS)[number]
 
-export const PAYMENT_PROVIDERS = ['stripe', 'paypal'] as const
+export const PAYMENT_PROVIDERS = ['paypal'] as const
 export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number]
 
 export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] as const
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]
 
-export const BOOKING_STATUSES = ['UNASSIGNED', 'ASSIGNED', 'CANCELLED_BY_STAFF', 'CANCELLED', 'COMPLETED'] as const
+export const BOOKING_STATUSES = ['UNASSIGNED', 'ASSIGNED', 'CANCELLED', 'COMPLETED'] as const
 export type BookingStatus = (typeof BOOKING_STATUSES)[number]
+
+// AUDIT P3-05: legacy terminal state. Older rows may still contain it, so
+// queries keep treating it as closed, but no code path writes it anymore.
+export const LEGACY_TERMINAL_BOOKING_STATUSES = ['CANCELLED_BY_STAFF'] as const
+
+/** True when the booking is closed and must not be mutated back to active. */
+export function isTerminalBookingStatus(status: string): boolean {
+  return status === 'CANCELLED' || status === 'COMPLETED'
+    || (LEGACY_TERMINAL_BOOKING_STATUSES as readonly string[]).includes(status)
+}
 
 export const CANCELLED_BY = ['CUSTOMER', 'ADMIN', 'STAFF', 'SYSTEM'] as const
 
@@ -104,15 +114,16 @@ export function isStaffOverlapping(
  *   ONLY if paymentStatus === 'PAID' and !needsRefund.
  * - Target UNASSIGNED: allowed from ASSIGNED (staff cancel).
  * - Target COMPLETED: allowed from ASSIGNED.
- * - Target CANCELLED_BY_STAFF: allowed from ASSIGNED.
  * - Any transition to ASSIGNED when needsRefund is true is FORBIDDEN.
  * - Any transition to ASSIGNED when paymentStatus is not PAID is FORBIDDEN.
+ * - CANCELLED_BY_STAFF is a legacy-only state and is never a target.
  */
 export function isStatusTransitionAllowed(
   fromStatus: string,
   toStatus: string,
   ctx: { paymentStatus: string, needsRefund: boolean },
 ): boolean {
+  if (isTerminalBookingStatus(fromStatus)) return false
   if (toStatus === 'ASSIGNED') {
     if (ctx.paymentStatus !== 'PAID') return false
     if (ctx.needsRefund) return false
@@ -122,9 +133,6 @@ export function isStatusTransitionAllowed(
     return fromStatus === 'ASSIGNED'
   }
   if (toStatus === 'COMPLETED') {
-    return fromStatus === 'ASSIGNED'
-  }
-  if (toStatus === 'CANCELLED_BY_STAFF') {
     return fromStatus === 'ASSIGNED'
   }
   if (toStatus === 'CANCELLED') {

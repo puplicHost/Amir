@@ -24,6 +24,9 @@ defineProps<{
         :alt="name"
         class="absolute inset-0 h-full w-full object-cover"
         loading="lazy"
+        decoding="async"
+        width="800"
+        height="1000"
       />
       <div v-else class="absolute inset-0 flex items-center justify-center text-muted">
         <Boxes class="h-8 w-8" :stroke-width="1.5" aria-hidden="true" />

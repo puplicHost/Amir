@@ -5,6 +5,7 @@ import { bookingRescheduleSchema, parseBody } from '../../../../utils/validate'
 import { notifyUser } from '../../../../utils/admin-notifications'
 import { isStaffOnTimeOff } from '../../../../utils/staff-availability'
 import { logAudit } from '../../../../utils/audit'
+import { isTerminalBookingStatus } from '../../../../../shared/booking'
 
 // Move a booking to another slot (and optionally another staff member).
 // Roadmap Phase 5: same availability rules, same salon+day lock.
@@ -21,6 +22,11 @@ export default defineEventHandler(async (event) => {
   }
   if (booking.needsRefund) {
     throw createError({ statusCode: 400, statusMessage: 'Booking needs refund attention and cannot be moved' })
+  }
+  // AUDIT P3-05: rescheduling may only move active bookings. COMPLETED,
+  // cancelled and legacy terminal rows are rejected through the shared guard.
+  if (isTerminalBookingStatus(booking.status)) {
+    throw createError({ statusCode: 400, statusMessage: 'Booking is closed and cannot be moved' })
   }
 
   const settings = await getBookingSettings()
@@ -123,8 +129,8 @@ export default defineEventHandler(async (event) => {
   })
 
   const service = await prisma.service.findUnique({ where: { id: booking.serviceId }, select: { name: true } })
-  const dtBerlin = startsAt.toLocaleString('de-DE', {
-    timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  const dtSalon = startsAt.toLocaleString('de-DE', {
+    timeZone: settings.timezone, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   })
   if (staffChanged) {
     await notifyUser(targetStaffId, {
@@ -133,8 +139,8 @@ export default defineEventHandler(async (event) => {
       url: '/admin/appointments?tab=my-bookings',
       titleEn: `Booking moved to you (${booking.bookingNumber})`,
       titleAr: `Termin zu Ihnen verschoben (${booking.bookingNumber})`,
-      bodyEn: `${service?.name || 'Service'} · ${dtBerlin}`,
-      bodyAr: `${service?.name || 'Service'} · ${dtBerlin}`,
+      bodyEn: `${service?.name || 'Service'} · ${dtSalon}`,
+      bodyAr: `${service?.name || 'Service'} · ${dtSalon}`,
     })
     if (previousStaffId) {
       await notifyUser(previousStaffId, {
@@ -143,8 +149,8 @@ export default defineEventHandler(async (event) => {
         url: '/admin/appointments?tab=my-bookings',
         titleEn: `Booking moved away (${booking.bookingNumber})`,
         titleAr: `Termin verschoben (${booking.bookingNumber})`,
-        bodyEn: `${service?.name || 'Service'} · ${dtBerlin}`,
-        bodyAr: `${service?.name || 'Service'} · ${dtBerlin}`,
+        bodyEn: `${service?.name || 'Service'} · ${dtSalon}`,
+        bodyAr: `${service?.name || 'Service'} · ${dtSalon}`,
       })
     }
   }
@@ -154,8 +160,8 @@ export default defineEventHandler(async (event) => {
     entityName: booking.bookingNumber,
     action: 'updated',
     details: staffChanged
-      ? `Rescheduled to ${dtBerlin} with ${target.name}`
-      : `Rescheduled to ${dtBerlin}`,
+      ? `Rescheduled to ${dtSalon} with ${target.name}`
+      : `Rescheduled to ${dtSalon}`,
     user,
   })
   // Roadmap Phase 7: customer change mail (skipped without email).

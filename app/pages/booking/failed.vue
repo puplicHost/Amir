@@ -12,19 +12,19 @@ const { data } = await useAsyncData(`booking-failed-${token}`, () =>
 
 useHead(() => ({ title: `${t('booking.failedTitle')} | ${t('brand.name')}` }))
 
-const retrying = ref<'stripe' | 'paypal' | null>(null)
+const retrying = ref(false)
 const retryError = ref('')
 
-// Retry mints a NEW payment attempt on the SAME booking via POST …/pay.
+// Retry mints a NEW PayPal order on the SAME booking via POST …/pay.
 // A PAID booking is rejected server-side (409) and never mutated.
-async function retry(provider: 'stripe' | 'paypal') {
+async function retry() {
   if (!token) return
   retryError.value = ''
-  retrying.value = provider
+  retrying.value = true
   try {
     const res = await $fetch<{ redirectUrl: string }>(`/api/bookings/${token}/pay`, {
       method: 'POST',
-      body: { provider },
+      body: { provider: 'paypal' },
     })
     if (!res.redirectUrl) throw new Error('no redirect')
     await navigateTo(res.redirectUrl, { external: true })
@@ -33,7 +33,7 @@ async function retry(provider: 'stripe' | 'paypal') {
     retryError.value = e?.data?.message || e?.data?.statusMessage || t('booking.payFailed')
   }
   finally {
-    retrying.value = null
+    retrying.value = false
   }
 }
 </script>
@@ -45,28 +45,18 @@ async function retry(provider: 'stripe' | 'paypal') {
       <h1 class="font-heading text-2xl font-extrabold text-text mb-2">{{ t('booking.failedTitle') }}</h1>
       <p class="text-sm text-muted mb-2">{{ t('booking.failedText') }}</p>
       <p v-if="data" class="font-mono text-xs text-muted mb-6 break-words">
-        {{ t('booking.bookingNo') }} {{ data.bookingNumber }} · {{ centsToEur(Number(data.depositCents)) }} {{ data.currency }}
+        {{ t('booking.bookingNo') }} {{ data.bookingNumber }} · {{ centsToEur(Number(data.depositCents)) }}
       </p>
       <p v-if="retryError" role="alert" class="mb-4 text-xs font-medium text-rose-600">{{ retryError }}</p>
       <div v-if="data && data.paymentStatus !== 'PAID'" class="flex flex-wrap items-center justify-center gap-3 mb-3">
         <button
           type="button"
-          :disabled="!!retrying"
-          :aria-busy="retrying === 'stripe'"
-          class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-6 text-xs font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition-colors disabled:opacity-50"
-          @click="retry('stripe')"
-        >
-          <span v-if="retrying === 'stripe'" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
-          {{ t('booking.stripe') }}
-        </button>
-        <button
-          type="button"
-          :disabled="!!retrying"
-          :aria-busy="retrying === 'paypal'"
+          :disabled="retrying"
+          :aria-busy="retrying"
           class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-6 text-xs font-bold text-text hover:bg-border/40 active:scale-95 transition-colors disabled:opacity-50 dark:bg-[#0B1520]"
-          @click="retry('paypal')"
+          @click="retry"
         >
-          <span v-if="retrying === 'paypal'" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
+          <span v-if="retrying" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
           {{ t('booking.paypal') }}
         </button>
       </div>

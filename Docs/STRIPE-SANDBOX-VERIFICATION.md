@@ -1,5 +1,7 @@
 # Stripe SANDBOX Readiness — Verification Report
 
+> Historical document. Stripe has been removed; PayPal is the sole provider. See `Docs/STRIPE_REMOVAL_PAYPAL_IMPLEMENTATION_PLAN.md`.
+
 Date: 2026-10-21 · Scope: TEST mode only — no live keys, no live API calls, no secret values printed anywhere.
 
 ## Final verdict

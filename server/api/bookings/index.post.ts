@@ -26,6 +26,8 @@ import {
 } from '../../utils/staff-availability'
 import { bookingCreateSchema, parseBody } from '../../utils/validate'
 import { BOOKING_HORIZON_DAYS_DEFAULT } from '../../../shared/booking'
+import { LEGAL_MARKETING_VERSION, LEGAL_PRIVACY_VERSION, LEGAL_TERMS_VERSION } from '../../../shared/legal'
+import { getClientIp } from '../../utils/client-ip'
 
 // Guest booking creation. Amounts/currency/snapshots are computed server-side
 // from the service row — nothing price-related is trusted from the client.
@@ -37,6 +39,13 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, bookingCreateSchema)
   const settings = await getBookingSettings()
   const tz = settings.timezone
+  // AUDIT P2-13: Meta CAPI match signals, stored only with marketing consent.
+  const marketingConsent = Boolean(body.marketingConsent)
+  const clientIp = marketingConsent ? getClientIp(event) : ''
+  const metaClientIp = clientIp && clientIp !== 'unknown' ? clientIp : null
+  const metaClientUa = marketingConsent
+    ? (getRequestHeader(event, 'user-agent') || '').slice(0, 1024) || null
+    : null
 
   const service = await prisma.service.findFirst({
     where: { slug: body.serviceSlug, isActive: true },
@@ -138,8 +147,8 @@ export default defineEventHandler(async (event) => {
   // deposit: otherwise the customer gets a reservation that can never be paid
   // and silently expires. Client-side gateway flags are not authoritative.
   const gateways = await getGatewayStatus()
-  if (!gateways.stripe && !gateways.paypal) {
-    console.warn('[bookings] deposit payment unavailable: no gateway enabled or configured')
+  if (!gateways.paypal) {
+    console.warn('[bookings] deposit payment unavailable: PayPal not enabled or not configured')
     throw createError({ statusCode: 503, statusMessage: 'Online payment is currently unavailable' })
   }
 
@@ -207,14 +216,28 @@ export default defineEventHandler(async (event) => {
             notes: body.note?.trim() || null,
             holdExpiresAt,
             publicToken: newPublicToken(),
-            marketingConsent: Boolean(body.marketingConsent),
+            marketingConsent,
+            marketingConsentAt: body.marketingConsent ? now : null,
+            marketingConsentVersion: body.marketingConsent ? LEGAL_MARKETING_VERSION : null,
+            termsAcceptedAt: now,
+            termsVersion: LEGAL_TERMS_VERSION,
+            privacyAcceptedAt: now,
+            privacyVersion: LEGAL_PRIVACY_VERSION,
             fbp: body.marketingConsent && body.fbp ? body.fbp : null,
             fbc: body.marketingConsent && body.fbc ? body.fbc : null,
+            metaClientIp,
+            metaClientUa,
           },
         })
       }
       catch (e: any) {
-        if (e?.code !== 'P2002' || attempt === 2) throw e
+        // AUDIT P3-11: retry only a bookingNumber collision. Any other unique
+        // violation (e.g. idempotencyKey) must surface immediately.
+        const target = Array.isArray(e?.meta?.target)
+          ? e.meta.target.join(',')
+          : String(e?.meta?.target || '')
+        const isBookingNumberCollision = e?.code === 'P2002' && target.includes('bookingNumber')
+        if (!isBookingNumberCollision || attempt === 2) throw e
       }
     }
     throw createError({ statusCode: 500, statusMessage: 'Could not create booking' })

@@ -1,13 +1,12 @@
+import { getSiteSettings } from '../../utils/site-settings'
+
 export default defineEventHandler(async () => {
   const [items, settings] = await Promise.all([
     prisma.announcementItem.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
     }),
-    prisma.siteSettings.findUnique({
-      where: { id: 1 },
-      select: { announcementActive: true, announcementBgColor: true },
-    }),
+    getSiteSettings(),
   ])
 
   return {

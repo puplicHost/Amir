@@ -1,6 +1,7 @@
 import { requirePermission } from '../../../utils/auth'
 import { parseBody, mailSettingsSchema } from '../../../utils/validate'
 import { encryptData } from '../../../utils/encryption'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'settings.business')
@@ -24,11 +25,6 @@ export default defineEventHandler(async (event) => {
     data.mailHttpKey = encryptData(body.mailHttpKey.trim())
   }
 
-  const existing = await prisma.siteSettings.findFirst()
-  await prisma.siteSettings.upsert({
-    where: { id: existing?.id || 1 },
-    update: data,
-    create: { siteNameAr: 'AMIR', siteNameEn: 'Amir', ...data },
-  })
+  await upsertSiteSettings(data, { siteNameAr: 'AMIR', siteNameEn: 'Amir' })
   return { success: true }
 })

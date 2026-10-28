@@ -10,9 +10,11 @@ export default defineEventHandler(async (event) => {
     OR: [
       { nameEn: { contains: q, mode: 'insensitive' as const } },
       { nameAr: { contains: q, mode: 'insensitive' as const } },
+      { nameDe: { contains: q, mode: 'insensitive' as const } },
       { slug: { contains: q, mode: 'insensitive' as const } },
       { category: { is: { nameEn: { contains: q, mode: 'insensitive' as const } } } },
       { category: { is: { nameAr: { contains: q, mode: 'insensitive' as const } } } },
+      { category: { is: { nameDe: { contains: q, mode: 'insensitive' as const } } } },
       { seo: { is: { keywords: { contains: q, mode: 'insensitive' as const } } } },
     ],
   }
@@ -28,12 +30,14 @@ export default defineEventHandler(async (event) => {
         slug: true,
         nameAr: true,
         nameEn: true,
+        nameDe: true,
         price: true,
         category: {
           select: {
             slug: true,
             nameAr: true,
             nameEn: true,
+            nameDe: true,
           },
         },
         images: {

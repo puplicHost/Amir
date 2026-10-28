@@ -17,6 +17,14 @@ const { data: contact } = await useAsyncData('footer-contact', () =>
 const year = new Date().getFullYear()
 const { openBanner: openConsentBanner } = useCookieConsent()
 
+// AUDIT P1-01: legal routes must be reachable from every page.
+const legalLinks = computed(() => [
+  { to: '/impressum', label: t('legal.impressumTitle') },
+  { to: '/datenschutz', label: t('legal.datenschutzTitle') },
+  { to: '/agb', label: t('legal.agbTitle') },
+  { to: '/stornierung', label: t('legal.stornierungTitle') },
+])
+
 const siteDisplayName = computed(() => {
   if (locale.value === 'ar') {
     return general.value?.siteNameAr || t('brand.name')
@@ -150,8 +158,19 @@ const tagline = computed(() => {
       </div>
 
       <!-- Lower Footer: Centered Vertically Stacked Content -->
-      <div class="pt-8 border-t border-white/10 flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-400">
-        <!-- Line 1: Copyright -->
+      <div class="pt-8 border-t border-white/10 flex flex-col items-center justify-center gap-3 text-center text-xs text-slate-400">
+        <!-- Line 1: Legal navigation (AUDIT P1-01) -->
+        <nav aria-label="Legal" class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <NuxtLink
+            v-for="link in legalLinks"
+            :key="link.to"
+            :to="localePath(link.to)"
+            class="text-slate-400 hover:text-cream underline-offset-4 hover:underline transition-colors"
+          >
+            {{ link.label }}
+          </NuxtLink>
+        </nav>
+        <!-- Line 2: Copyright -->
         <p>&copy; {{ year }} {{ siteDisplayName }}. {{ locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.' }}</p>
 
       </div>

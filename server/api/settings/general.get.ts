@@ -1,10 +1,11 @@
 import { defineCachedEventHandler } from 'nitropack/runtime'
 import { prisma } from '../../utils/prisma'
+import { getSiteSettings } from '../../utils/site-settings'
 import { heroVariant1200 } from '../../utils/storage'
 
 export default defineCachedEventHandler(async () => {
   const [settings, slides] = await Promise.all([
-    prisma.siteSettings.findUnique({ where: { id: 1 } }),
+    getSiteSettings(),
     prisma.heroSlide.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],

@@ -194,7 +194,7 @@ Actions:
   - **Outside** — cancel and record that the refund is being handled outside the system (for example cash or bank transfer).
 - **Mark refund handled.** Clears the flag after a manual resolution and writes an audit entry. It is not a refund action.
 
-Automatic refunds are only possible when the booking was paid through Stripe or PayPal and the original payment reference is present. A manual/cash booking, or a booking missing its provider reference, must be refunded outside the system. If a provider refund fails, the booking stays flagged, the failure is recorded, and admins are notified.
+Automatic refunds are only possible when the booking was paid through PayPal and the original capture reference is present. A manual/cash booking, or a booking missing its provider reference, must be refunded outside the system. If a provider refund fails, the booking stays flagged, the failure is recorded, and admins are notified.
 
 ---
 
@@ -382,9 +382,8 @@ Default currency (EUR) and products per page (16 by default). These affect the p
 
 ### 11.5 Payment
 
-Stripe and PayPal switches and credentials:
+PayPal switch and credentials:
 
-- Stripe: enable, publishable key, secret key, webhook secret.
 - PayPal: enable, client ID, secret, webhook ID, sandbox/live mode.
 
 Secrets are never returned to the browser in clear text; the form shows whether a secret is already stored and only sends a replacement when the field is filled. Enabling a gateway without its required credentials does not make it usable: the server treats the gateway as unavailable and the public booking page will not offer it. If both gateways are unavailable, online booking cannot be completed.
@@ -549,7 +548,7 @@ The session dies on the next request. If the user was the last active non-super 
 
 ### 16.11 Salary and sensitive data
 
-Salary is visible only to the super admin. Secrets (Stripe/PayPal keys, webhook secrets, Meta token, mail key) are masked in the interface and never returned in clear text. Do not paste secrets into notes, banners, product descriptions, or support messages.
+Salary is visible only to the super admin. Secrets (PayPal keys, webhook ID, Meta token, mail key) are masked in the interface and never returned in clear text. Do not paste secrets into notes, banners, product descriptions, or support messages.
 
 ---
 

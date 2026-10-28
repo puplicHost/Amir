@@ -1,4 +1,8 @@
 User-Agent: *
 Disallow:
+Disallow: /admin
+Disallow: /api/
+Disallow: /dev/
 
-Sitemap: https://amir.com/sitemap.xml
+# Overridden at runtime by server/routes/robots.txt.ts, which adds the
+# absolute Sitemap URL from NUXT_PUBLIC_SITE_URL.

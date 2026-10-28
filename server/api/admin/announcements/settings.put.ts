@@ -1,23 +1,20 @@
-import { defineEventHandler, readBody } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { announcementSettingsSchema, parseBody } from '../../../utils/validate'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'banners.manage')
-  const body = await readBody(event)
+  // AUDIT P3-08: validated payload instead of raw readBody.
+  const body = await parseBody(event, announcementSettingsSchema)
 
-  const settings = await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: {
-      announcementActive: body.announcementActive !== undefined ? Boolean(body.announcementActive) : undefined,
-      announcementBgColor: body.announcementBgColor ? String(body.announcementBgColor).trim() : undefined,
-    },
-    create: {
-      siteNameAr: 'AMIR',
-      siteNameEn: 'Amir',
-      announcementActive: body.announcementActive !== undefined ? Boolean(body.announcementActive) : true,
-      announcementBgColor: body.announcementBgColor || '#050808',
-    },
+  const settings = await upsertSiteSettings({
+    announcementActive: body.announcementActive,
+    announcementBgColor: body.announcementBgColor || undefined,
+  }, {
+    siteNameAr: 'AMIR',
+    siteNameEn: 'Amir',
+    announcementActive: body.announcementActive ?? true,
+    announcementBgColor: body.announcementBgColor || '#050808',
   })
 
   return { success: true, settings }

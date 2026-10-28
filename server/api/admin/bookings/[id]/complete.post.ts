@@ -1,5 +1,6 @@
 import { requirePermission } from '../../../../utils/auth'
 import { logAudit } from '../../../../utils/audit'
+import { isStatusTransitionAllowed } from '../../../../../shared/booking'
 
 export default defineEventHandler(async (event) => {
   const user = await requirePermission(event, 'bookings.complete')
@@ -17,7 +18,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
   }
 
-  if (booking.status !== 'ASSIGNED') {
+  if (!isStatusTransitionAllowed(booking.status, 'COMPLETED', {
+    paymentStatus: booking.paymentStatus,
+    needsRefund: booking.needsRefund,
+  })) {
     throw createError({ statusCode: 400, statusMessage: 'Only ASSIGNED bookings can be marked completed' })
   }
 

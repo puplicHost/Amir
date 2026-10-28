@@ -17,6 +17,8 @@ export interface BookingMailContext {
   manageUrl?: string | null
   studioName?: string | null
   studioAddress?: string | null
+  /** Salon timezone from settings; falls back to Europe/Berlin. */
+  timeZone?: string | null
   extra?: string | null
 }
 
@@ -26,9 +28,9 @@ export interface BuiltMail {
   html: string
 }
 
-function fmtDate(d: Date, locale: CustomerLocale): string {
+function fmtDate(d: Date, locale: CustomerLocale, timeZone?: string | null): string {
   return d.toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', {
-    timeZone: 'Europe/Berlin',
+    timeZone: timeZone || 'Europe/Berlin',
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -49,7 +51,7 @@ function lines(locale: CustomerLocale, ctx: BookingMailContext, intro: string, o
     intro,
     '',
     `${locale === 'de' ? 'Leistung' : 'Service'}: ${ctx.serviceName}`,
-    `${locale === 'de' ? 'Termin' : 'Appointment'}: ${fmtDate(ctx.startsAt, locale)}`,
+    `${locale === 'de' ? 'Termin' : 'Appointment'}: ${fmtDate(ctx.startsAt, locale, ctx.timeZone)}`,
     ...(ctx.staffName ? [`${locale === 'de' ? 'Stylist' : 'Stylist'}: ${ctx.staffName}`] : []),
     `${locale === 'de' ? 'Buchungsnummer' : 'Booking reference'}: ${ctx.bookingNumber}`,
     ...(ctx.studioAddress ? [`${locale === 'de' ? 'Adresse' : 'Address'}: ${ctx.studioAddress}`] : []),
@@ -65,8 +67,8 @@ function lines(locale: CustomerLocale, ctx: BookingMailContext, intro: string, o
 
 export function bookingConfirmedMail(locale: CustomerLocale, ctx: BookingMailContext): BuiltMail {
   const subject = locale === 'de'
-    ? `Termin bestätigt: ${ctx.serviceName} am ${fmtDate(ctx.startsAt, locale)}`
-    : `Appointment confirmed: ${ctx.serviceName} on ${fmtDate(ctx.startsAt, locale)}`
+    ? `Termin bestätigt: ${ctx.serviceName} am ${fmtDate(ctx.startsAt, locale, ctx.timeZone)}`
+    : `Appointment confirmed: ${ctx.serviceName} on ${fmtDate(ctx.startsAt, locale, ctx.timeZone)}`
   const intro = locale === 'de'
     ? 'Vielen Dank für Ihre Anzahlung. Ihr Termin ist verbindlich reserviert.'
     : 'Thank you for your deposit. Your appointment is confirmed.'

@@ -12,6 +12,7 @@ import {
   Truck, 
   Video 
 } from 'lucide-vue-next'
+import { localizedText } from '../../utils/content.ts'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -22,11 +23,13 @@ interface LandingProduct {
   id?: string
   nameAr: string
   nameEn: string
+  nameDe?: string | null
   slug: string
   descriptionAr: string | null
   descriptionEn: string | null
+  descriptionDe?: string | null
   price: string | number
-  category: { slug: string, nameAr: string, nameEn: string }
+  category: { slug: string, nameAr: string, nameEn: string, nameDe?: string | null }
   images: { path: string, altAr: string | null, altEn: string | null }[]
   attributes: { keyAr: string, keyEn: string, valueAr: string, valueEn: string }[]
   seo: { metaTitleEn: string | null, metaDescriptionEn: string | null } | null
@@ -43,13 +46,21 @@ if (error.value) {
 }
 
 const p = computed(() => data.value!.product)
-const name = computed(() => (locale.value === 'ar' ? p.value.nameAr : p.value.nameEn))
-const desc = computed(() => (locale.value === 'ar' ? p.value.descriptionAr : p.value.descriptionEn))
+// AUDIT P2-11: German prefers nameDe/descriptionDe, then English.
+const name = computed(() => localizedText(locale.value, { de: p.value.nameDe, en: p.value.nameEn, ar: p.value.nameAr }))
+const desc = computed(() => localizedText(locale.value, { de: p.value.descriptionDe, en: p.value.descriptionEn, ar: p.value.descriptionAr }))
+const categoryName = computed(() => localizedText(locale.value, {
+  de: p.value.category.nameDe,
+  en: p.value.category.nameEn,
+  ar: p.value.category.nameAr,
+}))
 const cover = computed(() => p.value.images[0]?.path || null)
 const activeImage = ref(0)
 const copied = ref(false)
+// AUDIT P3-02: canonical origin from runtime config, never hardcoded.
+const siteUrl = useSiteUrl()
 
-const pageUrl = computed(() => `https://amir.com/p/${p.value.slug}`)
+const pageUrl = computed(() => `${siteUrl}/p/${p.value.slug}`)
 
 useHead(() => ({
   script: [
@@ -59,12 +70,12 @@ useHead(() => ({
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": name.value,
-        "image": p.value.images.map(i => "https://amir.com" + i.path),
+        "image": p.value.images.map(i => `${siteUrl}${i.path}`),
         "description": desc.value || "",
         "sku": p.value.slug,
         "offers": {
           "@type": "Offer",
-          "url": "https://amir.com/p/" + p.value.slug,
+          "url": `${siteUrl}/p/` + p.value.slug,
           "priceCurrency": "EUR",
           "price": String(p.value.price)
         }
@@ -142,7 +153,7 @@ function getEmbedUrl(url: string, type?: string): string {
       <NuxtLink :to="localePath('/products')" class="hover:text-primary transition-colors">{{ t('products.title') }}</NuxtLink>
       <span class="text-slate-400" aria-hidden="true">/</span>
       <NuxtLink :to="localePath(`/products/${p.category.slug}`)" class="hover:text-primary transition-colors">
-        {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
+        {{ categoryName }}
       </NuxtLink>
       <span class="text-slate-400" aria-hidden="true">/</span>
       <span class="text-text font-semibold truncate max-w-xs">{{ name }}</span>
@@ -164,6 +175,9 @@ function getEmbedUrl(url: string, type?: string): string {
               :src="p.images[activeImage]!.path" 
               :alt="name" 
               class="h-full w-full object-contain p-2" 
+              decoding="async"
+              width="1000"
+              height="1000"
             />
             <div v-else class="text-xs text-slate-400">
               {{ t('common.noImage') }}
@@ -219,7 +233,7 @@ function getEmbedUrl(url: string, type?: string): string {
             :to="localePath(`/products/${p.category.slug}`)"
             class="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition-colors mb-3"
           >
-            {{ locale === 'ar' ? p.category.nameAr : p.category.nameEn }}
+            {{ categoryName }}
           </NuxtLink>
 
           <!-- Product Title -->

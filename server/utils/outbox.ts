@@ -4,6 +4,7 @@
 // exactly-once even across webhook replays and parallel sweepers.
 
 import { sendMail, siteBaseUrl } from './mailer.ts'
+import { logWarn } from './logger.ts'
 import { centsToEur } from '../../shared/booking.ts'
 import {
   bookingCancelledMail,
@@ -14,6 +15,17 @@ import {
   toCustomerLocale,
 } from './customer-mails.ts'
 import type { BuiltMail } from './customer-mails.ts'
+import { getSiteSettings } from './site-settings.ts'
+
+/** Salon timezone for customer-facing date strings (P2-05). */
+async function salonTimeZone(): Promise<string> {
+  try {
+    return (await getSiteSettings())?.timezone || 'Europe/Berlin'
+  }
+  catch {
+    return 'Europe/Berlin'
+  }
+}
 
 export type OutboxType =
   | 'booking_confirmed'
@@ -79,6 +91,7 @@ export async function queueBookingMail(
     const base = siteBaseUrl()
     const token = (booking as any).manageToken as string | null
     const manageUrl = token && base ? `${base}/booking/manage/${token}` : null
+    const timeZone = await salonTimeZone()
     const ctx = {
       customerName: booking.customerName,
       serviceName: booking.service.name,
@@ -86,6 +99,7 @@ export async function queueBookingMail(
       staffName: booking.assignedStaff?.name ?? null,
       bookingNumber: booking.bookingNumber,
       manageUrl,
+      timeZone,
     }
     const mail = type === 'booking_confirmed'
       ? bookingConfirmedMail(locale, ctx)
@@ -137,6 +151,7 @@ export async function queueCancelMails(
     const base = siteBaseUrl()
     const token = (booking as any).manageToken as string | null
     const manageUrl = token && base ? `${base}/booking/manage/${token}` : null
+    const timeZone = await salonTimeZone()
     const ctx = {
       customerName: booking.customerName,
       serviceName: booking.service.name,
@@ -144,6 +159,7 @@ export async function queueCancelMails(
       staffName: booking.assignedStaff?.name ?? null,
       bookingNumber: booking.bookingNumber,
       manageUrl,
+      timeZone,
     }
     await queueCustomerEmail({
       bookingId: booking.id,
@@ -172,9 +188,10 @@ export async function queueCancelMails(
   }
 }
 
-/** Send due rows. Returns sent/failed counts. Safe for parallel sweepers. */
-export async function processOutbox(batch = 20, now: Date = new Date()): Promise<{ sent: number, failed: number }> {
+/** Send due rows. Returns sent/simulated/failed counts. Safe for parallel sweepers. */
+export async function processOutbox(batch = 20, now: Date = new Date()): Promise<{ sent: number, simulated: number, failed: number }> {
   let sent = 0
+  let simulated = 0
   let failed = 0
   const due = await prisma.notificationOutbox.findMany({
     where: { status: 'PENDING', sendAfter: { lte: now } },
@@ -189,18 +206,47 @@ export async function processOutbox(batch = 20, now: Date = new Date()): Promise
     })
     if (claimed.count === 0) continue
     try {
-      await sendMail({
+      const result = await sendMail({
         to: row.sendTo,
         subject: row.subject,
         text: row.bodyText,
         html: row.bodyHtml,
         ical: row.ical,
       })
-      await prisma.notificationOutbox.update({
-        where: { id: row.id },
-        data: { status: 'SENT', sentAt: new Date(), lastError: null },
-      })
-      sent++
+      if (result.simulated) {
+        // AUDIT P2-01: log provider = simulation. Never mark SENT/delivered.
+        await prisma.notificationOutbox.update({
+          where: { id: row.id },
+          data: {
+            status: 'SIMULATED',
+            simulated: true,
+            provider: result.provider,
+            acceptedAt: null,
+            sentAt: null,
+            lastError: 'Simulated delivery: mail provider is "log". Configure a real provider to deliver customer mail.',
+          },
+        })
+        simulated++
+        logWarn('Customer mail simulated (not delivered)', {
+          outboxId: row.id,
+          provider: result.provider,
+          type: row.type,
+        })
+      }
+      else {
+        await prisma.notificationOutbox.update({
+          where: { id: row.id },
+          data: {
+            status: 'SENT',
+            sentAt: new Date(),
+            acceptedAt: new Date(),
+            simulated: false,
+            provider: result.provider,
+            lastError: null,
+          },
+        })
+        sent++
+      }
     }
     catch (e: any) {
       const attempts = row.attempts + 1
@@ -223,5 +269,5 @@ export async function processOutbox(batch = 20, now: Date = new Date()): Promise
     where: { status: 'SENDING', sendAfter: { lt: new Date(now.getTime() - 15 * 60000) } },
     data: { status: 'PENDING' },
   }).catch(() => null)
-  return { sent, failed }
+  return { sent, simulated, failed }
 }

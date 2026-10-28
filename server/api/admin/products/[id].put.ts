@@ -1,10 +1,12 @@
 import { generateSlug } from '../../../../shared/slug'
 import { logAudit } from '../../../utils/audit'
+import { parseBody, productUpdateSchema } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
   const actor = await requirePermission(event, 'products.manage')
   const id = getRouterParam(event, 'id')
-  const body = await readBody(event)
+  // AUDIT P3-08: validated partial update; unknown keys are stripped.
+  const body = await parseBody(event, productUpdateSchema)
 
   const existing = await prisma.product.findUnique({ where: { id: id || '' } })
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Product not found' })
@@ -19,12 +21,28 @@ export default defineEventHandler(async (event) => {
     data.nameEn = String(body.nameEn).trim()
     if (!changes.includes('Updated name')) changes.push('Updated name')
   }
+  // AUDIT P2-11: optional German name; blank clears it and re-enables fallback.
+  if (body.nameDe !== undefined) {
+    const next = typeof body.nameDe === 'string' && body.nameDe.trim() ? body.nameDe.trim() : null
+    if (next !== existing.nameDe) {
+      data.nameDe = next
+      if (!changes.includes('Updated name')) changes.push('Updated name')
+    }
+  }
   if (body.descriptionAr !== undefined || body.descriptionEn !== undefined) {
     const newAr = body.descriptionAr !== undefined ? (body.descriptionAr || null) : existing.descriptionAr
     const newEn = body.descriptionEn !== undefined ? (body.descriptionEn || null) : existing.descriptionEn
     if (newAr !== existing.descriptionAr || newEn !== existing.descriptionEn) changes.push('Updated description')
     if (body.descriptionAr !== undefined) data.descriptionAr = body.descriptionAr || null
     if (body.descriptionEn !== undefined) data.descriptionEn = body.descriptionEn || null
+  }
+  // AUDIT P2-11: optional German description.
+  if (body.descriptionDe !== undefined) {
+    const next = typeof body.descriptionDe === 'string' && body.descriptionDe.trim() ? body.descriptionDe : null
+    if (next !== existing.descriptionDe) {
+      data.descriptionDe = next
+      if (!changes.includes('Updated description')) changes.push('Updated description')
+    }
   }
   if (body.price !== undefined) {
     const price = Number(body.price)

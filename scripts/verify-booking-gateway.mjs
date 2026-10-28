@@ -87,18 +87,16 @@ async function main() {
   await cleanup()
 
   // ---------- pure gateway availability ----------
-  check('stripe: enabled + secret only is available',
-    gatewayStatusFromSettings({ stripeEnabled: true, stripeSecretKey: 'enc' }).stripe === true)
-  check('stripe: enabled without secret is unavailable',
-    gatewayStatusFromSettings({ stripeEnabled: true }).stripe === false)
-  check('stripe: disabled with secret is unavailable',
-    gatewayStatusFromSettings({ stripeEnabled: false, stripeSecretKey: 'enc' }).stripe === false)
   check('paypal: enabled + client id + secret is available',
     gatewayStatusFromSettings({ paypalEnabled: true, paypalClientId: 'id', paypalSecret: 'enc' }).paypal === true)
   check('paypal: enabled without secret is unavailable',
     gatewayStatusFromSettings({ paypalEnabled: true, paypalClientId: 'id' }).paypal === false)
-  check('empty settings: both unavailable',
-    JSON.stringify(gatewayStatusFromSettings(null)) === JSON.stringify({ stripe: false, paypal: false }))
+  check('paypal: enabled without client id is unavailable',
+    gatewayStatusFromSettings({ paypalEnabled: true, paypalSecret: 'enc' }).paypal === false)
+  check('paypal: disabled with credentials is unavailable',
+    gatewayStatusFromSettings({ paypalEnabled: false, paypalClientId: 'id', paypalSecret: 'enc' }).paypal === false)
+  check('empty settings: paypal unavailable',
+    JSON.stringify(gatewayStatusFromSettings(null)) === JSON.stringify({ paypal: false }))
 
   // ---------- fixtures (self-contained: staff user + open hours, race-style) ----------
   await prisma.staffTimeOff.deleteMany({ where: { staff: { email: { startsWith: STAFF_PREFIX } } } })
@@ -143,7 +141,7 @@ async function main() {
     body: JSON.stringify(payload(slot1.slug, slot1.startsAt, staff.id, 'ok')),
   })
   check('valid staff + free slot creates booking', r1.status === 200, `${r1.status} ${JSON.stringify(r1.body)}`)
-  check('response reports stripe gateway available', r1.body?.gateways?.stripe === true, JSON.stringify(r1.body?.gateways))
+  check('response reports paypal gateway available', r1.body?.gateways?.paypal === true, JSON.stringify(r1.body?.gateways))
   check('booking is PENDING with assigned staff',
     r1.body?.paymentStatus === 'PENDING' && r1.body?.assignedStaffId === staff.id)
 
@@ -176,7 +174,7 @@ async function main() {
   const row = await prisma.booking.findFirst({ where: { publicToken: token } })
   if (row) {
     await prisma.booking.update({ where: { id: row.id }, data: { holdExpiresAt: new Date(Date.now() - 60000) } })
-    const pay = await jsonFetch(`/api/bookings/${token}/pay`, { method: 'POST', body: JSON.stringify({ provider: 'stripe' }) })
+    const pay = await jsonFetch(`/api/bookings/${token}/pay`, { method: 'POST', body: JSON.stringify({ provider: 'paypal' }) })
     check('expired hold cannot start payment (410)', pay.status === 410, `${pay.status} ${JSON.stringify(pay.body)}`)
     const after = await prisma.booking.findUnique({ where: { id: row.id }, select: { paymentStatus: true } })
     check('expired hold is marked EXPIRED', after?.paymentStatus === 'EXPIRED', after?.paymentStatus)
@@ -201,11 +199,10 @@ async function main() {
 
   // ---------- no gateway: refuse before creating a hold ----------
   const settings = await prisma.siteSettings.findFirst()
-  const stripeEnabled = settings?.stripeEnabled
   const paypalEnabled = settings?.paypalEnabled
   let noGw
   try {
-    await prisma.siteSettings.updateMany({ data: { stripeEnabled: false, paypalEnabled: false } })
+    await prisma.siteSettings.updateMany({ data: { paypalEnabled: false } })
     const slot3 = await pickFreeSlot(null)
     const body = payload(slot3.slug, slot3.startsAt, null, 'nogw')
     noGw = await jsonFetch('/api/bookings', { method: 'POST', body: JSON.stringify(body) })
@@ -214,7 +211,7 @@ async function main() {
     check('no gateway: no PENDING hold was created', leaked === 0, String(leaked))
   }
   finally {
-    await prisma.siteSettings.updateMany({ data: { stripeEnabled: !!stripeEnabled, paypalEnabled: !!paypalEnabled } })
+    await prisma.siteSettings.updateMany({ data: { paypalEnabled: !!paypalEnabled } })
   }
 
   // ---------- cleanup ----------

@@ -196,6 +196,7 @@ onBeforeUnmount(() => {
           :alt="s.alt || ''"
           :loading="i === 0 ? 'eager' : 'lazy'"
           :fetchpriority="i === 0 ? 'high' : 'auto'"
+          decoding="async"
           class="h-full w-full origin-center object-cover object-center"
           :class="i === index
             ? (i % 2 === 0

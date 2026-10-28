@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp, Filter, RotateCcw, Search, SlidersHorizontal, Tag, X } from 'lucide-vue-next'
+import { localizedText } from '../../utils/content.ts'
 
 const props = defineProps<{ 
   categorySlug?: string
@@ -47,7 +48,7 @@ initAttributesFromQuery()
 
 // Fetch available categories
 const { data: catData } = await useAsyncData('catalog-categories', () =>
-  $fetch<{ categories: { slug: string, nameAr: string, nameEn: string, _count?: { products: number } }[] }>('/api/categories'),
+  $fetch<{ categories: { slug: string, nameAr: string, nameEn: string, nameDe?: string | null, _count?: { products: number } }[] }>('/api/categories'),
 )
 
 // Fetch store settings for pagination limit
@@ -301,7 +302,7 @@ watch(() => route.query, (newQ) => {
                   ? 'bg-primary/10 text-primary font-bold' 
                   : 'text-muted hover:bg-border/40 hover:text-primary'"
               >
-                <span class="truncate">{{ locale === 'ar' ? c.nameAr : c.nameEn }}</span>
+                <span class="truncate">{{ localizedText(locale, { de: c.nameDe, en: c.nameEn, ar: c.nameAr }) }}</span>
                 <span v-if="c._count?.products" class="font-mono text-[10px] text-slate-400">
                   {{ c._count.products }}
                 </span>
@@ -533,7 +534,7 @@ watch(() => route.query, (newQ) => {
                       : 'text-muted hover:bg-border/40'"
                     @click="mobileFilters = false"
                   >
-                    <span class="truncate">{{ locale === 'ar' ? c.nameAr : c.nameEn }}</span>
+                    <span class="truncate">{{ localizedText(locale, { de: c.nameDe, en: c.nameEn, ar: c.nameAr }) }}</span>
                     <span v-if="c._count?.products" class="font-mono text-[10px] text-slate-400">
                       {{ c._count.products }}
                     </span>

@@ -127,6 +127,11 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  // AUDIT P2-08: deactivation revokes every active session immediately.
+  if (!user.isActive) {
+    await revokeUserSessions(user.id)
+  }
+
   // Security-audit notification — only for permission or active-state changes.
   const oldPerms = target.permissions.map(p => p.permission).sort().join(',')
   const newPerms = (permissions ?? target.permissions.map(p => p.permission)).sort().join(',')

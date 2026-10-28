@@ -1,8 +1,10 @@
+import { parseBody, productImageOrderSchema } from '../../../../../utils/validate'
+
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'products.manage')
-  const body = await readBody(event)
-  const order = Array.isArray(body.order) ? body.order.filter((x): x is string => typeof x === 'string') : []
-  if (!order.length) throw createError({ statusCode: 400, statusMessage: 'Order array required' })
+  // AUDIT P3-08: validated image id list.
+  const body = await parseBody(event, productImageOrderSchema)
+  const order = body.order
 
   const images = await prisma.productImage.findMany({ where: { id: { in: order } } })
   const productIds = new Set(images.map(i => i.productId))

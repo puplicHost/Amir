@@ -1,5 +1,6 @@
 import { saveProductVideo } from '../../../../utils/storage'
 import { logAudit } from '../../../../utils/audit'
+import { parseBody, productVideoUrlSchema } from '../../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
   const actor = await requirePermission(event, 'products.manage')
@@ -24,9 +25,9 @@ export default defineEventHandler(async (event) => {
     videoUrl = relativePath
   }
   else {
-    const body = await readBody(event)
-    const rawUrl = String(body.url || '').trim()
-    if (!rawUrl) throw createError({ statusCode: 400, message: 'Video URL is required' })
+    // AUDIT P3-08: validated absolute http(s) video URL.
+    const body = await parseBody(event, productVideoUrlSchema)
+    const rawUrl = body.url
 
     if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
       videoType = 'youtube'

@@ -8,19 +8,21 @@ import { SERVICE_SECTIONS } from '~~/shared/booking'
 const { t, te, locale } = useI18n()
 const localePath = useLocalePath()
 
-/** Translated display name for a service (DB stores German; EN comes from i18n). */
+/** Translated display name: explicit English DB copy, then i18n, then German. */
 function serviceDisplayName(srv: any): string {
-  const slug = srv?.slug || ''
   const fallback = srv?.name || ''
-  if (!slug) return fallback
-  const key = `serviceNames.${slug}`
-  try {
-    if (te(key)) {
-      const translated = t(key)
-      if (translated && translated !== key) return translated
+  if (locale.value === 'en' && srv?.nameEn) return srv.nameEn
+  const slug = srv?.slug || ''
+  if (slug) {
+    const key = `serviceNames.${slug}`
+    try {
+      if (te(key)) {
+        const translated = t(key)
+        if (translated && translated !== key) return translated
+      }
     }
+    catch { /* fallback to DB name */ }
   }
-  catch { /* fallback to DB name */ }
   return fallback
 }
 const { trackViewContent } = useMetaEvents()

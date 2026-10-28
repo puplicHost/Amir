@@ -1,12 +1,14 @@
 // Booking payment backend (Phase 2c): settings, holds, confirmation.
 // Amounts/currency always come from server-side snapshots — never the client.
-import Stripe from 'stripe'
+// PayPal is the only supported online provider.
 import { decryptData } from './encryption.ts'
 import { decideConfirmation, isExpectedAmount } from './booking-confirm.ts'
 import { sendMetaCapiEvent } from './meta-capi.ts'
 import { notifyAdmins, notifyUser } from './admin-notifications.ts'
 import { queueBookingMail } from './outbox.ts'
 import { overlaps, tzDayStr } from './booking-slots.ts'
+import { isTerminalBookingStatus, isStatusTransitionAllowed } from '../../shared/booking.ts'
+import { getSiteSettings } from './site-settings.ts'
 
 export interface BookingSettings {
   slotStepMin: number
@@ -15,10 +17,11 @@ export interface BookingSettings {
   timezone: string
   currency: string
   bookingMinLeadMin: number
+  cancellationWindowHours: number
 }
 
 export async function getBookingSettings(): Promise<BookingSettings> {
-  const s = await prisma.siteSettings.findFirst()
+  const s = await getSiteSettings()
   return {
     slotStepMin: s?.slotStepMin ?? 15,
     holdTtlMin: s?.holdTtlMin ?? 20,
@@ -26,40 +29,30 @@ export async function getBookingSettings(): Promise<BookingSettings> {
     timezone: s?.timezone || 'Europe/Berlin',
     currency: s?.defaultCurrency || 'EUR',
     bookingMinLeadMin: (s as any)?.bookingMinLeadMin ?? 120,
+    cancellationWindowHours: (s as any)?.cancellationWindowHours ?? 24,
   }
 }
 
 export interface GatewayStatus {
-  stripe: boolean
   paypal: boolean
 }
 
 export interface GatewaySettings {
-  stripeEnabled?: boolean | null
-  stripeSecretKey?: string | null
   paypalEnabled?: boolean | null
   paypalClientId?: string | null
   paypalSecret?: string | null
 }
 
-/**
- * Pure gateway availability check.
- *
- * Stripe Checkout is created server-side and redirected to, so only the
- * secret key is required to take a deposit; the publishable key is used by
- * client-side Elements, which this flow does not use. Requiring it here
- * silently disabled online booking for stores that only stored the secret.
- */
+/** Pure gateway availability check: PayPal needs its switch on and credentials stored. */
 export function gatewayStatusFromSettings(s: GatewaySettings | null | undefined): GatewayStatus {
   return {
-    stripe: !!s?.stripeEnabled && !!s?.stripeSecretKey,
     paypal: !!s?.paypalEnabled && !!s?.paypalClientId && !!s?.paypalSecret,
   }
 }
 
 /** Which gateways can actually take money right now (switch on + keys stored). */
 export async function getGatewayStatus(): Promise<GatewayStatus> {
-  return gatewayStatusFromSettings(await prisma.siteSettings.findFirst())
+  return gatewayStatusFromSettings(await getSiteSettings())
 }
 
 function mustDecrypt(label: string, stored: string | null | undefined): string {
@@ -74,26 +67,6 @@ function mustDecrypt(label: string, stored: string | null | undefined): string {
   }
 }
 
-export interface StripeConfig {
-  client: Stripe
-  publishableKey: string
-  webhookSecret: string | null
-}
-
-/** Stripe client from encrypted settings. Throws 503 when not configured. */
-export async function getStripeConfig(): Promise<StripeConfig> {
-  const s = await prisma.siteSettings.findFirst()
-  if (!s?.stripeEnabled || !s?.stripeSecretKey) {
-    throw createError({ statusCode: 503, statusMessage: 'Stripe not configured' })
-  }
-  const secretKey = mustDecrypt('Stripe secret key', s.stripeSecretKey)
-  return {
-    client: new Stripe(secretKey),
-    publishableKey: s.stripePublishableKey || '',
-    webhookSecret: s.stripeWebhookSecret ? mustDecrypt('Stripe webhook secret', s.stripeWebhookSecret) : null,
-  }
-}
-
 export interface PaypalConfig {
   clientId: string
   secret: string
@@ -103,7 +76,7 @@ export interface PaypalConfig {
 
 /** PayPal credentials from encrypted settings. Throws 503 when not configured. */
 export async function getPaypalConfig(): Promise<PaypalConfig> {
-  const s = await prisma.siteSettings.findFirst()
+  const s = await getSiteSettings()
   if (!s?.paypalEnabled || !s?.paypalClientId || !s?.paypalSecret) {
     throw createError({ statusCode: 503, statusMessage: 'PayPal not configured' })
   }
@@ -188,7 +161,7 @@ function toConfirmBooking(b: {
 export interface PaymentProof {
   amountCents: number | null
   currency: string | null
-  /** Stripe payment_intent or PayPal capture id (Roadmap Phase 8: refunds). */
+  /** PayPal capture id (persisted as Booking.providerPaymentId for refunds). */
   paymentId?: string | null
 }
 
@@ -211,9 +184,35 @@ async function flagForRefund(
 }
 
 /**
- * Idempotent confirmation core shared by Stripe webhook, PayPal return and
+ * A second, different capture on an already-PAID booking. The original
+ * payment must stay untouched, so only the attention flag is set; the primary
+ * order/capture references are preserved. The new references are reported to
+ * admins for manual refunding.
+ */
+async function flagDuplicateCharge(
+  bookingId: string, bookingNumber: string, orderRef: string | null, captureRef: string | null,
+): Promise<void> {
+  await prisma.booking.updateMany({
+    where: { id: bookingId },
+    data: { needsRefund: true },
+  }).catch(() => null)
+  await notifyAdmins({
+    type: 'payment_needs_refund',
+    relatedEntityId: bookingId,
+    url: `/admin/bookings/${bookingId}`,
+    titleEn: `Duplicate payment needs review (${bookingNumber})`,
+    titleAr: `Doppelte Zahlung erfordert Prüfung (${bookingNumber})`,
+    bodyEn: `A second verified PayPal charge arrived${orderRef ? ` (order ${orderRef})` : ''}${captureRef ? ` (capture ${captureRef})` : ''}. The booking was already paid; refund the duplicate manually.`,
+    bodyAr: `Eine zweite bestätigte PayPal-Zahlung ist eingegangen${orderRef ? ` (Bestellung ${orderRef})` : ''}${captureRef ? ` (Erfassung ${captureRef})` : ''}. Die Buchung war bereits bezahlt; bitte die doppelte Zahlung manuell erstatten.`,
+  })
+}
+
+/**
+ * Idempotent confirmation core shared by the PayPal return handler and the
  * PayPal webhook. Verified money is never silently ignored:
- * - replay on PAID → already-paid (zero writes, zero side effects)
+ * - replay on PAID with the same order/capture → already-paid (zero side effects)
+ * - a second, different order/capture on a PAID booking → flag-refund (evidence kept)
+ * - non-PayPal provider → flag-refund (never confirm another provider's booking)
  * - amount/currency mismatch → flag-refund (recorded + admin notified, never confirmed)
  * - PENDING → guarded PENDING→PAID flip (lost race → already-paid)
  * - EXPIRED/FAILED → slot re-checked inside the advisory lock: free → PAID,
@@ -224,10 +223,37 @@ export async function confirmBookingPaid(
 ): Promise<ConfirmResult> {
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } })
   if (!booking) return { decision: 'missing', booking: null }
-  if (booking.paymentStatus === 'PAID') return { decision: 'already-paid', booking: null }
-  // Roadmap Phase 8: money arriving for a cancelled booking can never be
-  // honored — flag for manual refund instead of confirming.
-  if (booking.status === 'CANCELLED' || (booking as any).cancelledAt) {
+  // PayPal is the only supported online provider. Rows created before a pay
+  // attempt have an empty provider; a legacy non-PayPal (manual) booking
+  // must never be confirmed — or silently ignored — by a PayPal capture.
+  if (booking.paymentProvider && booking.paymentProvider !== 'paypal') {
+    if (booking.paymentStatus === 'PAID') {
+      await flagDuplicateCharge(booking.id, booking.bookingNumber, providerRef, proof?.paymentId || null)
+    }
+    else {
+      await flagForRefund(booking.id, null, booking.bookingNumber, booking.depositCents)
+    }
+    return { decision: 'flag-refund', booking: null }
+  }
+  if (booking.paymentStatus === 'PAID') {
+    // A different order or capture on an already-paid booking is a second
+    // charge: keep the evidence and let an admin refund it. A replay of the
+    // same charge is a no-op.
+    const refDiffers = Boolean(providerRef && booking.providerRef && providerRef !== booking.providerRef)
+    const captureDiffers = Boolean(
+      proof?.paymentId
+      && (booking as any).providerPaymentId
+      && proof.paymentId !== (booking as any).providerPaymentId,
+    )
+    if (refDiffers || captureDiffers) {
+      await flagDuplicateCharge(booking.id, booking.bookingNumber, providerRef, proof?.paymentId || null)
+      return { decision: 'flag-refund', booking: null }
+    }
+    return { decision: 'already-paid', booking: null }
+  }
+  // Roadmap Phase 8: money arriving for a cancelled/closed booking can never
+  // be honored — flag for manual refund instead of confirming.
+  if (isTerminalBookingStatus(booking.status) || (booking as any).cancelledAt) {
     await flagForRefund(booking.id, providerRef, booking.bookingNumber, booking.depositCents)
     return { decision: 'flag-refund', booking: null }
   }
@@ -268,23 +294,41 @@ export async function confirmBookingPaid(
     // several staff members cannot deadlock.
     const outcome = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('salon'), hashtext(${dayStr}))`
-      let free = true
-      if (booking.assignedStaffId) {
-        const blockers = await tx.booking.findMany({
-          where: {
-            id: { not: booking.id },
-            status: { not: 'CANCELLED' },
-            startsAt: { lt: new Date(endMs), gte: new Date(startMs - 1440 * 60000) },
-            OR: staffBlockerOr,
+      // AUDIT P1-04: always re-check overlap, including legacy staff-less rows.
+      // A hold that expired can free the slot before a late webhook arrives; the
+      // payment must then be flagged for refund, never confirmed.
+      const blockers = await tx.booking.findMany({
+        where: {
+          id: { not: booking.id },
+          status: { not: 'CANCELLED' },
+          startsAt: { lt: new Date(endMs), gte: new Date(startMs - 1440 * 60000) },
+          OR: staffBlockerOr,
+        },
+        select: { startsAt: true, durationMinSnapshot: true },
+      })
+      const free = !blockers.some((c) => {
+        const cEnd = c.startsAt.getTime() + c.durationMinSnapshot * 60000
+        return overlaps(startMs, endMs, c.startsAt.getTime(), cEnd)
+      })
+
+      if (!free) {
+        // Record verified money as unhonourable, close the hold, and preserve
+        // needsRefund. The caller notifies admins after the transaction.
+        const flagged = await tx.booking.updateMany({
+          where: { id: booking.id, paymentStatus: 'PENDING' },
+          data: {
+            paymentStatus: 'EXPIRED',
+            holdExpiresAt: null,
+            needsRefund: true,
+            ...(providerRef ? { providerRef } : {}),
+            ...(proof?.paymentId ? { providerPaymentId: proof.paymentId } : {}),
           },
-          select: { startsAt: true, durationMinSnapshot: true },
         })
-        free = !blockers.some((c) => {
-          const cEnd = c.startsAt.getTime() + c.durationMinSnapshot * 60000
-          return overlaps(startMs, endMs, c.startsAt.getTime(), cEnd)
-        })
+        return flagged.count === 0 ? 'lost-race' as const : 'taken' as const
       }
-      const shouldAssign = free && booking.assignedStaffId && booking.status === 'UNASSIGNED'
+
+      const shouldAssign = booking.status === 'UNASSIGNED' && Boolean(booking.assignedStaffId)
+        && isStatusTransitionAllowed(booking.status, 'ASSIGNED', { paymentStatus: 'PAID', needsRefund: false })
       const flipped = await tx.booking.updateMany({
         where: { id: booking.id, paymentStatus: 'PENDING' },
         data: {
@@ -309,6 +353,10 @@ export async function confirmBookingPaid(
       }
       return 'confirmed' as const
     })
+    if (outcome === 'taken') {
+      await flagForRefund(booking.id, providerRef, booking.bookingNumber, booking.depositCents)
+      return { decision: 'flag-refund', booking: null }
+    }
     if (outcome === 'lost-race') return { decision: 'already-paid', booking: null }
     const fresh = await prisma.booking.findUnique({ where: { id: booking.id } })
     return { decision: 'confirm', booking: fresh ? toConfirmBooking(fresh) : null }
@@ -335,7 +383,8 @@ export async function confirmBookingPaid(
         return overlaps(startMs, endMs, c.startsAt.getTime(), cEnd)
       })
       if (isClash) return 'taken' as const
-      const shouldAssign = booking.assignedStaffId && booking.status !== 'ASSIGNED'
+      const shouldAssign = booking.status === 'UNASSIGNED' && Boolean(booking.assignedStaffId)
+        && isStatusTransitionAllowed(booking.status, 'ASSIGNED', { paymentStatus: 'PAID', needsRefund: false })
       const flipped = await tx.booking.updateMany({
         where: { id: booking.id, paymentStatus: { in: ['EXPIRED', 'FAILED'] } },
         data: {
@@ -409,11 +458,13 @@ export async function finalizePaidBooking(input: {
         phone: booking.customerPhone,
         fbp: booking.fbp,
         fbc: booking.fbc,
+        clientIp: (booking as any).metaClientIp,
+        clientUa: (booking as any).metaClientUa,
       })
     }
 
-    const dtBerlin = new Date(booking.startsAt).toLocaleString('de-DE', {
-      timeZone: 'Europe/Berlin',
+    const dtSalon = new Date(booking.startsAt).toLocaleString('de-DE', {
+      timeZone: (await getSiteSettings())?.timezone || 'Europe/Berlin',
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
@@ -425,8 +476,8 @@ export async function finalizePaidBooking(input: {
       url: `/admin/bookings/${booking.id}`,
       titleEn: `New booking (${booking.bookingNumber})`,
       titleAr: `Neue Buchung (${booking.bookingNumber})`,
-      bodyEn: `${booking.service.name} · ${dtBerlin}`,
-      bodyAr: `${booking.service.name} · ${dtBerlin}`,
+      bodyEn: `${booking.service.name} · ${dtSalon}`,
+      bodyAr: `${booking.service.name} · ${dtSalon}`,
     })
     // Roadmap Phase 4: the customer-chosen staff member is notified
     // directly on auto-assignment (sanitized, no customer PII).
@@ -437,8 +488,8 @@ export async function finalizePaidBooking(input: {
         url: '/admin/appointments?tab=my-bookings',
         titleEn: `New booking assigned (${booking.bookingNumber})`,
         titleAr: `Neuer Termin zugewiesen (${booking.bookingNumber})`,
-        bodyEn: `${booking.service.name} · ${dtBerlin}`,
-        bodyAr: `${booking.service.name} · ${dtBerlin}`,
+        bodyEn: `${booking.service.name} · ${dtSalon}`,
+        bodyAr: `${booking.service.name} · ${dtSalon}`,
       })
     }
     // Roadmap Phase 7: customer confirmation mail (deduplicated outbox;

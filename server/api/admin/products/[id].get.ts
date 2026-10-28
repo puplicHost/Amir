@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const product = await prisma.product.findUnique({
     where: { id: id || '' },
     include: {
-      category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
+      category: { select: { id: true, slug: true, nameAr: true, nameEn: true, nameDe: true } },
       images: { orderBy: { sortOrder: 'asc' } },
       attributes: true,
       seo: true,

@@ -21,12 +21,12 @@ const RULES: RateRule[] = [
   { key: 'expenses-export', method: 'GET', match: p => p === '/api/admin/expenses/export', limit: 10, windowSec: 60 },
 ]
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const path = event.path.split('?')[0]
   const method = getMethod(event)
   for (const rule of RULES) {
     if (rule.method === method && rule.match(path)) {
-      rateLimit(event, { key: rule.key, limit: rule.limit, windowSec: rule.windowSec })
+      await rateLimit(event, { key: rule.key, limit: rule.limit, windowSec: rule.windowSec })
       return
     }
   }

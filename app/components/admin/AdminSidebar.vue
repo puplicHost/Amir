@@ -11,6 +11,7 @@ import {
   Receipt,
   Scissors,
   Settings,
+  UserCog,
   X,
 } from 'lucide-vue-next'
 
@@ -69,6 +70,7 @@ const items = computed<SidebarItem[]>(() => [
   { label: t('admin.finance'), to: '/admin/finance', icon: Receipt, show: canExpensesView.value || canRefunds.value },
   { label: t('admin.website'), to: '/admin/website', icon: Mail, show: canInboxManage.value || canBannersManage.value, badge: canInboxManage.value ? (headerData.value?.inbox?.unreadCount || 0) : 0 },
   { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettings.value },
+  { label: t('admin.account'), to: '/admin/account', icon: UserCog, show: true },
 ])
 
 function isItemActive(path: string) {

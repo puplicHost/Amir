@@ -1,9 +1,10 @@
 import { requirePermission } from '../../../utils/auth'
+import { getSiteSettings } from '../../../utils/site-settings'
 
 // Salon profile + booking rules (plaintext operational settings).
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'settings.business')
-  const settings = await prisma.siteSettings.findFirst()
+  const settings = await getSiteSettings()
   return {
     salon: {
       whatsappNumber: settings?.whatsappNumber || '',

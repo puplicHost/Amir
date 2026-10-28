@@ -13,7 +13,7 @@ A typical customer moves through five stages:
 1. **Arrives** on the website and reads about the studio, its services, products, and contact details.
 2. **Chooses a service** and opens its booking page.
 3. **Picks a staff preference, a day, and a time**, then enters name, phone number, and optionally an email address and a note.
-4. **Reviews the deposit** and chooses Stripe or PayPal.
+4. **Reviews the deposit** and chooses PayPal.
 5. **Pays**, lands on a confirmation page, and receives a confirmation email. The same page and email provide a private link to view or cancel the appointment.
 
 Some customers never book online. They browse, call, send a contact message, or start a WhatsApp conversation. Both paths are supported, and the website is designed so that a customer is never forced into a payment flow they do not understand.
@@ -124,10 +124,7 @@ At this point the appointment exists as a **pending hold**. The time is reserved
 
 ### 6.5 Choosing a payment method
 
-Only payment methods enabled by the salon are offered. The customer may see:
-
-- **Stripe** (card and other Stripe-supported methods), and/or
-- **PayPal**.
+PayPal is the only online payment method. If PayPal is disabled, online booking is blocked and the customer is asked to contact the salon.
 
 The customer is never redirected automatically. They must press the button for the method they want. This is deliberate: the deposit and the payment choice are both visible before leaving the site.
 
@@ -139,7 +136,7 @@ If the salon has switched both methods off, online booking cannot be completed. 
 
 ### 7.1 Successful payment
 
-Pressing Stripe or PayPal opens the provider's own payment page. On success the customer returns to the AMIR confirmation page.
+Pressing PayPal opens PayPal's own payment page. On success the customer returns to the AMIR confirmation page.
 
 The confirmation page is deliberately patient. It checks the booking status immediately and, if the payment provider's confirmation has not arrived yet, shows a "confirming your payment" state and checks again every few seconds for up to about a minute. It does **not** show a false failure while the provider is still processing.
 
@@ -260,6 +257,6 @@ To set expectations correctly, the following are **not** part of the current pub
 
 A short, accurate script for the reception team:
 
-> "You can book online through our website. Choose your service, your preferred stylist or 'any staff', and a time. We ask for a deposit — normally half the treatment price — and you can pay by card through Stripe or with PayPal, whichever we have enabled. You will get a confirmation by email if you leave your address, and the confirmation page gives you a private link to view or cancel. You can cancel online up to 24 hours before the appointment; after that, please call us. If you would rather not pay online, contact us and we will arrange it."
+> "You can book online through our website. Choose your service, your preferred stylist or 'any staff', and a time. We ask for a deposit — normally half the treatment price — and you can pay the deposit through PayPal if we have it enabled. You will get a confirmation by email if you leave your address, and the confirmation page gives you a private link to view or cancel. You can cancel online up to 24 hours before the appointment; after that, please call us. If you would rather not pay online, contact us and we will arrange it."
 
-If a customer says the site will not let them book, the useful questions are: is a stylist selected or "any", is the day closed, is the time already taken, and has the salon enabled at least one online payment method. Those four conditions explain most blocked bookings.
+If a customer says the site will not let them book, the useful questions are: is a stylist selected or "any", is the day closed, is the time already taken, and has the salon enabled PayPal. Those four conditions explain most blocked bookings.

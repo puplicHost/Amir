@@ -1,14 +1,15 @@
 import { generateSlug, uniqueSlug } from '../../../../shared/slug'
 import { createdLabel, logAudit } from '../../../utils/audit'
+import { categoryCreateSchema, parseBody } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
   const actor = await requirePermission(event, 'categories.manage')
-  const body = await readBody(event)
-  const nameAr = typeof body.nameAr === 'string' ? body.nameAr.trim() : ''
-  const nameEn = typeof body.nameEn === 'string' ? body.nameEn.trim() : ''
-  if (!nameAr || !nameEn) throw createError({ statusCode: 400, statusMessage: 'Arabic and English names are required' })
+  // AUDIT P3-08: validated payload; unknown keys are stripped.
+  const body = await parseBody(event, categoryCreateSchema)
+  const nameAr = body.nameAr
+  const nameEn = body.nameEn
 
-  const base = typeof body.slug === 'string' && body.slug.trim()
+  const base = body.slug && body.slug.trim()
     ? generateSlug(body.slug)
     : generateSlug(nameEn)
   const slug = await uniqueSlug(base, async s => !!(await prisma.category.findUnique({ where: { slug: s } })))
@@ -17,9 +18,12 @@ export default defineEventHandler(async (event) => {
     data: {
       nameAr,
       nameEn,
+      // AUDIT P2-11: optional German copy; blank becomes NULL (fallback to EN).
+      nameDe: typeof body.nameDe === 'string' && body.nameDe.trim() ? body.nameDe.trim() : null,
       slug,
       descriptionAr: body.descriptionAr || null,
       descriptionEn: body.descriptionEn || null,
+      descriptionDe: typeof body.descriptionDe === 'string' && body.descriptionDe.trim() ? body.descriptionDe : null,
       coverVideoUrl: body.coverVideoUrl || null,
       featuredOnHomepage: body.featuredOnHomepage === true,
       sortOrder: Number(body.sortOrder) || 0,

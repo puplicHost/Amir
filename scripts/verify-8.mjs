@@ -1,7 +1,7 @@
 // Roadmap Phase 8 checks: self-cancel window, idempotent double-cancel,
 // slot release, admin refund modes, boundary enforcement.
 // Deposit refunds run in OUTSIDE/manual mode here (no gateway credentials);
-// live Stripe/PayPal paths require sandbox keys.
+// live PayPal sandbox paths require sandbox keys.
 // Prerequisites: dev server running, migrations applied.
 // Run: node scripts/verify-8.mjs
 import { readFileSync } from 'node:fs'

@@ -1,24 +1,17 @@
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { parseBody, tickerSettingsSchema } from '../../../utils/validate'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'settings.business')
-  const body = (await readBody(event)) || {}
-  await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: {
-      tickerTextAr: typeof body.tickerTextAr === 'string' && body.tickerTextAr.trim() ? body.tickerTextAr.trim() : null,
-      tickerTextEn: typeof body.tickerTextEn === 'string' && body.tickerTextEn.trim() ? body.tickerTextEn.trim() : null,
-      tickerActive: body.tickerActive === true,
-      tickerSpeed: Number.isFinite(Number(body.tickerSpeed))
-        ? Math.min(120, Math.max(5, Number(body.tickerSpeed)))
-        : 30,
-    },
-    create: {
-      siteNameAr: 'AMIR',
-      siteNameEn: 'Amir',
-    },
-  })
+  // AUDIT P3-08: validated payload; speed bounds enforced by the schema.
+  const body = await parseBody(event, tickerSettingsSchema)
+  await upsertSiteSettings({
+    tickerTextAr: body.tickerTextAr || null,
+    tickerTextEn: body.tickerTextEn || null,
+    tickerActive: body.tickerActive === true,
+    tickerSpeed: body.tickerSpeed ?? 30,
+  }, { siteNameAr: 'AMIR', siteNameEn: 'Amir' })
   return { success: true }
 })

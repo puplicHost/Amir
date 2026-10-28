@@ -127,7 +127,7 @@
     "step2Title": "Select Your Slot",
     "step2Desc": "Pick a convenient available appointment time from our real-time calendar.",
     "step3Title": "Secure with Deposit",
-    "step3Desc": "Pay a 50% deposit securely via Stripe or PayPal to reserve your spot.",
+    "step3Desc": "Pay a 50% deposit securely via PayPal to reserve your spot.",
     "step4Title": "Enjoy Your Visit",
     "step4Desc": "We look forward to welcoming you at Schloßstr. 2c in Meitingen.",
     "flagshipBadge": "Featured",
@@ -260,7 +260,8 @@
     "inbox": "Inbox",
     "banners": "Banners",
     "noAccess": "You do not have permission to view this section.",
-    "teamUsers": "Team & Users"
+    "teamUsers": "Team & Users",
+    "account": "Account & Security"
   },
   "common": {
     "toggleTheme": "Toggle color mode",
@@ -337,14 +338,11 @@
     "saturday": "Saturday"
   },
   "payment": {
-    "title": "Payment Gateways",
-    "description": "Stripe and PayPal deposit checkout (50% starting price). Each gateway requires active credentials and an enabled switch.",
-    "stripe": "Stripe",
+    "title": "Payment Gateway",
+    "description": "PayPal deposit checkout (50% starting price). PayPal requires active credentials and an enabled switch.",
     "paypal": "PayPal",
     "enabled": "Enabled",
-    "publishableKey": "Publishable key",
     "secretKey": "Secret key",
-    "webhookSecret": "Webhook secret",
     "clientId": "Client ID",
     "webhookId": "Webhook ID",
     "mode": "Mode",
@@ -353,7 +351,7 @@
     "saved": "Payment settings saved.",
     "stored": "Stored (encrypted). Leave blank to keep.",
     "notStored": "No key stored yet.",
-    "bothOff": "Both payment options are disabled: online booking is blocked until at least one is enabled."
+    "bothOff": "PayPal is disabled: online booking is blocked until it is enabled."
   },
   "salon": {
     "title": "Studio & Booking",
@@ -478,7 +476,6 @@
     "note": "Notes for the studio (optional)",
     "depositDue": "Deposit due now (50%)",
     "payWith": "Pay deposit with",
-    "stripe": "Credit / Debit Card (Stripe)",
     "paypal": "PayPal",
     "continueToPay": "Continue to Payment",
     "blocked": "Online booking is temporarily unavailable. Please contact our studio directly.",
@@ -502,14 +499,17 @@
     "noStaff": "No stylists are currently bookable online. Please contact the studio directly.",
     "booked": "Booked",
     "bookViaWhatsapp": "Book via WhatsApp",
-    "waReminderOptIn": "Remind me via WhatsApp before my appointment (optional).",
+    "waReminderOptIn": "Allow contact via WhatsApp about my appointment (optional).",
     "loading": "Loading booking…",
-    "depositNote": "A deposit of {amount} {currency} (50% of the price) is charged now to secure this appointment.",
+    "depositNote": "A deposit of {amount} (50% of the price) is charged now to secure this appointment.",
     "confirmingTitle": "Confirming your payment…",
     "confirmingText": "This usually takes only a few seconds. This page updates automatically — please do not close it.",
     "stillPendingTitle": "Payment still being processed",
     "stillPendingText": "We have not received the payment confirmation yet. If you were charged, your booking will update shortly. You can bookmark this page and check back later.",
-    "manageLink": "Manage or cancel this booking"
+    "manageLink": "Manage or cancel this booking",
+    "consentAgree": "I accept the",
+    "consentAnd": "and the",
+    "consentRequired": "Please accept the Terms & Conditions and the Privacy Policy."
   },
   "expenses": {
     "title": "Salon Expenses",
@@ -569,7 +569,7 @@
     "allStaff": "All Staff",
     "needsRefundOnly": "Refund Required",
     "markRefundHandled": "Mark Refund Handled",
-    "refundNotice": "Notice: Refunds must be issued manually in your Stripe or PayPal merchant dashboard. Marking as handled only clears this internal flag.",
+    "refundNotice": "Notice: Refunds must be issued manually in your PayPal merchant dashboard. Marking as handled only clears this internal flag.",
     "assignStaff": "Assign Staff",
     "reassignStaff": "Reassign Staff",
     "cancelSelected": "Cancel Selected",
@@ -697,6 +697,14 @@
     "payment": "Payment",
     "actions": "Actions",
     "openBooking": "Open booking",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "recentPayments": "Confirmed payments",
+    "recentPaymentsDescription": "Paid bookings, newest first. Pending, failed and expired holds are excluded.",
+    "date": "Date",
+    "reference": "PayPal reference",
+    "orderId": "Order",
+    "captureId": "Capture",
+    "noPaymentsTitle": "No confirmed payments yet",
+    "noPaymentsDescription": "Paid bookings will appear here."
   }
 }

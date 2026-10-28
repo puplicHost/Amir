@@ -1,20 +1,15 @@
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { parseBody, storeSettingsSchema } from '../../../utils/validate'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'settings.business')
-  const body = await readBody(event)
-  await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: {
-      defaultCurrency: body.defaultCurrency,
-      productsPerPage: Number(body.productsPerPage) || 16,
-    },
-    create: {
-      siteNameAr: 'AMIR',
-      siteNameEn: 'Amir',
-    }
-  })
+  // AUDIT P3-08: validated payload; ISO currency + page size bounds enforced.
+  const body = await parseBody(event, storeSettingsSchema)
+  await upsertSiteSettings({
+    defaultCurrency: body.defaultCurrency,
+    productsPerPage: body.productsPerPage ?? 16,
+  }, { siteNameAr: 'AMIR', siteNameEn: 'Amir' })
   return { success: true }
 })

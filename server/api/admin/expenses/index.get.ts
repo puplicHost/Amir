@@ -2,6 +2,14 @@ import { requirePermission } from '../../../utils/auth'
 import { ensureDefaultCategories } from '../../../utils/expense-categories'
 
 // Expense list with filters + totals (Roadmap Phase 10).
+// AUDIT P2-03: totals and charts are computed by the database over ALL matching
+// rows; only the table page is limited. No silent 1,000-row truncation.
+function clampInt(raw: unknown, fallback: number, min: number, max: number): number {
+  const parsed = typeof raw === 'string' ? Number.parseInt(raw, 10) : NaN
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(max, Math.max(min, parsed))
+}
+
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'expenses.view')
   const q = getQuery(event)
@@ -23,37 +31,69 @@ export default defineEventHandler(async (event) => {
     ]
   }
 
-  const [rows, categories] = await Promise.all([
+  const page = clampInt(q.page, 1, 1, 100000)
+  const pageSize = clampInt(q.pageSize, 50, 1, 200)
+
+  const [rows, totals, categories, categoryGroups, dayGroups] = await Promise.all([
     prisma.expense.findMany({
-      where,
+      where: where as any,
       orderBy: [{ day: 'desc' }, { createdAt: 'desc' }],
-      take: 1000,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: { category: { select: { id: true, nameDe: true, nameEn: true } } },
     }),
+    prisma.expense.aggregate({
+      where: where as any,
+      _sum: { amountCents: true },
+      _count: { _all: true },
+    }),
     prisma.expenseCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { nameDe: 'asc' }] }),
+    prisma.expense.groupBy({
+      by: ['categoryId'],
+      where: where as any,
+      _sum: { amountCents: true },
+      _count: { _all: true },
+    }),
+    prisma.expense.groupBy({
+      by: ['day'],
+      where: where as any,
+      _sum: { amountCents: true },
+    }),
   ])
 
-  const total = rows.reduce((sum, r) => sum + r.amountCents, 0)
-  const byCategory = new Map<string, { id: string, nameDe: string, nameEn: string, total: number, count: number }>()
-  const byMonth = new Map<string, number>()
-  for (const r of rows) {
-    const c = byCategory.get(r.categoryId) || {
-      id: r.categoryId, nameDe: r.category.nameDe, nameEn: r.category.nameEn, total: 0, count: 0,
-    }
-    c.total += r.amountCents
-    c.count++
-    byCategory.set(r.categoryId, c)
-    const month = r.day.slice(0, 7)
-    byMonth.set(month, (byMonth.get(month) || 0) + r.amountCents)
-  }
+  const categoryNames = new Map(categories.map(c => [c.id, c]))
+  const byCategory = categoryGroups
+    .map((group) => {
+      const category = categoryNames.get(group.categoryId)
+      return {
+        id: group.categoryId,
+        nameDe: category?.nameDe || '',
+        nameEn: category?.nameEn || category?.nameDe || '',
+        total: group._sum.amountCents || 0,
+        count: group._count._all,
+      }
+    })
+    .sort((a, b) => b.total - a.total)
 
+  const monthTotals = new Map<string, number>()
+  for (const group of dayGroups) {
+    const month = group.day.slice(0, 7)
+    monthTotals.set(month, (monthTotals.get(month) || 0) + (group._sum.amountCents || 0))
+  }
+  const byMonth = [...monthTotals.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([month, total]) => ({ month, total }))
+
+  const totalCount = totals._count._all
   return {
     expenses: rows,
-    total,
-    byCategory: [...byCategory.values()].sort((a, b) => b.total - a.total),
-    byMonth: [...byMonth.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([month, sum]) => ({ month, total: sum })),
+    total: totals._sum.amountCents || 0,
+    totalCount,
+    page,
+    pageSize,
+    pages: Math.max(1, Math.ceil(totalCount / pageSize)),
+    byCategory,
+    byMonth,
     categories,
   }
 })

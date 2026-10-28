@@ -1,0 +1,55 @@
+name: CI
+
+# AUDIT P2-10: automated guard for pure booking/timezone/formatting logic plus a
+# production build. Lint, vue-tsc typecheck and Playwright E2E are intentionally
+# NOT wired yet: they require new devDependencies and a lockfile update, which
+# must be done by an operator with registry access. See
+# Docs/FULL-WEBSITE-REMEDIATION.md (P2-10) for the remaining steps.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Build-time placeholders only; no database or external service is contacted.
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      NUXT_SESSION_PASSWORD: ci-session-password-at-least-32-characters
+      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      NUXT_PUBLIC_SITE_URL: https://example.test
+      NUXT_PUBLIC_LEGAL_REVIEWED: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --legacy-peer-deps
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Unit tests (pure logic)
+        run: npm test
+
+      - name: Production build
+        run: npm run build

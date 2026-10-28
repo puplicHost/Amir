@@ -12,7 +12,7 @@ const token = String(route.params.token)
 const { data: booking, error, pending } = await useAsyncData(`booking-pay-${token}`, () =>
   $fetch<any>(`/api/bookings/status/${token}`),
 )
-const gateways = computed(() => booking.value?.gateways || { stripe: false, paypal: false })
+const gateways = computed(() => booking.value?.gateways || { paypal: false })
 
 if (error.value || !booking.value) {
   throw createError({ statusCode: 404, statusMessage: 'Booking not found', fatal: true })
@@ -24,18 +24,16 @@ const paying = ref(false)
 const formError = ref('')
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString(locale.value === 'de' ? 'de-DE' : 'en-US', {
-    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
-  })
+  return formatDateTime(iso, intlLocale(locale.value), booking.value?.timezone || DEFAULT_SALON_TIMEZONE)
 }
 
-async function payFor(provider: 'stripe' | 'paypal') {
+async function payFor() {
   paying.value = true
   formError.value = ''
   try {
     const res = await $fetch<{ redirectUrl: string }>(`/api/bookings/${token}/pay`, {
       method: 'POST',
-      body: { provider },
+      body: { provider: 'paypal' },
     })
     if (!res.redirectUrl) throw new Error('no redirect')
     await navigateTo(res.redirectUrl, { external: true })
@@ -64,7 +62,7 @@ const alreadyPaid = computed(() => booking.value?.paymentStatus === 'PAID')
     </div>
     <div v-else class="rounded-xl border border-border bg-surface p-4 sm:p-6">
       <h1 class="font-heading text-xl font-extrabold tracking-tight text-text mb-1">{{ t('booking.payWith') }}</h1>
-      <p class="text-sm text-muted mb-1">{{ booking.serviceName }} · {{ booking.durationMin }} {{ t('services.minutes') }}</p>
+      <p class="text-sm text-muted mb-1">{{ locale === 'en' ? (booking.serviceNameEn || booking.serviceName) : booking.serviceName }} · {{ booking.durationMin }} {{ t('services.minutes') }}</p>
       <p class="text-xs text-muted mb-1">{{ fmtDate(booking.startsAt) }}</p>
       <p class="text-xs text-muted mb-4">{{ t('booking.bookingNo') }}: <span class="font-mono break-all">{{ booking.bookingNumber }}</span></p>
 
@@ -81,25 +79,13 @@ const alreadyPaid = computed(() => booking.value?.paymentStatus === 'PAID')
       </p>
       <template v-else>
         <p class="text-xs text-muted mb-4">{{ t('booking.depositDue') }}: {{ centsToEur(booking.depositCents) }}</p>
-        <div v-if="gateways?.stripe || gateways?.paypal" class="flex flex-wrap gap-3">
+        <div v-if="gateways?.paypal" class="flex flex-wrap gap-3">
           <button
-            v-if="gateways?.stripe"
-            type="button"
-            :disabled="paying"
-            :aria-busy="paying"
-            class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition-colors disabled:opacity-50"
-            @click="payFor('stripe')"
-          >
-            <span v-if="paying" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
-            {{ t('booking.stripe') }}
-          </button>
-          <button
-            v-if="gateways?.paypal"
             type="button"
             :disabled="paying"
             :aria-busy="paying"
             class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-6 text-sm font-bold text-text hover:bg-border/40 active:scale-95 transition-colors disabled:opacity-50 dark:bg-[#0B1520]"
-            @click="payFor('paypal')"
+            @click="payFor"
           >
             <span v-if="paying" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
             {{ t('booking.paypal') }}

@@ -57,6 +57,7 @@ export async function queueDueReminders(now: Date = new Date()): Promise<number>
         staffName: b.assignedStaff?.name ?? null,
         bookingNumber: b.bookingNumber,
         manageUrl: token && base ? `${base}/booking/manage/${token}` : null,
+        timeZone: settings.timezone,
       })
       await queueCustomerEmail({
         bookingId: b.id,

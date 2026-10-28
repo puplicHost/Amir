@@ -1,13 +1,10 @@
 import { requireAuth } from '../../../utils/auth'
+import { parseBody, pushTokenSchema } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
-  const body = (await readBody(event)) || {}
-  const token = typeof body.token === 'string' ? body.token.trim() : ''
-
-  if (!token || token.length < 10) {
-    throw createError({ statusCode: 400, statusMessage: 'FCM device token is required' })
-  }
+  // AUDIT P3-08: token shape validated (length bounds, trimmed).
+  const { token } = await parseBody(event, pushTokenSchema)
 
   await prisma.adminDeviceToken.upsert({
     where: { fcmToken: token },

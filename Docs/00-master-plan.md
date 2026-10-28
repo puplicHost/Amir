@@ -2,62 +2,129 @@
 
 ## 1. Executive Summary
 
-**Project:** Amir (Bilingual AR/EN B2C + B2B E-commerce & Engineering Services Platform)
-**Tagline:** Do It Right, Do It Smart
-**Stack:** Nuxt 3, Nitro, Prisma, PostgreSQL, shadcn-vue, Tailwind CSS, Docker.
-**Design Source of Truth:** Google Stitch (must be completed and provided before Phase 3 frontend implementation).
+**Project:** AMIR Frisur & Kosmetik Studio — German hair & beauty salon platform
+**Locations:** Peine & Salzgitter, Germany
+**Stack:** Nuxt 4, Nitro, Prisma, PostgreSQL 16, Tailwind CSS, Docker Compose,
+PayPal deposit payments, FCM push, transactional mail outbox.
 
-This document serves as the implementation-ready master plan for the Coding Agent, reconciling all requirements, user journeys, sitemaps, and phase specifications.
+The application has two surfaces:
 
-## 2. Reconciled Decisions & Assumptions
+1. **Public salon site** — services, prices, team, gallery, contact, legal pages,
+   and a guest booking flow with an online deposit. No customer accounts exist.
+   Bookings are managed through unguessable links sent by mail.
+2. **Admin panel** — appointments/calendar, salon configuration (services,
+   team, opening hours, absences), catalogue (products/categories), expenses
+   and finance, website content (banners, announcements, inbox), settings
+   (business, booking, payments, mail, Meta CAPI), activity log, and account
+   security.
 
-To ensure seamless implementation by the Coding Agent, the following decisions are locked in:
+Production is German-first (`NUXT_PUBLIC_LAUNCH_MODE=production` → locale `de`,
+no URL prefix). Development exposes English (`/`) and German (`/de`) with
+`prefix_except_default`. Locale content falls back `de → en` (catalogue also
+keeps legacy Arabic columns, which are not a configured locale).
 
-*   **Design & UI (Google Stitch):** The Coding Agent will NOT invent visual designs. The Google Stitch output is the absolute source of truth for the frontend UI. Phase 3-6 frontend work is blocked until Stitch designs are approved and provided.
-*   **Database Schema:** Phase 2 will implement the *complete* database schema (Users, Sessions, Products, Categories, Orders, Services, SiteSettings, etc.). Phases 3-6 will utilize this schema without introducing new models unless explicitly required.
-*   **Authentication & Users:** The platform features **Guest Checkout only**. There are no customer accounts. User management and authentication are strictly for the Admin Panel.
-*   **Payments:** Cash on Delivery (COD) is the default and only active payment method for V1. The database architecture will support future online payment gateways (storing encrypted credentials), but actual integration is OUT OF SCOPE.
-*   **Storage Architecture:** File uploads (product images, service PDFs) will be stored in a local `/storage` directory (outside the Nuxt `public` directory) and served via authenticated/static Nitro streaming endpoints.
-*   **Localization (i18n):** The system is fully bilingual (Arabic/English) supporting RTL/LTR. Database content uses explicit dual columns (e.g., `nameAr`, `nameEn`).
+**Audit remediation:** `Docs/FULL-WEBSITE-AUDIT.md` lists 52 findings
+(P0 0, P1 6, P2 16, P3 18, INFO 12). Their implementation status, migration and
+operator follow-ups are tracked in `Docs/FULL-WEBSITE-REMEDIATION.md`. The
+remediation assumes the prepared Prisma migration
+`20261028120000_audit_remediation` is applied by an authorized operator before
+the updated code runs.
 
-## 3. Implementation Roadmap (6 Phases)
+## 2. Locked Decisions
 
-The project is strictly divided into 6 self-contained phases. The Coding Agent must complete one phase fully, verify it, and await human approval before proceeding to the next.
+- **Guest-only booking.** No customer accounts, carts, or order history. The
+  booking reference plus emailed manage/pay tokens are the only customer
+  credentials.
+- **Deposit model.** The salon defines a deposit percentage per service price.
+  Online payment is optional per booking; unpaid holds expire. PayPal is the
+  sole provider, verified server-side via capture + webhook.
+- **Status catalog.** `UNASSIGNED → ASSIGNED → COMPLETED` plus `CANCELLED`.
+  `CANCELLED_BY_STAFF` is legacy-only and never written. Terminal states cannot
+  be reassigned or completed; refunds are flagged, never auto-issued.
+- **Timezone.** All wall-clock scheduling is done in the salon timezone
+  (`SiteSettings.bookingTimezone`, default `Europe/Berlin`); storage is UTC.
+- **Localization.** DE/EN content columns plus explicit fallback. Prices are EUR
+  formatted with `de-DE`.
+- **Storage.** Uploads live outside `public/` and are served by Nitro with
+  authentication and `private, no-store` for customer/payment documents.
+- **Auth.** Admin-only, bcrypt passwords, DB-backed revocable sessions with
+  hashed tokens, persisted lockout, granular RBAC permissions. MFA is not
+  implemented (operator/architecture decision, see remediation report).
+- **Mail.** SMTP in production. The `log` provider is a simulation mode: it
+  records `SIMULATED` results and never counts as delivered.
+- **Deployment.** Docker image is built with an explicit launch mode build arg;
+  database migrations run as a one-shot Compose job, never on app boot.
 
-### Phase 1: Foundation
-*   **Scope:** Initialize Nuxt 3, Nitro, Prisma, and PostgreSQL via Docker. Setup i18n (AR/EN), Tailwind, and shadcn-vue. Establish design tokens (Brand Colors: `#285E8E`, `#2B71AE`, `#F5CC07`).
-*   **Required Skills:** `postgres`, `prisma-database-setup`, `ui-styling`
-*   **Completion Criteria:** Docker environment runs successfully, Nuxt renders a bilingual "Hello World" page with Tailwind configured, Prisma connects to PostgreSQL.
+## 3. Current Implementation Status
 
-### Phase 2: Auth & Admin Shell
-*   **Scope:** Define the full Prisma schema. Implement Admin authentication (bcrypt, HTTP-only cookie sessions) and granular RBAC permissions. Build the Admin Panel shell (layout, sidebar). Implement Admin user management CRUD.
-*   **Required Skills:** `auth-implementation-patterns`, `prisma-client-api`, `api-security-review`, `ui-ux-pro-max`
-*   **Completion Criteria:** Full schema mapped. Admins can log in, view the dashboard shell, and manage other admin users based on permissions.
+| Area | Status |
+|---|---|
+| Public site (home, services, products, about, contact, legal) | Implemented |
+| Guest booking, availability, holds, manage/cancel, pay links | Implemented |
+| PayPal deposits + webhooks | Implemented; sandbox verification pending |
+| Admin appointments, calendar, schedule, team, absences | Implemented |
+| Catalogue, product media/documents, categories | Implemented |
+| Expenses, finance overview, CSV export | Implemented |
+| Website content, banners, announcements, inbox | Implemented |
+| Settings, payment/mail/Meta configuration, activity log | Implemented |
+| DB-backed sessions, lockout, password rotation | Implemented in source (migration pending) |
+| Rate limiting, security headers, CSP report-only | Implemented in source |
+| Consent evidence, legal page templates | Implemented in source; legal review pending |
+| Unit tests + CI build pipeline | Implemented for pure logic; lint/typecheck/E2E pending |
+| Backups | Scripts + runbook added; schedule and restore drill pending |
 
-### Phase 3: Products & Categories
-*   **Scope:** Build Admin CRUD for Categories and Products (including multi-step forms and image uploads to local `/storage`). Build public catalog (`/products`), category pages, and product landing pages (`/p/[slug]`).
-*   **Required Skills:** `frontend-design` (following Stitch), `codebase-design`
-*   **Completion Criteria:** Admin can fully manage products/categories. Public users can view the catalog, filter, and view SSR-rendered product landing pages. Image uploads process properly.
+## 4. Roadmap
 
-### Phase 4: Cart, Checkout & Orders
-*   **Scope:** Implement Pinia-based client-side Cart (persisted to localStorage). Build guest checkout flow (collecting customer info and COD payment). Implement Order placement APIs and Admin order management.
-*   **Required Skills:** `security-best-practices` (price validation), `api-security-review`
-*   **Completion Criteria:** User can add items to cart, checkout as guest, and place an order. Admin can view the order, update its status, and see revenue stats on the dashboard. Server validates prices.
+### Phase A — Deployment readiness (blocking)
 
-### Phase 5: Services
-*   **Scope:** Implement dynamic form builder for 7 specific engineering services. Build public `/services` page dynamically rendering forms. Implement request submission (including file uploads) and Admin request tracking.
-*   **Required Skills:** `frontend-design` (following Stitch), `security-best-practices` (file upload security).
-*   **Completion Criteria:** All 7 services are seeded. Public users can submit complex service requests (with files). Admins can track and update the status of these requests.
+1. Review and apply the prepared Prisma migration with a verified backup.
+2. Rotate database credentials and any credentials present in historical Git
+   artifacts (see remediation report; requires an authorized operator).
+3. Configure production secrets: `POSTGRES_PASSWORD`, `NUXT_SESSION_PASSWORD`,
+   `ENCRYPTION_KEY`, payment provider keys/webhook secrets, SMTP, Meta CAPI
+   token, optional `METRICS_TOKEN`/`HEALTH_TOKEN`.
+4. Build the image with `NUXT_PUBLIC_LAUNCH_MODE=production`; confirm the
+   runtime/build launch-mode marker matches.
+5. Publish counsel-approved Impressum, AGB, Datenschutz, and Stornierung text;
+   set `NUXT_PUBLIC_LEGAL_REVIEWED=true` only after review. Until then legal
+   pages stay draft-marked and `noindex`.
 
-### Phase 6: Public Pages & Settings
-*   **Scope:** Build the final Homepage (with real data: featured categories, services, dynamic banners). Build the Contact page, global Navbar, Footer, and Error pages. Implement Admin Settings (General, Contact, SEO/GEO, Store Config).
-*   **Required Skills:** `frontend-design` (following Stitch), `ui-ux-pro-max`, `copywriting` (if needed for fallback).
-*   **Completion Criteria:** Public site is fully functional, styled according to Stitch, and populated with dynamic settings. SEO metadata and JSON-LD are implemented.
+### Phase B — Operational hardening
 
-## 4. Testing & Verification Requirements
-*   **Efficient Verification:** No verification after every step/file; batched and proportional to change size (see `agent.md` Section 20).
-*   **Strict Approval:** DEFAULT — no testing or verification without explicit human approval. `start next phase` and similar phrases are NOT approval. On phase completion report `Implementation complete. Testing/verification not run — awaiting human approval.`
-*   **Heavy Testing:** (Playwright E2E, full user journey tests) will **only** be executed if explicitly requested and approved by the human after a phase is completed.
+1. Enable the backup schedule and complete a restore drill into a scratch DB.
+2. Verify security headers and CSP in report-only mode against staging; tighten
+   to enforcing once violations are resolved.
+3. Decide and implement MFA for admin accounts (TOTP or passkey), then document
+   recovery.
+4. Add `@nuxt/image`/sharp or a CDN image pipeline and migrate public images.
+5. Add lint/typecheck/Playwright to CI; extend unit tests to payment state
+   transitions and API contracts.
 
-## 5. Blocking Decisions for Human Approval
-*See conversational output for the list of items requiring immediate human input.*
+### Phase C — Content and cleanup
+
+1. Populate German service/product/category copy (`nameEn`/`descriptionEn`,
+   `nameDe`/`descriptionDe`) and review fallbacks.
+2. Remove legacy Arabic-only branches and columns after a data export, in a
+   dedicated migration.
+3. Remove legacy admin redirect routes after the 2027-04-30 deprecation date
+   documented in `Docs/LEGACY-ROUTES.md`.
+4. Review SEO metadata, structured data, sitemap and robots output against the
+   production domain.
+
+### Phase D — Continuous improvement
+
+1. Quarterly access review of admin users, permissions, and device tokens.
+2. Quarterly restore drill and credential rotation.
+3. Review audit log/activity coverage for every destructive admin action.
+4. Re-run the full audit after material feature work.
+
+## 5. Verification Policy
+
+- Static inspection is not runtime verification. No build, test, migration,
+  server start, browser run, or payment check is performed without explicit
+  human approval.
+- One batched verification per phase, proportional to the change size.
+- A finding is only "fixed" when source changes exist; runtime behavior remains
+  "unverified" until the approved checks pass.
+- After implementation, report: `Implementation complete. Verification not run —
+  awaiting human approval.`

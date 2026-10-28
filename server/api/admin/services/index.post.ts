@@ -21,6 +21,8 @@ export default defineEventHandler(async (event) => {
       section: body.section,
       name: body.name,
       description: body.description ?? null,
+      nameEn: body.nameEn?.trim() || null,
+      descriptionEn: body.descriptionEn ?? null,
       priceAbCents: body.priceAbCents,
       durationMin: body.durationMin ?? 30,
       needsDurationReview: body.needsDurationReview ?? true,

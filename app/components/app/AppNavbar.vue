@@ -60,20 +60,13 @@ watch(() => route.fullPath, () => {
   productsOpen.value = false
 })
 
-// Focus trap on mobile drawer
+// Focus trap on mobile drawer (P2-12: Tab containment + focus restore)
 watch(mobileOpen, (open) => {
   if (typeof document !== 'undefined') {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-      nextTick(() => {
-        drawerRef.value?.querySelector<HTMLElement>('button, a')?.focus()
-      })
-    }
-    else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = open ? 'hidden' : ''
   }
 })
+useFocusTrap(drawerRef, mobileOpen, { onEscape: () => { mobileOpen.value = false } })
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)

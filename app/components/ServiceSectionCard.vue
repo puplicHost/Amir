@@ -39,6 +39,9 @@ function formatAb(priceAbCents: number): string {
         :src="props.image"
         :alt="props.title"
         loading="lazy"
+        decoding="async"
+        width="800"
+        height="320"
         class="h-full w-full object-cover object-center"
         draggable="false"
       />

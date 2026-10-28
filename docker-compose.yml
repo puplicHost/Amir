@@ -6,32 +6,58 @@ services:
     container_name: amir-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: amir
-      POSTGRES_PASSWORD: amir
-      POSTGRES_DB: amir
-    # Kept for local dev (`npm run dev` uses localhost:5439).
-    # On the production server, firewall this port or delete these two lines.
+      POSTGRES_USER: ${POSTGRES_USER:-amir}
+      # AUDIT P2-14: no hard-coded production credential. Set this in the
+      # deployment environment/secret store; Compose refuses to start without it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment environment}
+      POSTGRES_DB: ${POSTGRES_DB:-amir}
+    # Local development only. The loopback binding prevents remote access even
+    # when the host firewall is misconfigured. Remove this block in production.
     ports:
-      - "5439:5432"
+      - "127.0.0.1:5439:5432"
     volumes:
       - amir-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U amir -d amir"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-amir} -d ${POSTGRES_DB:-amir}"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
       - internal
 
+  # AUDIT P2-14: one-shot migration job. Runs once, must succeed before the app
+  # starts. Take/verify a backup before running this in production.
+  migrate:
+    build:
+      context: .
+      args:
+        NUXT_PUBLIC_LAUNCH_MODE: ${NUXT_PUBLIC_LAUNCH_MODE:-false}
+    container_name: amir-migrate
+    restart: "no"
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-amir}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-amir}?schema=public"
+      NODE_ENV: production
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # Build-time by design: changing this requires rebuilding the image.
+        NUXT_PUBLIC_LAUNCH_MODE: ${NUXT_PUBLIC_LAUNCH_MODE:-false}
     container_name: amir-app
     restart: unless-stopped
     env_file: .env
     environment:
-      # Overrides .env (which points at localhost for local dev).
-      # Inside Compose the db is reachable by service hostname.
-      DATABASE_URL: "postgresql://amir:amir@db:5432/amir?schema=public"
+      # Inside Compose the db is reachable by service hostname. The URL must be
+      # URL-encoded if the password contains reserved characters.
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-amir}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-amir}?schema=public"
       NODE_ENV: production
       NITRO_PORT: "3000"
       NITRO_HOST: "0.0.0.0"
@@ -40,6 +66,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     volumes:
       - uploads-data:/app/public/uploads
       - app-storage:/app/storage

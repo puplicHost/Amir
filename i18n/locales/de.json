@@ -127,7 +127,7 @@
     "step2Title": "Zeitslot auswählen",
     "step2Desc": "Finden Sie einen passenden freien Termin direkt in unserem aktuellen Online-Kalender.",
     "step3Title": "Anzahlung leisten",
-    "step3Desc": "Zahlen Sie die 50 % Anzahlung sicher und bequem online via Stripe oder PayPal.",
+    "step3Desc": "Zahlen Sie die 50 % Anzahlung sicher und bequem online via PayPal.",
     "step4Title": "Verwöhnen lassen",
     "step4Desc": "Wir freuen uns darauf, Sie in der Schloßstr. 2c in Meitingen begrüßen zu dürfen.",
     "flagshipBadge": "Besonderer Tipp",
@@ -260,7 +260,8 @@
     "inbox": "Posteingang",
     "banners": "Banner",
     "noAccess": "Sie haben keine Berechtigung für diesen Bereich.",
-    "teamUsers": "Team & Benutzer"
+    "teamUsers": "Team & Benutzer",
+    "account": "Konto & Sicherheit"
   },
   "common": {
     "toggleTheme": "Farbmodus umschalten",
@@ -337,14 +338,11 @@
     "saturday": "Samstag"
   },
   "payment": {
-    "title": "Zahlungsmethoden",
-    "description": "Stripe- und PayPal-Zahlung für die 50 % Anzahlung. Jedes Gateway benötigt Zugangsdaten und muss aktiviert sein.",
-    "stripe": "Stripe",
+    "title": "Zahlungsmethode",
+    "description": "PayPal-Zahlung für die 50 % Anzahlung. PayPal benötigt Zugangsdaten und muss aktiviert sein.",
     "paypal": "PayPal",
     "enabled": "Aktiviert",
-    "publishableKey": "Publishable Key",
     "secretKey": "Secret Key",
-    "webhookSecret": "Webhook Secret",
     "clientId": "Client-ID",
     "webhookId": "Webhook-ID",
     "mode": "Modus",
@@ -353,7 +351,7 @@
     "saved": "Zahlungseinstellungen gespeichert.",
     "stored": "Gespeichert (verschlüsselt). Leer lassen, um beizubehalten.",
     "notStored": "Noch kein Schlüssel hinterlegt.",
-    "bothOff": "Beide Zahlungsanbieter sind deaktiviert: Online-Buchungen sind gesperrt, bis mindestens einer aktiviert wird."
+    "bothOff": "PayPal ist deaktiviert: Online-Buchungen sind gesperrt, bis PayPal aktiviert wird."
   },
   "salon": {
     "title": "Studio & Buchung",
@@ -478,7 +476,6 @@
     "note": "Hinweise an unser Team (optional)",
     "depositDue": "Fällige Anzahlung (50 %)",
     "payWith": "Anzahlung leisten mit",
-    "stripe": "Kredit- / Debitkarte (Stripe)",
     "paypal": "PayPal",
     "continueToPay": "Weiter zur Zahlung",
     "blocked": "Die Online-Terminbuchung ist derzeit nicht verfügbar. Bitte kontaktieren Sie uns direkt telefonisch.",
@@ -502,14 +499,17 @@
     "noStaff": "Derzeit ist kein Stylist online buchbar. Bitte kontaktieren Sie uns direkt.",
     "booked": "Belegt",
     "bookViaWhatsapp": "Per WhatsApp buchen",
-    "waReminderOptIn": "Bitte per WhatsApp vor meinem Termin erinnern (optional).",
+    "waReminderOptIn": "Kontaktaufnahme per WhatsApp zu meinem Termin erlauben (optional).",
     "loading": "Buchung wird geladen…",
-    "depositNote": "Zur Sicherung Ihres Termins wird jetzt eine Anzahlung von {amount} {currency} (50 % des Preises) fällig.",
+    "depositNote": "Zur Sicherung Ihres Termins wird jetzt eine Anzahlung von {amount} (50 % des Preises) fällig.",
     "confirmingTitle": "Zahlung wird bestätigt…",
     "confirmingText": "Dies dauert in der Regel nur wenige Sekunden. Diese Seite aktualisiert sich automatisch – bitte nicht schließen.",
     "stillPendingTitle": "Zahlung wird noch verarbeitet",
     "stillPendingText": "Die Zahlungsbestätigung ist noch nicht eingegangen. Falls Sie belastet wurden, wird Ihre Buchung in Kürze aktualisiert. Sie können diese Seite speichern und später erneut prüfen.",
-    "manageLink": "Buchung verwalten oder stornieren"
+    "manageLink": "Buchung verwalten oder stornieren",
+    "consentAgree": "Ich akzeptiere die",
+    "consentAnd": "und die",
+    "consentRequired": "Bitte akzeptieren Sie die AGB und die Datenschutzerklärung."
   },
   "expenses": {
     "title": "Studio-Ausgaben",
@@ -569,7 +569,7 @@
     "allStaff": "Alle Mitarbeiter",
     "needsRefundOnly": "Erstattung erforderlich",
     "markRefundHandled": "Erstattung als erledigt markieren",
-    "refundNotice": "Hinweis: Erstattungen müssen manuell in Ihrem Stripe- oder PayPal-Händler-Dashboard durchgeführt werden. Diese Aktion setzt lediglich die interne Markierung zurück.",
+    "refundNotice": "Hinweis: Erstattungen müssen manuell in Ihrem PayPal-Händler-Dashboard durchgeführt werden. Diese Aktion setzt lediglich die interne Markierung zurück.",
     "assignStaff": "Mitarbeiter zuweisen",
     "reassignStaff": "Neu zuweisen",
     "cancelSelected": "Ausgewählte stornieren",
@@ -697,6 +697,14 @@
     "payment": "Zahlung",
     "actions": "Aktionen",
     "openBooking": "Buchung öffnen",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "recentPayments": "Bestätigte Zahlungen",
+    "recentPaymentsDescription": "Bezahlte Buchungen, neueste zuerst. Ausstehende, fehlgeschlagene und abgelaufene Reservierungen sind ausgeschlossen.",
+    "date": "Datum",
+    "reference": "PayPal-Referenz",
+    "orderId": "Bestellung",
+    "captureId": "Erfassung",
+    "noPaymentsTitle": "Noch keine bestätigten Zahlungen",
+    "noPaymentsDescription": "Bezahlte Buchungen erscheinen hier."
   }
 }

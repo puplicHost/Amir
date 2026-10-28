@@ -87,7 +87,7 @@ async function main() {
         durationMinSnapshot: opts.durationMin,
         priceSnapshotCents: opts.priceCents,
         depositCents: Math.round(opts.priceCents / 2),
-        paymentProvider: 'stripe',
+        paymentProvider: 'paypal',
         paymentStatus: opts.paymentStatus || 'PAID',
         status: opts.status || 'UNASSIGNED',
         assignedStaffId: opts.staffId || null,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Boxes, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { localizedText } from '../../utils/content.ts'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
@@ -8,8 +9,8 @@ const slug = String(route.params.slug)
 
 const { data, error } = await useAsyncData(`category-${slug}`, () =>
   $fetch<{ category: {
-    nameAr: string, nameEn: string, slug: string,
-    descriptionAr: string | null, descriptionEn: string | null,
+    nameAr: string, nameEn: string, nameDe?: string | null, slug: string,
+    descriptionAr: string | null, descriptionEn: string | null, descriptionDe?: string | null,
     coverImagePath: string | null, coverVideoUrl: string | null,
   } }>(`/api/categories/${slug}`),
 )
@@ -20,8 +21,17 @@ if (error.value) {
 
 const { data: heroGeneral } = await useAsyncData('hero-general', () => $fetch<any>('/api/settings/general'))
 
-const name = computed(() => (locale.value === 'ar' ? data.value?.category.nameAr : data.value?.category.nameEn))
-const desc = computed(() => (locale.value === 'ar' ? data.value?.category.descriptionAr : data.value?.category.descriptionEn))
+// AUDIT P2-11: German prefers nameDe/descriptionDe, then English.
+const name = computed(() => localizedText(locale.value, {
+  de: data.value?.category.nameDe,
+  en: data.value?.category.nameEn,
+  ar: data.value?.category.nameAr,
+}))
+const desc = computed(() => localizedText(locale.value, {
+  de: data.value?.category.descriptionDe,
+  en: data.value?.category.descriptionEn,
+  ar: data.value?.category.descriptionAr,
+}))
 
 useHead(() => ({
   title: `${name.value} | ${t('brand.name')}`,
@@ -42,6 +52,10 @@ useHead(() => ({
         :src="data.category.coverImagePath"
         :alt="name"
         class="absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+        decoding="async"
+        width="1600"
+        height="600"
       />
       <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(13,27,46,0.85), rgba(13,27,46,0.95))"></div>
 

@@ -13,6 +13,8 @@ export default defineEventHandler(async (event) => {
   if (body.section !== undefined) data.section = body.section
   if (body.name !== undefined) data.name = body.name
   if (body.description !== undefined) data.description = body.description
+  if (body.nameEn !== undefined) data.nameEn = body.nameEn?.trim() || null
+  if (body.descriptionEn !== undefined) data.descriptionEn = body.descriptionEn
   if (body.priceAbCents !== undefined) data.priceAbCents = body.priceAbCents
   if (body.durationMin !== undefined) data.durationMin = body.durationMin
   if (body.needsDurationReview !== undefined) data.needsDurationReview = body.needsDurationReview

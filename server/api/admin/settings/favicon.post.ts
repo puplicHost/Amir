@@ -1,6 +1,6 @@
 import { defineEventHandler, readMultipartFormData, createError } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 import { saveFavicon } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
@@ -14,10 +14,6 @@ export default defineEventHandler(async (event) => {
   // Content-validated: real ICO (magic bytes) or raster image → PNG.
   const relativePath = await saveFavicon(file.data)
 
-  await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: { faviconPath: relativePath },
-    create: { siteNameAr: 'AMIR', siteNameEn: 'Amir', faviconPath: relativePath },
-  })
+  await upsertSiteSettings({ faviconPath: relativePath }, { siteNameAr: 'AMIR', siteNameEn: 'Amir' })
   return { success: true, path: relativePath }
 })

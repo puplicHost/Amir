@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event)
+  const user = await requirePermission(event, ['activity.view_all', 'activity.view_own'])
 
   const query = getQuery(event)
   const page = Math.max(1, Number(query.page) || 1)
@@ -7,9 +7,10 @@ export default defineEventHandler(async (event) => {
   const entityTypes = ['product', 'category', 'service', 'booking', 'staff', 'expense', 'expense-category']
   const actions = ['created', 'updated', 'deleted', 'media']
   const where: Record<string, unknown> = {}
-  // Staff without company-wide booking visibility only see their own audit
-  // entries; managers/admins keep the full operational log.
-  const canViewAll = user.isSuper || user.permissions.includes('bookings.view_all')
+  // AUDIT P3-09: explicit activity permissions replace the previous implicit
+  // "any authenticated user" access. Users without company-wide visibility
+  // only see their own audit entries.
+  const canViewAll = user.isSuper || user.permissions.includes('activity.view_all')
   if (!canViewAll) where.userId = user.userId
   if (typeof query.entityType === 'string' && entityTypes.includes(query.entityType)) {
     where.entityType = query.entityType

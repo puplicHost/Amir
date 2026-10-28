@@ -13,7 +13,14 @@ export default defineEventHandler(async (event) => {
     { loc: '/', changefreq: 'daily', priority: '1.0' },
     { loc: '/products', changefreq: 'daily', priority: '0.9' },
     { loc: '/services', changefreq: 'weekly', priority: '0.8' },
+    { loc: '/about', changefreq: 'monthly', priority: '0.7' },
     { loc: '/contact', changefreq: 'monthly', priority: '0.7' },
+    // AUDIT P3-07: legal pages are public and belong in the sitemap. Guest
+    // booking/token flows are intentionally excluded (not indexable content).
+    { loc: '/impressum', changefreq: 'yearly', priority: '0.3' },
+    { loc: '/datenschutz', changefreq: 'yearly', priority: '0.3' },
+    { loc: '/agb', changefreq: 'yearly', priority: '0.3' },
+    { loc: '/stornierung', changefreq: 'yearly', priority: '0.3' },
   ]
 
   const [categories, products] = await Promise.all([

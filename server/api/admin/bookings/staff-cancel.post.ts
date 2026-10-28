@@ -2,6 +2,7 @@ import { requirePermission } from '../../../utils/auth'
 import { staffCancelSchema, parseBody } from '../../../utils/validate'
 import { notifyAdmins } from '../../../utils/admin-notifications'
 import { logAudit } from '../../../utils/audit'
+import { isStatusTransitionAllowed } from '../../../../shared/booking'
 
 export default defineEventHandler(async (event) => {
   const user = await requirePermission(event, ['bookings.view_all', 'bookings.cancel_own'])
@@ -28,6 +29,11 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         statusMessage: `Booking ${b.bookingNumber} is not currently assigned`,
       })
+    }
+    // AUDIT P3-05: the staff-cancel path releases the booking back to the
+    // unassigned queue; validate that transition through the shared guard.
+    if (!isStatusTransitionAllowed(b.status, 'UNASSIGNED', { paymentStatus: 'PAID', needsRefund: false })) {
+      throw createError({ statusCode: 400, statusMessage: `Booking ${b.bookingNumber} cannot be unassigned` })
     }
   }
 

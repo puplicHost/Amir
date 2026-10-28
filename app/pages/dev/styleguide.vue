@@ -21,6 +21,12 @@ import IconFacebook from '~/components/icons/IconFacebook.vue'
 import IconTikTok from '~/components/icons/IconTikTok.vue'
 import IconWhatsApp from '~/components/icons/IconWhatsApp.vue'
 
+// AUDIT P3-03: the design-system demo is a development tool only. In a
+// production build this page resolves as 404 instead of shipping publicly.
+if (!import.meta.dev) {
+  throw createError({ statusCode: 404, statusMessage: 'Not Found', fatal: true })
+}
+
 useHead({
   title: 'Styleguide · AMIR Design System',
   meta: [

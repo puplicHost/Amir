@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const booking = await prisma.booking.findUnique({
     where: { manageToken: token },
     include: {
-      service: { select: { name: true, slug: true } },
+      service: { select: { name: true, nameEn: true, slug: true } },
       assignedStaff: { select: { name: true } },
     },
   })
@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
     bookingNumber: booking.bookingNumber,
     customerName: booking.customerName,
     serviceName: booking.service.name,
+    serviceNameEn: booking.service.nameEn,
     serviceSlug: booking.service.slug,
     startsAt: booking.startsAt,
     durationMinSnapshot: booking.durationMinSnapshot,
@@ -34,6 +35,7 @@ export default defineEventHandler(async (event) => {
     paymentStatus: booking.paymentStatus,
     depositCents: booking.depositCents,
     currency: settings.currency,
+    timezone: settings.timezone,
     refundStatus: (booking as any).refundStatus ?? 'NONE',
     cancelledAt: (booking as any).cancelledAt,
     canCancel,

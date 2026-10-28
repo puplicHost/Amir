@@ -192,8 +192,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Could not create booking' })
   })
 
-  const dtBerlin = startsAt.toLocaleString('de-DE', {
-    timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  const dtSalon = startsAt.toLocaleString('de-DE', {
+    timeZone: settings.timezone, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   })
   const staffUser = await prisma.adminUser.findUnique({
     where: { id: (created as any).assignedStaffId },
@@ -205,8 +205,8 @@ export default defineEventHandler(async (event) => {
     url: '/admin/appointments?tab=my-bookings',
     titleEn: `New booking assigned (${created.bookingNumber})`,
     titleAr: `Neuer Termin zugewiesen (${created.bookingNumber})`,
-    bodyEn: `${service.name} · ${dtBerlin}`,
-    bodyAr: `${service.name} · ${dtBerlin}`,
+    bodyEn: `${service.name} · ${dtSalon}`,
+    bodyAr: `${service.name} · ${dtSalon}`,
   })
   await notifyAdmins({
     type: 'new_booking',
@@ -214,8 +214,8 @@ export default defineEventHandler(async (event) => {
     url: `/admin/bookings/${created.id}`,
     titleEn: `Manual booking (${created.bookingNumber})`,
     titleAr: `Manuelle Buchung (${created.bookingNumber})`,
-    bodyEn: `${service.name} · ${dtBerlin} · ${body.source}`,
-    bodyAr: `${service.name} · ${dtBerlin} · ${body.source}`,
+    bodyEn: `${service.name} · ${dtSalon} · ${body.source}`,
+    bodyAr: `${service.name} · ${dtSalon} · ${body.source}`,
   })
   await logAudit({
     entityType: 'booking',

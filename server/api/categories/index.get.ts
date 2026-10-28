@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
     where.OR = [
       { nameEn: { contains: s, mode: 'insensitive' } },
       { nameAr: { contains: s, mode: 'insensitive' } },
+      { nameDe: { contains: s, mode: 'insensitive' } },
       { slug: { contains: s, mode: 'insensitive' } },
     ]
   }
@@ -15,9 +16,11 @@ export default defineEventHandler(async (event) => {
     id: true,
     nameAr: true,
     nameEn: true,
+    nameDe: true,
     slug: true,
     descriptionAr: true,
     descriptionEn: true,
+    descriptionDe: true,
     coverImagePath: true,
     coverVideoUrl: true,
     featuredOnHomepage: true,

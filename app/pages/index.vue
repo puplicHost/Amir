@@ -3,6 +3,7 @@ import {
   ArrowRight,
 } from 'lucide-vue-next'
 import { SERVICE_SECTIONS } from '~~/shared/booking'
+import { localizedText } from '../utils/content.ts'
 
 const { t, te, locale } = useI18n()
 const localePath = useLocalePath()
@@ -110,6 +111,8 @@ const sectionCards = computed(() => {
 })
 
 const siteSeo = await useSiteSeo()
+// AUDIT P3-02: canonical origin from runtime config, never hardcoded.
+const siteUrl = useSiteUrl()
 
 useHead(() => {
   const siteName = general.value ? (locale.value === 'ar' ? general.value.siteNameAr : general.value.siteNameEn) : t('brand.name')
@@ -124,8 +127,8 @@ useHead(() => {
           "@context": "https://schema.org",
           "@type": "Organization",
           "name": siteName,
-          "url": "https://amir.com",
-          "logo": general.value?.logoPath || "",
+          "url": siteUrl,
+          "logo": general.value?.logoPath ? `${siteUrl}${general.value.logoPath}` : "",
           ...(geoDescription ? { description: geoDescription } : {}),
           "contactPoint": {
             "@type": "ContactPoint",
@@ -322,7 +325,7 @@ catch { /* state not registered yet — mount layout already ran */ }
           <CategoryCard
             v-for="(cat, i) in categories"
             :key="cat.id"
-            :name="locale === 'ar' ? cat.nameAr : cat.nameEn"
+            :name="localizedText(locale, { de: cat.nameDe, en: cat.nameEn, ar: cat.nameAr })"
             :cover="cat.coverImagePath || null"
             :to="localePath(`/products/${cat.slug}`)"
             class="reveal"

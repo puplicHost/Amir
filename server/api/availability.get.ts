@@ -29,13 +29,13 @@ export default defineEventHandler(async (event) => {
   if (ahead < 0 || ahead > BOOKING_HORIZON_DAYS_DEFAULT) {
     throw createError({ statusCode: 400, statusMessage: 'Date is outside the booking horizon' })
   }
-  const cancelWindowHours = (settings as any)?.cancellationWindowHours ?? 24
+  const cancelWindowHours = settings.cancellationWindowHours
   const empty = (staff: unknown, staffOptions: unknown) => ({
     service: {
       slug: service.slug, name: service.name,
       priceAbCents: service.priceAbCents, durationMin: service.durationMin,
     },
-    date: dayStr, timezone: tz, staff, staffOptions, slots: [], cancelWindowHours,
+    date: dayStr, timezone: tz, horizonDays: BOOKING_HORIZON_DAYS_DEFAULT, staff, staffOptions, slots: [], cancelWindowHours,
   })
 
   const dayWeekday = tzParts(Date.parse(`${dayStr}T12:00:00Z`), tz).weekday

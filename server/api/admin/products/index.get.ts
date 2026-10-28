@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
+        category: { select: { id: true, slug: true, nameAr: true, nameEn: true, nameDe: true } },
         images: { orderBy: { sortOrder: 'asc' }, take: 1 },
         seo: { select: { keywords: true } },
       },

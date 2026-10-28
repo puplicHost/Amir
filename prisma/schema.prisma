@@ -23,10 +23,16 @@ model AdminUser {
   isActive     Boolean  @default(true)
   role         String   @default("STAFF") // 'ADMIN' | 'MANAGER' | 'STAFF' (Phase 2e; isSuper bypasses role checks)
   lastLoginAt  DateTime?
+  // AUDIT P2-07: persisted brute-force lockout. Reset on successful login.
+  failedLoginCount Int      @default(0)
+  lockedUntil      DateTime?
+  // AUDIT P2-07/P2-08: password rotation timestamp and revocable sessions.
+  passwordChangedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   permissions   AdminPermission[]
+  sessions      AdminSession[]
   deviceTokens  AdminDeviceToken[]
   notifications AdminNotification[]
 
@@ -50,15 +56,39 @@ model AdminPermission {
   @@index([userId])
 }
 
+// AUDIT P2-08: server-side session registry. The sealed cookie carries a random
+// token; only its SHA-256 hash is stored here. Logging out, changing a password,
+// or deactivating an account revokes rows immediately.
+model AdminSession {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  ip         String?
+  userAgent  String?  @db.Text
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
 // ─── Catalog ───────────────────────────────────────────────────
 
 model Category {
   id                 String   @id @default(cuid())
   nameAr             String
   nameEn             String
+  // AUDIT P2-11: optional German catalog copy. Null means fall back to nameEn;
+  // existing rows stay valid without a destructive backfill.
+  nameDe             String?
   slug               String   @unique
   descriptionAr      String?  @db.Text
   descriptionEn      String?  @db.Text
+  descriptionDe      String?  @db.Text
   coverImagePath     String?
   coverVideoUrl      String?
   featuredOnHomepage Boolean  @default(false)
@@ -75,9 +105,12 @@ model Product {
   id             String   @id @default(cuid())
   nameAr         String
   nameEn         String
+  // AUDIT P2-11: optional German catalog copy. Null means fall back to nameEn.
+  nameDe         String?
   slug           String   @unique
   descriptionAr  String?  @db.Text
   descriptionEn  String?  @db.Text
+  descriptionDe  String?  @db.Text
   price          Decimal  @db.Decimal(10, 2)
   categoryId     String
   brand          String? // free text (Phase 2a)
@@ -179,8 +212,11 @@ model Service {
   id                  String         @id @default(cuid())
   slug                String         @unique
   section             ServiceSection
-  name                String // German only
-  description         String?        @db.Text // German only
+  name                String // German (canonical)
+  description         String?        @db.Text // German (canonical)
+  // AUDIT P2-11/P3-13: optional English copy. Null means "use German".
+  nameEn              String?
+  descriptionEn       String?        @db.Text
   coverImagePath      String?
   priceAbCents        Int // listed "ab" price in EUR cents
   durationMin         Int            @default(30)
@@ -204,6 +240,8 @@ model WorkingHours {
   openMin  Int // minutes since midnight, salon-local
   closeMin Int // minutes since midnight, salon-local
   isClosed Boolean @default(false)
+  // AUDIT P1-03: optimistic-concurrency revision for the admin schedule editor.
+  updatedAt DateTime @updatedAt
 
   @@unique([weekday])
 }
@@ -224,7 +262,7 @@ model Booking {
   providerRef         String?   @unique
   idempotencyKey      String    @unique
   publicToken         String    @unique // unguessable public lookup key (success/failed pages)
-  status              String    @default("UNASSIGNED") // UNASSIGNED | ASSIGNED | CANCELLED_BY_STAFF | COMPLETED
+  status              String    @default("UNASSIGNED") // UNASSIGNED | ASSIGNED | COMPLETED; cancellations set CANCELLED + cancelledAt (CANCELLED_BY_STAFF is legacy-only, never written)
   staffChoice         String    @default("ANY") // SPECIFIC | ANY (Roadmap Phase 4)
   source              String    @default("ONLINE") // ONLINE | WALK_IN | WHATSAPP | PHONE (Roadmap Phase 5)
   locale              String    @default("de") // customer message language de|en (Roadmap Phase 7)
@@ -240,8 +278,19 @@ model Booking {
   holdExpiresAt       DateTime? // PENDING bookings hold the slot until this UTC instant
   needsRefund         Boolean   @default(false) // verified money that could not be honored: admin attention, manual refund (no auto-refunds)
   marketingConsent    Boolean   @default(false) // Phase 2f: user granted marketing cookie consent
+  // AUDIT P1-01: immutable consent evidence captured server-side at booking time.
+  termsAcceptedAt     DateTime?
+  termsVersion        String?
+  privacyAcceptedAt   DateTime?
+  privacyVersion      String?
+  marketingConsentAt  DateTime?
+  marketingConsentVersion String?
   fbp                 String? // Meta browser cookie _fbp (read only when marketing consent is true)
   fbc                 String? // Meta click cookie _fbc (read only when marketing consent is true)
+  // AUDIT P2-13: network signals for server-side Meta events. Captured at
+  // booking time ONLY when the customer granted marketing consent.
+  metaClientIp        String?
+  metaClientUa        String?   @db.Text
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -366,7 +415,10 @@ model NotificationOutbox {
   bodyText  String   @db.Text
   bodyHtml  String?  @db.Text
   ical      String?  @db.Text
-  status    String   @default("PENDING") // PENDING | SENT | FAILED | SKIPPED
+  status    String   @default("PENDING") // PENDING | SENDING | SENT | SIMULATED | FAILED | SKIPPED
+  provider  String? // provider used for the last delivery attempt
+  acceptedAt DateTime? // provider accepted the message (never set for simulated/log)
+  simulated Boolean  @default(false) // log-provider preview: never counts as delivered
   attempts  Int      @default(0)
   lastError String?  @db.Text
   dedupeKey String   @unique
@@ -536,6 +588,9 @@ model AnnouncementItem {
 
 model SiteSettings {
   id Int @id @default(autoincrement())
+  // AUDIT P2-15: unique singleton marker. Exactly one row may have true;
+  // historical duplicate rows are normalized to NULL by the migration.
+  singleton Boolean? @unique @default(true)
 
   siteNameAr String  @default("أمير")
   siteNameEn String  @default("Amir")
@@ -667,4 +722,15 @@ model ContactMessage {
   createdAt DateTime @default(now())
 
   @@index([isRead, createdAt])
+}
+
+// ─── Shared rate limiting (AUDIT P2-09) ────────────────────────
+// Fixed-window counters shared across Nitro processes. Rows are short-lived
+// and pruned opportunistically by the rate-limit utility.
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }

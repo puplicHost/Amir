@@ -9,6 +9,7 @@ export default defineEventHandler(async () => {
       id: true,
       nameAr: true,
       nameEn: true,
+      nameDe: true,
       slug: true,
       price: true,
       images: { where: { isCover: true }, take: 1, select: { path: true } },

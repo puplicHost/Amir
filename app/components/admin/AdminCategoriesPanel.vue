@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FolderTree, Image as ImageIcon, Loader2, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-vue-next'
 
+import { localizedText } from '../../utils/content.ts'
 
 const { t, locale } = useI18n()
 const toast = useAdminToast()
@@ -9,9 +10,12 @@ interface Category {
   id: string
   nameAr: string
   nameEn: string
+  // AUDIT P2-11: optional German copy; empty falls back to English.
+  nameDe: string | null
   slug: string
   descriptionAr: string | null
   descriptionEn: string | null
+  descriptionDe: string | null
   coverImagePath: string | null
   coverVideoUrl: string | null
   featuredOnHomepage: boolean
@@ -67,9 +71,11 @@ const editing = ref<Category | null>(null)
 const form = reactive({
   nameAr: '',
   nameEn: '',
+  nameDe: '',
   slug: '',
   descriptionAr: '',
   descriptionEn: '',
+  descriptionDe: '',
   coverVideoUrl: '',
   featuredOnHomepage: false,
   sortOrder: 0,
@@ -110,9 +116,11 @@ function openCreate() {
   Object.assign(form, {
     nameAr: '',
     nameEn: '',
+    nameDe: '',
     slug: '',
     descriptionAr: '',
     descriptionEn: '',
+    descriptionDe: '',
     coverVideoUrl: '',
     featuredOnHomepage: false,
     sortOrder: (totalCategories.value || 0) + 1,
@@ -128,9 +136,11 @@ function openEdit(c: Category) {
   Object.assign(form, {
     nameAr: c.nameAr,
     nameEn: c.nameEn,
+    nameDe: c.nameDe || '',
     slug: c.slug,
     descriptionAr: c.descriptionAr || '',
     descriptionEn: c.descriptionEn || '',
+    descriptionDe: c.descriptionDe || '',
     coverVideoUrl: c.coverVideoUrl || '',
     featuredOnHomepage: c.featuredOnHomepage,
     sortOrder: c.sortOrder,
@@ -494,6 +504,13 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
             </label>
           </div>
 
+          <!-- AUDIT P2-11: optional German name; empty falls back to English. -->
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Name (DE)</span>
+            <input v-model="form.nameDe" type="text" placeholder="z. B. Mikrocontroller" :class="inputCls" :style="{ borderColor: 'var(--color-border)' }" />
+            <span class="mt-1 block text-[11px] text-neutral-500 dark:text-neutral-400">Optional. The English name is shown when empty.</span>
+          </label>
+
           <!-- Slug -->
           <label class="block">
             <div class="flex items-center justify-between">
@@ -514,6 +531,12 @@ const inputCls = 'h-10 w-full rounded-md border bg-transparent px-3 text-sm tran
               <textarea v-model="form.descriptionAr" rows="2" dir="rtl" class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" :style="{ borderColor: 'var(--color-border)' }" />
             </label>
           </div>
+
+          <!-- AUDIT P2-11: optional German description; empty falls back to English. -->
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Description (DE)</span>
+            <textarea v-model="form.descriptionDe" rows="2" placeholder="Optionale deutsche Beschreibung. Leer = englische Beschreibung." class="w-full rounded-md border bg-transparent p-2.5 text-xs transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" :style="{ borderColor: 'var(--color-border)' }" />
+          </label>
 
           <!-- Cover Image Upload with Preview -->
           <div>

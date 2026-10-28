@@ -5,6 +5,7 @@ import { bookingAssignSchema, parseBody } from '../../../../utils/validate'
 import { notifyUser } from '../../../../utils/admin-notifications'
 import { isStaffOnTimeOff } from '../../../../utils/staff-availability'
 import { logAudit } from '../../../../utils/audit'
+import { isStatusTransitionAllowed } from '../../../../../shared/booking'
 
 export default defineEventHandler(async (event) => {
   const user = await requirePermission(event, 'bookings.assign')
@@ -23,6 +24,15 @@ export default defineEventHandler(async (event) => {
 
   if (booking.needsRefund) {
     throw createError({ statusCode: 400, statusMessage: 'Booking needs refund attention and cannot be assigned' })
+  }
+
+  // AUDIT P3-05: enforce the lifecycle transition in the mutation path, not
+  // only in UI visibility checks.
+  if (!isStatusTransitionAllowed(booking.status, 'ASSIGNED', {
+    paymentStatus: booking.paymentStatus,
+    needsRefund: booking.needsRefund,
+  })) {
+    throw createError({ statusCode: 400, statusMessage: 'Booking cannot be assigned in its current state' })
   }
 
   const targetStaff = await prisma.adminUser.findUnique({
@@ -116,8 +126,8 @@ export default defineEventHandler(async (event) => {
   })
 
   // Notifications (sanitized: booking number, service, date/time, deep link - no customer PII)
-  const dtBerlin = new Date(booking.startsAt).toLocaleString('de-DE', {
-    timeZone: 'Europe/Berlin',
+  const dtSalon = new Date(booking.startsAt).toLocaleString('de-DE', {
+    timeZone: settings.timezone,
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
@@ -132,8 +142,8 @@ export default defineEventHandler(async (event) => {
     url: '/admin/appointments?tab=my-bookings',
     titleEn: `New booking assigned (${booking.bookingNumber})`,
     titleAr: `Neuer Termin zugewiesen (${booking.bookingNumber})`,
-    bodyEn: `${serviceName} · ${dtBerlin}`,
-    bodyAr: `${serviceName} · ${dtBerlin}`,
+    bodyEn: `${serviceName} · ${dtSalon}`,
+    bodyAr: `${serviceName} · ${dtSalon}`,
   })
 
   if (isReassign && previousStaffId) {
@@ -143,8 +153,8 @@ export default defineEventHandler(async (event) => {
       url: '/admin/appointments?tab=my-bookings',
       titleEn: `Booking reassigned (${booking.bookingNumber})`,
       titleAr: `Termin neu zugewiesen (${booking.bookingNumber})`,
-      bodyEn: `${serviceName} · ${dtBerlin}`,
-      bodyAr: `${serviceName} · ${dtBerlin}`,
+      bodyEn: `${serviceName} · ${dtSalon}`,
+      bodyAr: `${serviceName} · ${dtSalon}`,
     })
   }
 

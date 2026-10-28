@@ -815,7 +815,7 @@ function toggleSelect(id: string) {
           <textarea
             v-model="refundNote"
             rows="2"
-            placeholder="e.g. Refunded 23.00 EUR via Stripe Dashboard refund ID re_123..."
+            placeholder="e.g. Refunded 23.00 EUR via PayPal Dashboard refund ID ..."
             class="w-full rounded border bg-transparent p-2 text-xs focus:border-primary focus:outline-none"
             :style="{ borderColor: 'var(--color-border)' }"
           />

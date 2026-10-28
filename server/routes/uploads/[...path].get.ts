@@ -12,17 +12,26 @@ const MIME: Record<string, string> = {
   '.ogg': 'video/ogg',
 }
 
+// Public media scopes. Every other scope (expense receipts, service-request
+// uploads, legacy private files) requires an admin session and is never served
+// anonymously or through a shared cache.
+const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings', 'hero', 'services', 'staff'])
+
+// AUDIT P1-05: permissions are scoped per resource instead of granting every
+// private file to services/expenses managers alike. Unknown scopes are
+// super-admin only.
+const PRIVATE_SCOPE_PERMISSIONS: Record<string, string[]> = {
+  expenses: ['expenses.view', 'expenses.manage', 'expenses.export'],
+  'service-requests': ['inbox.manage'],
+}
+
 export default defineEventHandler(async (event) => {
   const parts = (getRouterParam(event, 'path') || '').split('/').filter(Boolean)
   // Nitro [...path] param arrives joined; split back into segments.
   const scope = parts[0] || ''
+  const isPublic = PUBLIC_SCOPES.has(scope)
 
-  // Public media scopes. Every other scope (expense receipts, service-request
-  // uploads, legacy private files) requires an admin session and is never
-  // served anonymously. Hero slides are public homepage content, and staff
-  // avatars are intentionally public (rendered in the customer staff picker).
-  const PUBLIC_SCOPES = new Set(['banners', 'categories', 'products', 'settings', 'hero', 'services', 'staff'])
-  if (!PUBLIC_SCOPES.has(scope)) {
+  if (!isPublic) {
     let sessionUser = null
     try {
       sessionUser = await getSessionUser(event)
@@ -30,10 +39,9 @@ export default defineEventHandler(async (event) => {
     catch {
       sessionUser = null
     }
+    const required = PRIVATE_SCOPE_PERMISSIONS[scope]
     const ok = !!sessionUser && (sessionUser.isSuper
-      || sessionUser.permissions.includes('services.manage')
-      || sessionUser.permissions.includes('expenses.view')
-      || sessionUser.permissions.includes('expenses.manage'))
+      || (!!required && required.some(p => sessionUser!.permissions.includes(p))))
     if (!ok) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
     }
@@ -50,8 +58,19 @@ export default defineEventHandler(async (event) => {
   }
   const ext = full.slice(full.lastIndexOf('.')).toLowerCase()
   setHeader(event, 'content-type', MIME[ext] || 'application/octet-stream')
-  // PERF-04: stored files are content-unique (uuid/timestamp names), so they
-  // can be cached immutably for a year.
-  setHeader(event, 'cache-control', 'public, max-age=31536000, immutable')
+  setHeader(event, 'x-content-type-options', 'nosniff')
+
+  if (isPublic) {
+    // Stored public files are content-unique (uuid/timestamp names), so they
+    // can be cached immutably for a year.
+    setHeader(event, 'cache-control', 'public, max-age=31536000, immutable')
+  }
+  else {
+    // AUDIT P1-05: authenticated private files must never enter a shared cache.
+    setHeader(event, 'cache-control', 'private, no-store, max-age=0')
+    setHeader(event, 'pragma', 'no-cache')
+    setHeader(event, 'vary', 'Cookie, Authorization')
+  }
+
   return sendStream(event, createReadStream(full))
 })

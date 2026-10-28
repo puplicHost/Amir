@@ -52,6 +52,9 @@ function isFullWidth(b: any) {
           :alt="titleOf(b)"
           class="absolute inset-0 h-full w-full object-cover object-center"
           loading="lazy"
+          decoding="async"
+          width="1600"
+          height="600"
         />
 
         <!-- Fallback Ambient Brand Gradient (when no image) -->
@@ -113,6 +116,9 @@ function isFullWidth(b: any) {
               :alt="titleOf(b)"
               class="absolute inset-0 h-full w-full object-cover object-center"
               loading="lazy"
+              decoding="async"
+              width="1600"
+              height="900"
             />
             <div
               v-else

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { decryptData } from './encryption.ts'
+import { getSiteSettings } from './site-settings.ts'
 import { normalizePhoneForWa } from '../../shared/booking.ts'
 
 // Meta Conversions API (server events). Per Meta docs:
@@ -34,6 +35,30 @@ function digitsOnly(v: string) {
   return v.replace(/\D/g, '')
 }
 
+let warnedProductionTestCode = false
+
+/**
+ * AUDIT P2-13: a leftover Test Events code routes real purchases into Meta's
+ * test stream and silently removes conversion signal from live campaigns.
+ * Test codes are therefore ignored in production unless an operator
+ * deliberately opts in for a controlled verification run.
+ */
+export function resolveTestEventCode(
+  configured: string | null | undefined,
+  isProduction: boolean = process.env.NODE_ENV === 'production',
+): string | undefined {
+  const code = typeof configured === 'string' ? configured.trim() : ''
+  if (!code) return undefined
+  if (isProduction && process.env.META_CAPI_ALLOW_TEST_EVENTS !== 'true') {
+    if (!warnedProductionTestCode) {
+      warnedProductionTestCode = true
+      console.warn('[meta-capi] metaTestEventCode is set but ignored in production. Clear it in Admin → Settings → Meta, or set META_CAPI_ALLOW_TEST_EVENTS=true for a deliberate test run.')
+    }
+    return undefined
+  }
+  return code
+}
+
 export function buildCapiBody(input: MetaCapiEvent, siteUrl = '', testEventCode?: string): Record<string, unknown> {
   const userData: Record<string, unknown> = {}
   if (input.email) userData.em = [sha256norm(input.email)]
@@ -66,9 +91,11 @@ export function buildCapiBody(input: MetaCapiEvent, siteUrl = '', testEventCode?
 
 export async function sendMetaCapiEvent(input: MetaCapiEvent): Promise<boolean> {
   try {
-    const settings = await prisma.siteSettings.findFirst()
+    const settings = await getSiteSettings()
     const pixelId = settings?.metaPixelId
-    const testEventCode = settings?.metaTestEventCode || undefined
+    // AUDIT P2-13: never forward a test code into production traffic unless
+    // explicitly enabled for a controlled run.
+    const testEventCode = resolveTestEventCode(settings?.metaTestEventCode)
     if (!settings?.metaEnabled || !pixelId || !settings.metaCapiToken) return false
 
     let accessToken: string
@@ -89,9 +116,15 @@ export async function sendMetaCapiEvent(input: MetaCapiEvent): Promise<boolean> 
 
     const body = buildCapiBody(input, siteUrl, testEventCode)
 
+    // AUDIT P2-13: credentials go in the Authorization header, never in the
+    // query string, so tokens cannot leak into proxy/access logs.
     const res = await $fetch<{ events_received?: number }>(
       `https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events`,
-      { method: 'POST', query: { access_token: accessToken }, body },
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body,
+      },
     )
     return (res.events_received || 0) > 0
   }

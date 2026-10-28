@@ -1,6 +1,7 @@
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler } from 'h3'
 import { requirePermission } from '../../../utils/auth'
-import { prisma } from '../../../utils/prisma'
+import { contactSettingsSchema, parseBody } from '../../../utils/validate'
+import { upsertSiteSettings } from '../../../utils/site-settings'
 
 const SOCIAL_FIELDS = [
   'socialFacebook',
@@ -24,25 +25,19 @@ function cleanUrl(v: unknown): string | null | undefined {
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'settings.business')
-  const body = await readBody(event)
+  // AUDIT P3-08: validated payload; social URLs still checked below.
+  const body = await parseBody(event, contactSettingsSchema)
   const social: Record<string, string | null | undefined> = {}
   for (const f of SOCIAL_FIELDS) social[f] = cleanUrl(body[f])
-  await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: {
-      contactPhone1: body.contactPhone1,
-      contactPhone2: body.contactPhone2,
-      contactWhatsapp: body.contactWhatsapp,
-      contactEmail: body.contactEmail,
-      contactAddressAr: body.contactAddressAr,
-      contactAddressEn: body.contactAddressEn,
-      ...social,
-      googleMapsEmbedUrl: body.googleMapsEmbedUrl,
-    },
-    create: {
-      siteNameAr: 'AMIR',
-      siteNameEn: 'Amir',
-    }
-  })
+  await upsertSiteSettings({
+    contactPhone1: body.contactPhone1,
+    contactPhone2: body.contactPhone2,
+    contactWhatsapp: body.contactWhatsapp,
+    contactEmail: body.contactEmail,
+    contactAddressAr: body.contactAddressAr,
+    contactAddressEn: body.contactAddressEn,
+    ...social,
+    googleMapsEmbedUrl: body.googleMapsEmbedUrl,
+  }, { siteNameAr: 'AMIR', siteNameEn: 'Amir' })
   return { success: true }
 })

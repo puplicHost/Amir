@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!token) throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
   const booking = await prisma.booking.findUnique({
     where: { publicToken: token },
-    include: { service: { select: { name: true, slug: true } } },
+    include: { service: { select: { name: true, nameEn: true, slug: true } } },
   })
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
   const settings = await getBookingSettings()
@@ -17,11 +17,13 @@ export default defineEventHandler(async (event) => {
     paymentStatus: booking.paymentStatus,
     status: booking.status,
     serviceName: booking.service.name,
+    serviceNameEn: booking.service.nameEn,
     durationMin: booking.durationMinSnapshot,
     serviceSlug: booking.service.slug,
     startsAt: booking.startsAt,
     depositCents: booking.depositCents,
     currency: settings.currency,
+    timezone: settings.timezone,
     gateways,
     eventId: purchaseEventId(booking.id),
   }

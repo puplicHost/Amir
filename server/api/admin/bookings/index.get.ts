@@ -1,6 +1,6 @@
 import { requirePermission } from '../../../utils/auth'
 import { parseDayStr, wallToUtcMs } from '../../../utils/booking-slots'
-import { waLink } from '../../../../shared/booking'
+import { PAYMENT_STATUSES, waLink } from '../../../../shared/booking'
 
 export default defineEventHandler(async (event) => {
   const user = await requirePermission(event, ['bookings.view_all', 'bookings.view_own'])
@@ -25,6 +25,12 @@ export default defineEventHandler(async (event) => {
 
   if (typeof q.needsRefund === 'string' && q.needsRefund) {
     where.needsRefund = q.needsRefund === 'true'
+  }
+
+  // Used by Finance → Payments to list confirmed transactions without
+  // exposing failed/pending/expired holds as revenue.
+  if (typeof q.paymentStatus === 'string' && (PAYMENT_STATUSES as readonly string[]).includes(q.paymentStatus)) {
+    where.paymentStatus = q.paymentStatus
   }
 
   if (typeof q.date === 'string' && q.date) {
@@ -73,6 +79,7 @@ export default defineEventHandler(async (event) => {
     paymentProvider: b.paymentProvider,
     paymentStatus: b.paymentStatus,
     providerRef: b.providerRef,
+    providerPaymentId: b.providerPaymentId,
     status: b.status,
     assignedStaffId: b.assignedStaffId,
     assignedStaff: b.assignedStaff,
@@ -80,6 +87,7 @@ export default defineEventHandler(async (event) => {
     notes: b.notes,
     needsRefund: b.needsRefund,
     createdAt: b.createdAt,
+    updatedAt: b.updatedAt,
   }))
 
   return {

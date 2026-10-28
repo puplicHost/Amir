@@ -61,6 +61,8 @@ const { data: feed, refresh, pending } = results[0]
 const { data: bookingSettings } = results[1]
 const { data: services } = results[2]
 const { data: staffOpts } = results[3]
+// AUDIT P2-05: render every calendar date/time in the configured salon zone.
+const salonTz = computed(() => bookingSettings.value?.salon?.timezone || DEFAULT_SALON_TIMEZONE)
 watch([view, dayStr, staffFilter], () => refresh())
 
 let timer: ReturnType<typeof setInterval> | undefined
@@ -92,7 +94,7 @@ const columns = computed(() => {
 
 function berlinDay(iso: string): string {
   const d = new Date(iso)
-  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: salonTz.value, year: 'numeric', month: '2-digit', day: '2-digit' })
   return fmt.format(d)
 }
 
@@ -149,7 +151,7 @@ const agendaGroups = computed(() => {
 // Day grid range from feed (fallback 08:00-20:00), Berlin wall minutes.
 function berlinMin(iso: string): number {
   const d = new Date(iso)
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: salonTz.value, hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
   const [h, m] = parts.split(':').map(Number)
   return h * 60 + m
 }
@@ -170,11 +172,11 @@ function pct(min: number): number {
   return ((min - gridStart.value) / Math.max(1, gridEnd.value - gridStart.value)) * 100
 }
 function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('de-DE', { timeZone: salonTz.value, hour: '2-digit', minute: '2-digit' })
 }
 function fmtDay(iso: string): string {
   return new Date(iso).toLocaleDateString(locale.value === 'ar' ? 'ar-EG' : 'de-DE', {
-    timeZone: 'Europe/Berlin', weekday: 'short', day: 'numeric', month: 'numeric',
+    timeZone: salonTz.value, weekday: 'short', day: 'numeric', month: 'numeric',
   })
 }
 function blockStyle(b: CalBooking): Record<string, string> {
@@ -196,7 +198,7 @@ function berlinWallToUtc(day: string, wallMin: number): number {
   let guess = Date.UTC(Y, M - 1, D, hh, mm)
   for (let i = 0; i < 3; i++) {
     const p = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+      timeZone: salonTz.value, year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', hour12: false,
     }).formatToParts(new Date(guess))
     const get = (k: string) => Number(p.find(x => x.type === k)?.value || 0)
@@ -247,7 +249,7 @@ const waReassignUrl = computed(() => {
   const digits = normalizePhoneForWa(b.customerPhone || '')
   if (!digits) return ''
   const date = new Date(b.startsAt).toLocaleString(locale.value === 'de' ? 'de-DE' : 'en-US', {
-    timeZone: 'Europe/Berlin', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+    timeZone: salonTz.value, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
   })
   const vars: Record<string, string> = {
     name: b.customerName || '', service: b.service?.name || '',

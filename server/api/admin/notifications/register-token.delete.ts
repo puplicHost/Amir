@@ -1,9 +1,10 @@
 import { requireAuth } from '../../../utils/auth'
+import { optionalPushTokenSchema, parseBody } from '../../../utils/validate'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
-  const body = (await readBody(event)) || {}
-  const token = typeof body.token === 'string' ? body.token.trim() : ''
+  // AUDIT P3-08: optional token, still shape-validated.
+  const { token } = await parseBody(event, optionalPushTokenSchema)
 
   if (token) {
     await prisma.adminDeviceToken.deleteMany({

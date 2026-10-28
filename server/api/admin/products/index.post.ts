@@ -1,5 +1,6 @@
 import { generateSlug, uniqueSlug } from '../../../../shared/slug'
 import { createdLabel, logAudit } from '../../../utils/audit'
+import { parseBody, productCreateSchema } from '../../../utils/validate'
 
 interface AttrInput {
   keyAr?: string
@@ -41,20 +42,18 @@ function cleanSeo(input: unknown): SeoInput | null {
 
 export default defineEventHandler(async (event) => {
   const actor = await requirePermission(event, 'products.manage')
-  const body = await readBody(event)
+  // AUDIT P3-08: validated payload; unknown keys are stripped.
+  const body = await parseBody(event, productCreateSchema)
 
-  const nameAr = typeof body.nameAr === 'string' ? body.nameAr.trim() : ''
-  const nameEn = typeof body.nameEn === 'string' ? body.nameEn.trim() : ''
-  if (!nameAr || !nameEn) throw createError({ statusCode: 400, statusMessage: 'Arabic and English names are required' })
-  if (!body.categoryId) throw createError({ statusCode: 400, statusMessage: 'Category is required' })
+  const nameAr = body.nameAr
+  const nameEn = body.nameEn
 
-  const category = await prisma.category.findUnique({ where: { id: String(body.categoryId) } })
+  const category = await prisma.category.findUnique({ where: { id: body.categoryId } })
   if (!category) throw createError({ statusCode: 400, statusMessage: 'Category not found' })
 
-  const price = Number(body.price)
-  if (!Number.isFinite(price) || price < 0) throw createError({ statusCode: 400, statusMessage: 'Valid price is required' })
+  const price = body.price
 
-  const base = typeof body.slug === 'string' && body.slug.trim() ? generateSlug(body.slug) : generateSlug(nameEn)
+  const base = body.slug && body.slug.trim() ? generateSlug(body.slug) : generateSlug(nameEn)
   const slug = await uniqueSlug(base, async s => !!(await prisma.product.findUnique({ where: { slug: s } })))
   const seo = cleanSeo(body.seo)
 
@@ -62,9 +61,12 @@ export default defineEventHandler(async (event) => {
     data: {
       nameAr,
       nameEn,
+      // AUDIT P2-11: optional German copy; empty string is normalized to NULL.
+      nameDe: typeof body.nameDe === 'string' && body.nameDe.trim() ? body.nameDe.trim() : null,
       slug,
       descriptionAr: body.descriptionAr || null,
       descriptionEn: body.descriptionEn || null,
+      descriptionDe: typeof body.descriptionDe === 'string' && body.descriptionDe.trim() ? body.descriptionDe : null,
       price,
       categoryId: category.id,
       isActive: body.isActive !== false,

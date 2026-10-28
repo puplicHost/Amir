@@ -1,11 +1,12 @@
 import { decryptData } from '../../utils/encryption'
 import { paypalCaptureOrder, paypalVerifyWebhook } from '../../utils/paypal'
 import { confirmBookingPaid, finalizePaidBooking, getBookingSettings } from '../../utils/booking-payments'
+import { getSiteSettings } from '../../utils/site-settings'
 import { eurToCents } from '../../../shared/booking'
 
 // PayPal webhook: PAYMENT.CAPTURE.COMPLETED → confirm deposit PAID.
 // Signature verified server-side via PayPal's verify endpoint.
-// Replays are idempotent (see Stripe webhook).
+// Replays are idempotent (see the PayPal return handler).
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as any
   const headers = getRequestHeaders(event)
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const settings = await getBookingSettings()
-  const s = await prisma.siteSettings.findFirst()
+  const s = await getSiteSettings()
   if (!s?.paypalEnabled || !s?.paypalClientId || !s?.paypalSecret || !s?.paypalWebhookId) {
     throw createError({ statusCode: 400, statusMessage: 'PayPal webhook not configured' })
   }
@@ -96,20 +97,44 @@ export default defineEventHandler(async (event) => {
     const captureId = body?.resource?.id as string | undefined
     const amountVal = body?.resource?.amount?.value as string | undefined
     const currencyCode = body?.resource?.amount?.currency_code as string | undefined
+    // The capture resource carries the originating order id in
+    // supplementary_data.related_ids.order_id. Booking.providerRef stores the
+    // ORDER id, never the capture id; passing the capture id here would look
+    // like a superseded attempt and wrongly flag a successful payment.
+    const relatedOrderId = body?.resource?.supplementary_data?.related_ids?.order_id as string | undefined
     const proof = {
       amountCents: amountVal ? eurToCents(amountVal) : null,
       currency: currencyCode || null,
       paymentId: captureId || null,
     }
     if (customId) {
-      const res = await confirmBookingPaid(customId, captureId || null, proof)
-      if (res.decision === 'confirm' && res.booking) {
-        // PAY-05: CAPI/mail/admin fan-out runs off the ACK path.
-        event.waitUntil(finalizePaidBooking({
-          bookingId: res.booking.id,
-          depositCents: res.booking.depositCents,
-          currency: settings.currency,
-        }))
+      const existing = await prisma.booking.findUnique({
+        where: { id: customId },
+        select: { providerRef: true },
+      })
+      // Require the order id from the signed event. Never fall back to a stored
+      // reference: it could belong to a superseded order and confirm the wrong
+      // payment. If PayPal omits the linkage, the return handler / APPROVED
+      // webhook remains the confirmation path.
+      if (!existing) {
+        console.warn('[paypal-webhook] capture for unknown booking ignored')
+      }
+      else if (!relatedOrderId) {
+        console.warn('[paypal-webhook] capture without a signed order linkage ignored')
+      }
+      else if (!existing.providerRef) {
+        console.warn('[paypal-webhook] capture for a booking with no active order ignored')
+      }
+      else {
+        const res = await confirmBookingPaid(customId, relatedOrderId, proof)
+        if (res.decision === 'confirm' && res.booking) {
+          // PAY-05: CAPI/mail/admin fan-out runs off the ACK path.
+          event.waitUntil(finalizePaidBooking({
+            bookingId: res.booking.id,
+            depositCents: res.booking.depositCents,
+            currency: settings.currency,
+          }))
+        }
       }
     }
   }
