@@ -6,6 +6,8 @@ interface AdminTabItem {
   label: string
   icon?: Component
   badge?: string | number
+  /** Render a divider before this tab (used to separate Account & Security). */
+  separatorBefore?: boolean
 }
 
 const props = withDefaults(defineProps<{
@@ -51,35 +53,41 @@ function onKeydown(e: KeyboardEvent) {
 
 <template>
   <div
-    class="mb-6 flex gap-1 overflow-x-auto border-b"
+    class="mb-6 flex items-stretch gap-1 overflow-x-auto border-b pb-px [scrollbar-width:thin]"
     :style="{ borderColor: 'var(--color-border)' }"
     role="tablist"
+    aria-orientation="horizontal"
     :aria-label="ariaLabel || undefined"
     @keydown="onKeydown"
   >
-    <button
-      v-for="tab in tabs"
-      :id="tabId(tab.id)"
-      :key="tab.id"
-      type="button"
-      role="tab"
-      :aria-selected="modelValue === tab.id"
-      :aria-controls="`${idPrefix}-panel-${tab.id}`"
-      :tabindex="modelValue === tab.id ? 0 : -1"
-      class="-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-xs font-semibold transition-colors"
-      :class="modelValue === tab.id
-        ? 'border-primary text-primary dark:border-primary dark:text-primary'
-        : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'"
-      @click="select(tab.id)"
-    >
-      <component :is="tab.icon" v-if="tab.icon" class="h-4 w-4" aria-hidden="true" />
-      <span>{{ tab.label }}</span>
+    <template v-for="(tab, index) in tabs" :key="tab.id">
       <span
-        v-if="tab.badge !== undefined && tab.badge !== ''"
-        class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+        v-if="tab.separatorBefore && index > 0"
+        class="mx-1 w-px shrink-0 self-center bg-border"
+        aria-hidden="true"
+      />
+      <button
+        :id="tabId(tab.id)"
+        type="button"
+        role="tab"
+        :aria-selected="modelValue === tab.id"
+        :aria-controls="`${idPrefix}-panel-${tab.id}`"
+        :tabindex="modelValue === tab.id ? 0 : -1"
+        class="-mb-px inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-t-md border-b-2 px-4 py-3 text-xs font-semibold transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:hover:bg-neutral-800/40"
+        :class="modelValue === tab.id
+          ? 'border-primary text-primary dark:border-primary dark:text-primary'
+          : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'"
+        @click="select(tab.id)"
       >
-        {{ tab.badge }}
-      </span>
-    </button>
+        <component :is="tab.icon" v-if="tab.icon" class="h-4 w-4" aria-hidden="true" />
+        <span>{{ tab.label }}</span>
+        <span
+          v-if="tab.badge !== undefined && tab.badge !== ''"
+          class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+        >
+          {{ tab.badge }}
+        </span>
+      </button>
+    </template>
   </div>
 </template>

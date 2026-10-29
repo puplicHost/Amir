@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
             currency: cap.currency,
             paymentId: cap.captureId,
           }
-          const r = await confirmBookingPaid(customId, orderId, proof)
+          const r = await confirmBookingPaid(customId, orderId, proof, 'paypal')
           if (r.decision === 'confirm' && r.booking) {
             await finalizePaidBooking({
               bookingId: r.booking.id,
@@ -126,7 +126,7 @@ export default defineEventHandler(async (event) => {
         console.warn('[paypal-webhook] capture for a booking with no active order ignored')
       }
       else {
-        const res = await confirmBookingPaid(customId, relatedOrderId, proof)
+        const res = await confirmBookingPaid(customId, relatedOrderId, proof, 'paypal')
         if (res.decision === 'confirm' && res.booking) {
           // PAY-05: CAPI/mail/admin fan-out runs off the ACK path.
           event.waitUntil(finalizePaidBooking({

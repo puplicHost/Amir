@@ -87,6 +87,12 @@ async function main() {
   await cleanup()
 
   // ---------- pure gateway availability ----------
+  check('stripe: enabled + secret is available',
+    gatewayStatusFromSettings({ stripeEnabled: true, stripeSecretKey: 'enc' }).stripe === true)
+  check('stripe: enabled without secret is unavailable',
+    gatewayStatusFromSettings({ stripeEnabled: true }).stripe === false)
+  check('stripe: disabled with secret is unavailable',
+    gatewayStatusFromSettings({ stripeEnabled: false, stripeSecretKey: 'enc' }).stripe === false)
   check('paypal: enabled + client id + secret is available',
     gatewayStatusFromSettings({ paypalEnabled: true, paypalClientId: 'id', paypalSecret: 'enc' }).paypal === true)
   check('paypal: enabled without secret is unavailable',
@@ -95,8 +101,8 @@ async function main() {
     gatewayStatusFromSettings({ paypalEnabled: true, paypalSecret: 'enc' }).paypal === false)
   check('paypal: disabled with credentials is unavailable',
     gatewayStatusFromSettings({ paypalEnabled: false, paypalClientId: 'id', paypalSecret: 'enc' }).paypal === false)
-  check('empty settings: paypal unavailable',
-    JSON.stringify(gatewayStatusFromSettings(null)) === JSON.stringify({ paypal: false }))
+  check('empty settings: both unavailable',
+    JSON.stringify(gatewayStatusFromSettings(null)) === JSON.stringify({ stripe: false, paypal: false }))
 
   // ---------- fixtures (self-contained: staff user + open hours, race-style) ----------
   await prisma.staffTimeOff.deleteMany({ where: { staff: { email: { startsWith: STAFF_PREFIX } } } })

@@ -19,7 +19,7 @@ interface BookingStatus {
   depositCents: number
   currency: string
   timezone?: string
-  gateways: { paypal: boolean }
+  gateways: { stripe: boolean, paypal: boolean }
   eventId?: string
 }
 

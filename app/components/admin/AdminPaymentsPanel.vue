@@ -56,8 +56,10 @@ function formatDate(iso: string): string {
 }
 
 function providerLabel(provider: string): string {
-  if ((provider || '').toLowerCase() === 'paypal') return 'PayPal'
-  if ((provider || '').toLowerCase() === 'manual') return 'Manual'
+  const p = (provider || '').toLowerCase()
+  if (p === 'stripe') return 'Stripe'
+  if (p === 'paypal') return 'PayPal'
+  if (p === 'manual') return 'Manual'
   return provider || '—'
 }
 </script>

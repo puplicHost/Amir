@@ -7,12 +7,15 @@ import {
   Megaphone,
   Newspaper,
   Phone,
+  ShieldCheck,
   Sliders,
   Store,
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
-definePageMeta({ layout: 'admin', middleware: 'admin-auth', requiredPermission: ['settings.business', 'settings.payment', 'settings.meta', 'banners.manage'] })
+// Every admin can reach Account & Security. Other sections are filtered by
+// their own permission below; each API enforces authorization server-side.
+definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -24,16 +27,19 @@ const canPayment = useAdminCan('settings.payment')
 const canMeta = useAdminCan('settings.meta')
 const canBanners = useAdminCan('banners.manage')
 
-type TabKey = 'general' | 'contact' | 'seo' | 'store' | 'payment' | 'booking' | 'mail' | 'meta' | 'website'
+type TabKey = 'general' | 'contact' | 'seo' | 'store' | 'payment' | 'booking' | 'mail' | 'meta' | 'website' | 'account'
+
+type SettingsPermission = 'settings.business' | 'settings.payment' | 'settings.meta' | 'banners.manage'
 
 interface SettingsTab {
   id: TabKey
   label: string
   icon: Component
-  permissions: ('settings.business' | 'settings.payment' | 'settings.meta' | 'banners.manage')[]
+  permissions?: SettingsPermission[]
+  separatorBefore?: boolean
 }
 
-const permissionGranted = computed<Record<SettingsTab['permissions'][number], boolean>>(() => ({
+const permissionGranted = computed<Record<SettingsPermission, boolean>>(() => ({
   'settings.business': canBusiness.value,
   'settings.payment': canPayment.value,
   'settings.meta': canMeta.value,
@@ -50,7 +56,8 @@ const ALL_TABS = computed<SettingsTab[]>(() => [
   { id: 'mail', label: t('mail.title'), icon: Mail, permissions: ['settings.business'] },
   { id: 'meta', label: locale.value === 'ar' ? 'تكامل ميتا' : 'Meta Integration', icon: Megaphone, permissions: ['settings.meta'] },
   { id: 'website', label: t('admin.websiteSettings'), icon: Newspaper, permissions: ['banners.manage', 'settings.business'] },
-].filter(tab => tab.permissions.some(p => permissionGranted.value[p])))
+  { id: 'account', label: t('admin.account'), icon: ShieldCheck, separatorBefore: true },
+].filter(tab => !tab.permissions || tab.permissions.some(p => permissionGranted.value[p])))
 
 const allowedTabs = computed(() => ALL_TABS.value.map(tab => tab.id))
 
@@ -103,16 +110,18 @@ async function switchTab(id: string) {
   <div>
     <AdminPageHeader
       :title="t('admin.settings')"
-      :description="locale === 'ar' ? 'تخصيص هوية المنصة، بيانات الاتصال، وإعدادات محركات البحث.' : 'Configure brand identity, contact channels, and search indexing metadata.'"
+      :description="t('admin.settingsDescription')"
     />
 
-    <AdminTabs
-      :model-value="activeTab"
-      :tabs="ALL_TABS"
-      id-prefix="settings"
-      :aria-label="locale === 'ar' ? 'أقسام الإعدادات' : 'Settings sections'"
-      @update:model-value="switchTab"
-    />
+    <div class="sticky top-16 z-20 -mx-1 mb-2 bg-bg/95 px-1 pt-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+      <AdminTabs
+        :model-value="activeTab"
+        :tabs="ALL_TABS"
+        id-prefix="settings"
+        :aria-label="locale === 'ar' ? 'أقسام الإعدادات' : 'Settings sections'"
+        @update:model-value="switchTab"
+      />
+    </div>
 
     <div class="max-w-5xl">
       <div v-if="activeTab === 'general'" id="settings-panel-general" role="tabpanel" aria-labelledby="settings-tab-general">
@@ -141,6 +150,9 @@ async function switchTab(id: string) {
       </div>
       <div v-else-if="activeTab === 'website'" id="settings-panel-website" role="tabpanel" aria-labelledby="settings-tab-website">
         <AdminSettingsWebsite />
+      </div>
+      <div v-else-if="activeTab === 'account'" id="settings-panel-account" role="tabpanel" aria-labelledby="settings-tab-account">
+        <AdminSettingsAccount />
       </div>
     </div>
   </div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Loader2, Phone, Plus, X } from 'lucide-vue-next'
 import { normalizePhoneForWa } from '~~/shared/booking'
-import { todayBerlinISO } from '~/utils/format'
+import { intlLocale, todayBerlinISO } from '~/utils/format'
 
 
 const { t, locale } = useI18n()
@@ -11,7 +11,8 @@ const canAssign = useAdminCan('bookings.assign')
 
 type View = 'day' | 'week' | 'month'
 const view = ref<View>('day')
-const dayStr = ref(todayBerlinISO())
+const today = todayBerlinISO()
+const dayStr = ref(today)
 const staffFilter = ref('all')
 
 interface CalBooking {
@@ -57,7 +58,7 @@ const results = await Promise.all([
   ),
 ])
 
-const { data: feed, refresh, pending } = results[0]
+const { data: feed, refresh, pending, error } = results[0]
 const { data: bookingSettings } = results[1]
 const { data: services } = results[2]
 const { data: staffOpts } = results[3]
@@ -120,25 +121,109 @@ const dayColumns = computed(() => {
   }))
 })
 
-// Month cells: day + booking count.
-const monthCells = computed(() => {
-  const { from, to } = rangeFor()
-  const counts = new Map<string, number>()
-  for (const b of bookings.value) {
-    const day = berlinDay(b.startsAt)
-    counts.set(day, (counts.get(day) || 0) + 1)
-  }
-  const cells: { day: string, count: number }[] = []
-  for (let ms = Date.parse(`${from}T00:00:00Z`); ms <= Date.parse(`${to}T00:00:00Z`); ms += 86400000) {
-    const day = new Date(ms).toISOString().slice(0, 10)
-    cells.push({ day, count: counts.get(day) || 0 })
-  }
-  return cells
+// Month navigation moves by calendar month, never by a fixed 30-day step.
+function shiftMonth(delta: number) {
+  const base = new Date(`${dayStr.value}T12:00:00Z`)
+  const target = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + delta, 1, 12))
+  dayStr.value = target.toISOString().slice(0, 10)
+}
+
+function step(delta: -1 | 1) {
+  if (view.value === 'month') shiftMonth(delta)
+  else shiftDay(delta * (view.value === 'week' ? 7 : 1))
+}
+
+function goToday() {
+  dayStr.value = today
+}
+
+function addDays(day: string, n: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10)
+}
+
+// Date-only values: weekday comes from the calendar date, not an instant.
+function weekdayIndex(day: string): number {
+  return new Date(`${day}T00:00:00Z`).getUTCDay()
+}
+
+const monthLabel = computed(() => {
+  const { from } = rangeFor()
+  return new Intl.DateTimeFormat(intlLocale(locale.value), {
+    timeZone: 'UTC',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${from}T12:00:00Z`))
 })
 
-// Agenda (mobile): grouped by staff on day view, by day on week/month.
+// Monday-first labels, independent of the selected month.
+const weekdayLabels = computed(() => {
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale.value), { weekday: 'short', timeZone: 'UTC' })
+  const monday = Date.UTC(2024, 0, 1, 12)
+  return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(monday + i * 86400000)))
+})
+
+const activeBookings = computed(() =>
+  bookings.value.filter(b => b.status !== 'CANCELLED' && b.status !== 'CANCELLED_BY_STAFF'),
+)
+
+// Six-week month grid, Monday-first, including leading/trailing days.
+const monthGrid = computed(() => {
+  const { from } = rangeFor()
+  const start = addDays(from, -((weekdayIndex(from) + 6) % 7))
+  const closed = new Set((feed.value?.closures || []).map((c: any) => c.day))
+  const byDay = new Map<string, { count: number, unassigned: number, refunds: number }>()
+  for (const b of activeBookings.value) {
+    const day = berlinDay(b.startsAt)
+    const curr = byDay.get(day) || { count: 0, unassigned: 0, refunds: 0 }
+    curr.count += 1
+    if (b.status === 'UNASSIGNED' && b.paymentStatus === 'PAID') curr.unassigned += 1
+    if (b.needsRefund) curr.refunds += 1
+    byDay.set(day, curr)
+  }
+  return Array.from({ length: 42 }, (_, i) => {
+    const day = addDays(start, i)
+    const meta = byDay.get(day) || { count: 0, unassigned: 0, refunds: 0 }
+    return {
+      day,
+      inMonth: day.slice(0, 7) === from.slice(0, 7),
+      isToday: day === today,
+      isSelected: day === dayStr.value,
+      closed: closed.has(day),
+      ...meta,
+    }
+  })
+})
+
+const monthTotal = computed(() => monthGrid.value.filter(c => c.inMonth).reduce((sum, c) => sum + c.count, 0))
+const monthActions = computed(() => monthGrid.value.filter(c => c.inMonth).reduce((sum, c) => sum + c.unassigned, 0))
+const monthRefunds = computed(() => monthGrid.value.filter(c => c.inMonth).reduce((sum, c) => sum + c.refunds, 0))
+
+function cellDateLabel(day: string): string {
+  return new Intl.DateTimeFormat(intlLocale(locale.value), {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(`${day}T12:00:00Z`))
+}
+
+function cellAria(cell: { day: string, count: number, unassigned: number, refunds: number, closed: boolean }): string {
+  const parts = [cellDateLabel(cell.day)]
+  if (cell.count) parts.push(t('calendar.dayAriaCount', { count: cell.count }))
+  if (cell.unassigned) parts.push(t('calendar.needsReassign'))
+  if (cell.refunds) parts.push(t('calendar.refundReview'))
+  if (cell.closed) parts.push(t('calendar.closedDay'))
+  return parts.join(' · ')
+}
+
+function openMonthDay(cell: { day: string }) {
+  dayStr.value = cell.day
+  view.value = 'day'
+}
+
+// Agenda (mobile): grouped by staff on day view, by date on week/month.
 const agendaGroups = computed(() => {
-  if (view.value !== 'day') {
+  if (view.value === 'week') {
     return dayColumns.value
       .filter(g => g.bookings.length)
       .map(g => ({ key: g.key, label: g.label, bookings: g.bookings }))
@@ -402,27 +487,36 @@ function payLinkWa(): string {
 
     <!-- Controls -->
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <div class="flex overflow-hidden rounded-md border" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="flex overflow-hidden rounded-md border" role="group" :aria-label="t('calendar.title')" :style="{ borderColor: 'var(--color-border)' }">
         <button
           v-for="v in (['day', 'week', 'month'] as View[])"
           :key="v"
           type="button"
-          class="px-3.5 py-2 text-xs font-bold transition-colors"
+          class="inline-flex h-11 items-center px-3.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
           :class="view === v ? 'bg-primary text-on-primary' : 'bg-white text-neutral-600 hover:bg-neutral-50 dark:bg-neutral-900 dark:text-neutral-300'"
+          :aria-pressed="view === v"
           @click="view = v"
         >
           {{ t(`calendar.${v}`) }}
         </button>
       </div>
       <div class="flex items-center gap-1">
-        <button type="button" class="h-11 w-9 rounded-md border hover:bg-neutral-50 dark:hover:bg-neutral-800" :style="{ borderColor: 'var(--color-border)' }" :aria-label="t('calendar.prev')" @click="shiftDay(view === 'day' ? -1 : view === 'week' ? -7 : -30)">
-          <ChevronLeft class="mx-auto h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-md border hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:hover:bg-neutral-800 dark:focus-visible:ring-offset-neutral-900" :style="{ borderColor: 'var(--color-border)' }" :aria-label="t('calendar.prev')" @click="step(-1)">
+          <ChevronLeft class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
         </button>
-        <input v-model="dayStr" type="date" :aria-label="t('calendar.date')" class="h-11 rounded-md border bg-transparent px-2 text-xs" :style="{ borderColor: 'var(--color-border)' }" />
-        <button type="button" class="h-11 w-9 rounded-md border hover:bg-neutral-50 dark:hover:bg-neutral-800" :style="{ borderColor: 'var(--color-border)' }" :aria-label="t('calendar.next')" @click="shiftDay(view === 'day' ? 1 : view === 'week' ? 7 : 30)">
-          <ChevronRight class="mx-auto h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+        <input v-if="view !== 'month'" v-model="dayStr" type="date" :aria-label="t('calendar.date')" class="h-11 rounded-md border bg-transparent px-2 text-xs" :style="{ borderColor: 'var(--color-border)' }" />
+        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-md border hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:hover:bg-neutral-800 dark:focus-visible:ring-offset-neutral-900" :style="{ borderColor: 'var(--color-border)' }" :aria-label="t('calendar.next')" @click="step(1)">
+          <ChevronRight class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
         </button>
       </div>
+      <button
+        type="button"
+        class="inline-flex h-11 items-center rounded-md border bg-white px-3.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:focus-visible:ring-offset-neutral-900"
+        :style="{ borderColor: 'var(--color-border)' }"
+        @click="goToday"
+      >
+        {{ t('calendar.today') }}
+      </button>
       <select
         v-if="!isStaffView"
         v-model="staffFilter"
@@ -433,7 +527,7 @@ function payLinkWa(): string {
         <option value="all">{{ t('adminBookings.allStaff') }}</option>
         <option v-for="c in columns.filter(c => c.id)" :key="c.id!" :value="c.id!">{{ c.name }}</option>
       </select>
-      <span v-if="pending" class="inline-flex items-center gap-1 text-[11px] text-neutral-400">
+      <span v-if="pending" class="inline-flex items-center gap-1 text-[11px] text-neutral-400" role="status">
         <Loader2 class="h-3 w-3 animate-spin" aria-hidden="true" />…
       </span>
     </div>
@@ -445,18 +539,87 @@ function payLinkWa(): string {
     </div>
 
     <!-- Month -->
-    <div v-if="view === 'month'" class="grid grid-cols-7 gap-1">
-      <div
-        v-for="cell in monthCells"
-        :key="cell.day"
-        class="min-h-20 cursor-pointer rounded-lg border p-1.5 text-start hover:border-primary"
-        :class="cell.day === dayStr ? 'border-primary' : ''"
-        :style="{ borderColor: cell.day === dayStr ? undefined : 'var(--color-border)' }"
-        @click="dayStr = cell.day; view = 'day'"
-      >
-        <p class="text-[11px] font-bold text-neutral-500" dir="ltr">{{ cell.day.slice(8) }}</p>
-        <p v-if="cell.count" class="mt-1 inline-block rounded-full bg-primary px-2 py-px text-[10px] font-bold text-on-primary">{{ cell.count }}</p>
+    <div v-if="view === 'month'" class="space-y-3">
+      <div class="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h3 class="font-heading text-lg font-bold text-text sm:text-xl">{{ monthLabel }}</h3>
+          <p class="mt-0.5 text-xs text-muted">
+            {{ t('calendar.monthSummary', { count: monthTotal }) }}
+            <template v-if="monthActions">
+              · <span class="font-semibold text-amber-700 dark:text-amber-300">{{ monthActions }} {{ t('calendar.needsReassign') }}</span>
+            </template>
+            <template v-if="monthRefunds">
+              · <span class="font-semibold text-rose-600 dark:text-rose-400">{{ monthRefunds }} {{ t('calendar.refundReview') }}</span>
+            </template>
+          </p>
+        </div>
+        <p v-if="!pending && !monthTotal" class="text-xs text-muted">{{ t('calendar.monthEmpty') }}</p>
       </div>
+
+      <div v-if="error" role="alert" class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+        <span>{{ t('calendar.loadError') }}</span>
+        <button type="button" class="inline-flex h-9 items-center rounded-md border border-current px-3 text-xs font-semibold hover:bg-white/40 dark:hover:bg-black/20" @click="refresh()">
+          {{ t('calendar.retry') }}
+        </button>
+      </div>
+
+      <div v-else class="overflow-hidden rounded-xl border bg-white dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
+        <div class="grid grid-cols-7 border-b bg-neutral-50/70 dark:bg-neutral-800/40" :style="{ borderColor: 'var(--color-border)' }" dir="ltr">
+          <div v-for="(label, i) in weekdayLabels" :key="i" class="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+            {{ label }}
+          </div>
+        </div>
+
+        <div v-if="pending && !feed" class="grid grid-cols-7 gap-px bg-border/60" aria-hidden="true">
+          <div v-for="i in 42" :key="i" class="min-h-20 bg-white p-2 dark:bg-neutral-900 sm:min-h-24">
+            <div class="h-5 w-5 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800" />
+          </div>
+        </div>
+
+        <div v-else class="grid grid-cols-7 gap-px bg-border/60" dir="ltr">
+          <button
+            v-for="cell in monthGrid"
+            :key="cell.day"
+            type="button"
+            class="group relative flex min-h-20 flex-col items-stretch gap-1 bg-white p-1.5 text-start transition-colors hover:bg-primary/5 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:bg-neutral-900 dark:focus-visible:ring-offset-neutral-900 sm:min-h-24 sm:p-2"
+            :class="[
+              !cell.inMonth ? 'bg-neutral-50/60 dark:bg-neutral-950/20' : '',
+              cell.isSelected ? 'bg-primary/5' : '',
+              cell.isToday && cell.inMonth ? 'ring-1 ring-inset ring-primary' : '',
+            ]"
+            :aria-label="cellAria(cell)"
+            :aria-current="cell.isToday && cell.inMonth ? 'date' : undefined"
+            @click="openMonthDay(cell)"
+          >
+            <span class="flex items-start justify-between gap-1">
+              <span
+                class="inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] font-bold sm:text-xs"
+                :class="cell.isToday && cell.inMonth
+                  ? 'bg-primary text-on-primary'
+                  : (cell.inMonth ? 'text-neutral-800 dark:text-neutral-100' : 'text-neutral-400 dark:text-neutral-600')"
+              >{{ Number(cell.day.slice(8)) }}</span>
+              <span class="flex items-center gap-1 pt-1" aria-hidden="true">
+                <span v-if="cell.unassigned" class="h-1.5 w-1.5 rounded-full bg-amber-500" :title="t('calendar.needsReassign')" />
+                <span v-if="cell.refunds" class="h-1.5 w-1.5 rounded-full bg-rose-500" :title="t('calendar.refundReview')" />
+              </span>
+            </span>
+            <span v-if="cell.closed" class="text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+              {{ t('calendar.closedDay') }}
+            </span>
+            <span v-if="cell.count" class="mt-auto inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary dark:bg-primary/20 dark:text-neutral-200">
+              <CalendarDays class="h-2.5 w-2.5" aria-hidden="true" />
+              {{ cell.count }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted">
+        <span class="inline-flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />{{ t('calendar.needsReassign') }}</span>
+        <span class="inline-flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden="true" />{{ t('calendar.refundReview') }}</span>
+        <span class="ms-auto hidden sm:inline">{{ t('calendar.monthHint') }}</span>
+      </div>
+      <p class="text-[10px] text-muted sm:hidden">{{ t('calendar.monthHint') }}</p>
     </div>
 
     <!-- Day / Week grid (desktop) -->
@@ -514,7 +677,7 @@ function payLinkWa(): string {
     </div>
 
     <!-- Agenda (mobile + fallback list) -->
-    <div class="space-y-2 lg:hidden">
+    <div v-if="view !== 'month'" class="space-y-2 lg:hidden">
       <div v-if="!agendaGroups.length" class="rounded-lg border bg-white p-4 dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
         <AdminEmptyState
           :title="t('adminBookings.noBookings')"

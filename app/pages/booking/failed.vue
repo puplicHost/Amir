@@ -12,19 +12,19 @@ const { data } = await useAsyncData(`booking-failed-${token}`, () =>
 
 useHead(() => ({ title: `${t('booking.failedTitle')} | ${t('brand.name')}` }))
 
-const retrying = ref(false)
+const retrying = ref<'stripe' | 'paypal' | null>(null)
 const retryError = ref('')
 
 // Retry mints a NEW PayPal order on the SAME booking via POST …/pay.
 // A PAID booking is rejected server-side (409) and never mutated.
-async function retry() {
+async function retry(provider: 'stripe' | 'paypal') {
   if (!token) return
   retryError.value = ''
-  retrying.value = true
+  retrying.value = provider
   try {
     const res = await $fetch<{ redirectUrl: string }>(`/api/bookings/${token}/pay`, {
       method: 'POST',
-      body: { provider: 'paypal' },
+      body: { provider },
     })
     if (!res.redirectUrl) throw new Error('no redirect')
     await navigateTo(res.redirectUrl, { external: true })
@@ -33,7 +33,7 @@ async function retry() {
     retryError.value = e?.data?.message || e?.data?.statusMessage || t('booking.payFailed')
   }
   finally {
-    retrying.value = false
+    retrying.value = null
   }
 }
 </script>
@@ -50,13 +50,25 @@ async function retry() {
       <p v-if="retryError" role="alert" class="mb-4 text-xs font-medium text-rose-600">{{ retryError }}</p>
       <div v-if="data && data.paymentStatus !== 'PAID'" class="flex flex-wrap items-center justify-center gap-3 mb-3">
         <button
+          v-if="!data?.gateways || data.gateways.stripe"
           type="button"
-          :disabled="retrying"
-          :aria-busy="retrying"
-          class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-6 text-xs font-bold text-text hover:bg-border/40 active:scale-95 transition-colors disabled:opacity-50 dark:bg-[#0B1520]"
-          @click="retry"
+          :disabled="!!retrying"
+          :aria-busy="retrying === 'stripe'"
+          class="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-6 text-xs font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition-colors disabled:opacity-50"
+          @click="retry('stripe')"
         >
-          <span v-if="retrying" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
+          <span v-if="retrying === 'stripe'" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
+          {{ t('booking.stripe') }}
+        </button>
+        <button
+          v-if="!data?.gateways || data.gateways.paypal"
+          type="button"
+          :disabled="!!retrying"
+          :aria-busy="retrying === 'paypal'"
+          class="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-6 text-xs font-bold text-text hover:bg-border/40 active:scale-95 transition-colors disabled:opacity-50 dark:bg-[#0B1520]"
+          @click="retry('paypal')"
+        >
+          <span v-if="retrying === 'paypal'" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current opacity-50 border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
           {{ t('booking.paypal') }}
         </button>
       </div>

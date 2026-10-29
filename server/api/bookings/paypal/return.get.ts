@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       currency: capture.currency,
       paymentId: capture.captureId,
     }
-    const res = await confirmBookingPaid(booking.id, orderId, proof)
+    const res = await confirmBookingPaid(booking.id, orderId, proof, 'paypal')
     if (res.decision === 'confirm' && res.booking) {
       // PAY-05: side effects off the redirect path.
       event.waitUntil(finalizePaidBooking({

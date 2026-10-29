@@ -22,6 +22,17 @@ export default defineNitroPlugin(() => {
     problems.push('NUXT_PUBLIC_SITE_URL must use https:// in production')
   }
 
+  const stripeSecret = (process.env.STRIPE_SECRET_KEY || '').trim()
+  if (stripeSecret && !stripeSecret.startsWith('sk_')) {
+    warnings.push('STRIPE_SECRET_KEY does not look like a Stripe secret key')
+  }
+  if (stripeSecret.includes('_live_') && process.env.STRIPE_ALLOW_LIVE !== 'true') {
+    warnings.push('STRIPE_SECRET_KEY is a live key; the integration is test-mode only until STRIPE_ALLOW_LIVE=true')
+  }
+  if (stripeSecret && !process.env.STRIPE_WEBHOOK_SECRET) {
+    warnings.push('STRIPE_WEBHOOK_SECRET is missing: Stripe webhook confirmation is disabled (the return URL still verifies the session)')
+  }
+
   if (production) {
     const legalReviewed = process.env.NUXT_PUBLIC_LEGAL_REVIEWED
     if (legalReviewed !== 'true') {

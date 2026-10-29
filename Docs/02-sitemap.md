@@ -76,7 +76,7 @@ the deprecation date are in `Docs/LEGACY-ROUTES.md`.
   `/api/categories`, `/api/staff`, `/api/settings/*`, `/api/announcements`,
   `/api/banners`, `/api/contact`, `/api/bookings/*` (create, status, manage,
   pay), `/api/fcm-config`, `/api/health`.
-- Webhooks: `/api/webhooks/paypal`.
+- Webhooks: `/api/webhooks/stripe`, `/api/webhooks/paypal`.
 - Admin: `/api/admin/{auth,bookings,products,categories,services,staff,
   schedule,absences,expenses,payments,banners,announcements,settings,users,
   activity,notifications,upload,...}` — every handler enforces permissions and

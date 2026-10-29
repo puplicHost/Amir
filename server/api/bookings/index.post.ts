@@ -147,8 +147,8 @@ export default defineEventHandler(async (event) => {
   // deposit: otherwise the customer gets a reservation that can never be paid
   // and silently expires. Client-side gateway flags are not authoritative.
   const gateways = await getGatewayStatus()
-  if (!gateways.paypal) {
-    console.warn('[bookings] deposit payment unavailable: PayPal not enabled or not configured')
+  if (!gateways.stripe && !gateways.paypal) {
+    console.warn('[bookings] deposit payment unavailable: no gateway enabled or configured')
     throw createError({ statusCode: 503, statusMessage: 'Online payment is currently unavailable' })
   }
 

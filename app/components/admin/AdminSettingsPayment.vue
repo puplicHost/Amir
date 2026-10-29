@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { KeyRound, Power, Wallet } from 'lucide-vue-next'
+import { CreditCard, KeyRound, Power, Wallet } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const canManageSettings = useAdminCan('settings.payment')
@@ -10,6 +10,10 @@ const {
   key: 'settings-payment',
   endpoint: '/api/admin/settings/payment',
   defaults: {
+    stripeEnabled: false,
+    stripePublishableKey: '',
+    stripeSecretKey: '',
+    stripeWebhookSecret: '',
     paypalEnabled: false,
     paypalClientId: '',
     paypalSecret: '',
@@ -17,11 +21,17 @@ const {
     paypalMode: 'sandbox',
   },
   mapData: response => ({
+    stripeEnabled: response.payment?.stripeEnabled ?? false,
+    stripePublishableKey: response.payment?.stripePublishableKey ?? '',
     paypalEnabled: response.payment?.paypalEnabled ?? false,
     paypalClientId: response.payment?.paypalClientId ?? '',
     paypalMode: response.payment?.paypalMode ?? 'sandbox',
   }),
   buildBody: f => ({
+    stripeEnabled: f.stripeEnabled,
+    stripePublishableKey: f.stripePublishableKey,
+    ...(f.stripeSecretKey ? { stripeSecretKey: f.stripeSecretKey } : {}),
+    ...(f.stripeWebhookSecret ? { stripeWebhookSecret: f.stripeWebhookSecret } : {}),
     paypalEnabled: f.paypalEnabled,
     paypalClientId: f.paypalClientId,
     ...(f.paypalSecret ? { paypalSecret: f.paypalSecret } : {}),
@@ -35,6 +45,9 @@ const {
   failEn: 'Failed to save payment settings.',
 })
 
+const hasStripeSecret = computed(() => !!data.value?.payment?.hasStripeSecret)
+const stripeEnvConfigured = computed(() => !!data.value?.payment?.stripeEnvConfigured)
+const hasStripeWebhookSecret = computed(() => !!data.value?.payment?.hasStripeWebhookSecret)
 const hasPaypalSecret = computed(() => !!data.value?.payment?.hasPaypalSecret)
 const hasPaypalWebhookId = computed(() => !!data.value?.payment?.hasPaypalWebhookId)
 </script>
@@ -42,11 +55,55 @@ const hasPaypalWebhookId = computed(() => !!data.value?.payment?.hasPaypalWebhoo
 <template>
   <form class="space-y-4" @submit.prevent="save">
     <div
-      v-if="!form.paypalEnabled"
+      v-if="!form.stripeEnabled && !form.paypalEnabled"
       role="alert"
       class="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200"
     >
       {{ t('payment.bothOff') }}
+    </div>
+
+    <!-- Stripe (Sandbox) -->
+    <div class="rounded-md border bg-white p-4 shadow-xs dark:bg-neutral-900" :style="{ borderColor: 'var(--color-border)' }">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <CreditCard class="h-4 w-4 text-primary" aria-hidden="true" />
+          <h2 class="font-heading text-base font-bold text-neutral-900 dark:text-neutral-100">
+            {{ t('payment.stripe') }}
+          </h2>
+        </div>
+        <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+          <input v-model="form.stripeEnabled" type="checkbox" class="h-4 w-4 rounded accent-primary" />
+          <span class="inline-flex items-center gap-1"><Power class="h-3.5 w-3.5" aria-hidden="true" />{{ t('payment.enabled') }}</span>
+        </label>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">{{ t('payment.publishableKey') }}</span>
+          <input v-model="form.stripePublishableKey" type="text" placeholder="pk_test_..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" autocomplete="off" dir="ltr" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">{{ t('payment.secretKey') }}</span>
+          <input v-model="form.stripeSecretKey" type="password" placeholder="sk_test_..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" autocomplete="off" dir="ltr" />
+          <span class="mt-1 block text-[11px] text-neutral-400">
+            {{ hasStripeSecret ? t('payment.stored') : t('payment.notStored') }}
+          </span>
+        </label>
+      </div>
+
+      <label class="mt-4 block max-w-md">
+        <span class="mb-1.5 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">{{ t('payment.webhookSecret') }}</span>
+        <input v-model="form.stripeWebhookSecret" type="password" placeholder="whsec_..." :class="settingsInputCls" :style="{ borderColor: 'var(--color-border)' }" autocomplete="off" dir="ltr" />
+        <span class="mt-1 block text-[11px] text-neutral-400">
+          {{ hasStripeWebhookSecret ? t('payment.stored') : t('payment.notStored') }}
+        </span>
+      </label>
+      <p class="mt-3 text-[11px] text-neutral-400">
+        {{ locale === 'de' ? 'Nur Testmodus: Live-Schlüssel (sk_live_) werden abgelehnt.' : 'Test mode only: live keys (sk_live_) are rejected.' }}
+      </p>
+      <p v-if="stripeEnvConfigured" class="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+        {{ locale === 'de' ? 'Server-Umgebungsvariablen sind gesetzt; Stripe ist auch ohne diesen Schalter verfügbar.' : 'Server environment credentials are set; Stripe is available even when this switch is off.' }}
+      </p>
     </div>
 
     <!-- PayPal -->

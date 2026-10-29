@@ -1,5 +1,8 @@
 # Stripe Removal & PayPal-Only Booking Payments — Implementation Plan
 
+> **Superseded (2026-10-29):** Stripe has been reintroduced as a Sandbox provider alongside PayPal. See `Docs/STRIPE-INTEGRATION.md`. This document is retained as historical planning material.
+
+
 **Status:** Planning complete. No application code, config, dependency, schema, or migration has been changed by this task.
 **Target:** PayPal is the only online payment provider; Stripe is removed from active behavior and dependencies.
 **Audience:** A limited-capability coding agent executing phases in order.

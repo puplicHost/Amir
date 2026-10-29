@@ -170,6 +170,7 @@
     "paidBookings": "Paid bookings",
     "users": "Users",
     "settings": "Settings",
+    "settingsDescription": "Brand, contact, booking, payments, communication and account security.",
     "logout": "Logout",
     "notifications": "Notifications",
     "activity": "Activity",
@@ -261,7 +262,8 @@
     "banners": "Banners",
     "noAccess": "You do not have permission to view this section.",
     "teamUsers": "Team & Users",
-    "account": "Account & Security"
+    "account": "Account & Security",
+    "accountDescription": "Manage your profile, password and signed-in devices."
   },
   "common": {
     "toggleTheme": "Toggle color mode",
@@ -338,11 +340,14 @@
     "saturday": "Saturday"
   },
   "payment": {
-    "title": "Payment Gateway",
-    "description": "PayPal deposit checkout (50% starting price). PayPal requires active credentials and an enabled switch.",
+    "title": "Payment Gateways",
+    "description": "Stripe (test mode) and PayPal deposit checkout (50% starting price). Each gateway needs credentials and an enabled switch.",
+    "stripe": "Stripe",
     "paypal": "PayPal",
     "enabled": "Enabled",
+    "publishableKey": "Publishable key",
     "secretKey": "Secret key",
+    "webhookSecret": "Webhook secret",
     "clientId": "Client ID",
     "webhookId": "Webhook ID",
     "mode": "Mode",
@@ -351,7 +356,7 @@
     "saved": "Payment settings saved.",
     "stored": "Stored (encrypted). Leave blank to keep.",
     "notStored": "No key stored yet.",
-    "bothOff": "PayPal is disabled: online booking is blocked until it is enabled."
+    "bothOff": "Both payment options are disabled: online booking is blocked until at least one is enabled."
   },
   "salon": {
     "title": "Studio & Booking",
@@ -408,7 +413,15 @@
     "createBooking": "Create booking",
     "copy": "Copy",
     "notifyCustomer": "Notify customer",
-    "date": "Date"
+    "date": "Date",
+    "today": "Today",
+    "monthSummary": "Appointments this month: {count}",
+    "monthEmpty": "No appointments this month.",
+    "dayAriaCount": "Bookings: {count}",
+    "refundReview": "Refund review",
+    "loadError": "Could not load the calendar.",
+    "retry": "Retry",
+    "monthHint": "Select a day to open its schedule."
   },
   "mail": {
     "title": "Customer Emails",
@@ -476,6 +489,7 @@
     "note": "Notes for the studio (optional)",
     "depositDue": "Deposit due now (50%)",
     "payWith": "Pay deposit with",
+    "stripe": "Credit / Debit Card (Stripe)",
     "paypal": "PayPal",
     "continueToPay": "Continue to Payment",
     "blocked": "Online booking is temporarily unavailable. Please contact our studio directly.",

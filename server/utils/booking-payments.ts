@@ -1,6 +1,7 @@
 // Booking payment backend (Phase 2c): settings, holds, confirmation.
 // Amounts/currency always come from server-side snapshots — never the client.
-// PayPal is the only supported online provider.
+// Supported online providers: Stripe Checkout (test mode) and PayPal.
+import Stripe from 'stripe'
 import { decryptData } from './encryption.ts'
 import { decideConfirmation, isExpectedAmount } from './booking-confirm.ts'
 import { sendMetaCapiEvent } from './meta-capi.ts'
@@ -34,25 +35,45 @@ export async function getBookingSettings(): Promise<BookingSettings> {
 }
 
 export interface GatewayStatus {
+  stripe: boolean
   paypal: boolean
 }
 
 export interface GatewaySettings {
+  stripeEnabled?: boolean | null
+  stripeSecretKey?: string | null
   paypalEnabled?: boolean | null
   paypalClientId?: string | null
   paypalSecret?: string | null
 }
 
-/** Pure gateway availability check: PayPal needs its switch on and credentials stored. */
+/**
+ * Pure gateway availability from stored settings.
+ * Stripe Checkout is created server-side, so the secret key is sufficient;
+ * the publishable key is not needed for this redirect flow. Env-only Stripe
+ * credentials are handled in getGatewayStatus().
+ */
 export function gatewayStatusFromSettings(s: GatewaySettings | null | undefined): GatewayStatus {
   return {
+    stripe: !!s?.stripeEnabled && !!s?.stripeSecretKey,
     paypal: !!s?.paypalEnabled && !!s?.paypalClientId && !!s?.paypalSecret,
   }
 }
 
-/** Which gateways can actually take money right now (switch on + keys stored). */
+/** Which gateways can actually take money right now (switch/credentials stored or env). */
 export async function getGatewayStatus(): Promise<GatewayStatus> {
-  return gatewayStatusFromSettings(await getSiteSettings())
+  const s = await getSiteSettings()
+  const stored = gatewayStatusFromSettings(s)
+  // Server-side env credentials are an explicit deployment configuration and
+  // enable Stripe without a database write (useful before the admin switch is set).
+  // A live key is not advertised unless live mode is deliberately enabled.
+  const envSecret = (process.env.STRIPE_SECRET_KEY || '').trim()
+  const envStripe = Boolean(envSecret)
+    && (process.env.STRIPE_ALLOW_LIVE === 'true' || !envSecret.includes('_live_'))
+  return {
+    stripe: envStripe || stored.stripe,
+    paypal: stored.paypal,
+  }
 }
 
 function mustDecrypt(label: string, stored: string | null | undefined): string {
@@ -64,6 +85,37 @@ function mustDecrypt(label: string, stored: string | null | undefined): string {
   }
   catch {
     throw createError({ statusCode: 503, statusMessage: `${label} misconfigured` })
+  }
+}
+
+export interface StripeConfig {
+  client: Stripe
+  publishableKey: string
+  webhookSecret: string | null
+}
+
+/**
+ * Stripe client from server env credentials (preferred) or encrypted settings.
+ * Throws 503 when not configured. Live keys are refused unless
+ * STRIPE_ALLOW_LIVE=true, because this integration is Sandbox-only.
+ */
+export async function getStripeConfig(): Promise<StripeConfig> {
+  const s = await getSiteSettings()
+  const envSecret = (process.env.STRIPE_SECRET_KEY || '').trim()
+  const storedSecret = s?.stripeSecretKey ? mustDecrypt('Stripe secret key', s.stripeSecretKey) : ''
+  const secretKey = envSecret || storedSecret
+  if (!secretKey) {
+    throw createError({ statusCode: 503, statusMessage: 'Stripe not configured' })
+  }
+  if (process.env.STRIPE_ALLOW_LIVE !== 'true' && secretKey.includes('_live_')) {
+    throw createError({ statusCode: 503, statusMessage: 'Stripe live keys are disabled; use Sandbox (test) credentials' })
+  }
+  const envWebhook = (process.env.STRIPE_WEBHOOK_SECRET || '').trim()
+  const storedWebhook = s?.stripeWebhookSecret ? mustDecrypt('Stripe webhook secret', s.stripeWebhookSecret) : null
+  return {
+    client: new Stripe(secretKey),
+    publishableKey: (process.env.STRIPE_PUBLISHABLE_KEY || s?.stripePublishableKey || '').trim(),
+    webhookSecret: envWebhook || storedWebhook,
   }
 }
 
@@ -161,7 +213,7 @@ function toConfirmBooking(b: {
 export interface PaymentProof {
   amountCents: number | null
   currency: string | null
-  /** PayPal capture id (persisted as Booking.providerPaymentId for refunds). */
+  /** Stripe PaymentIntent id or PayPal capture id (persisted as Booking.providerPaymentId for refunds). */
   paymentId?: string | null
 }
 
@@ -202,15 +254,16 @@ async function flagDuplicateCharge(
     url: `/admin/bookings/${bookingId}`,
     titleEn: `Duplicate payment needs review (${bookingNumber})`,
     titleAr: `Doppelte Zahlung erfordert Prüfung (${bookingNumber})`,
-    bodyEn: `A second verified PayPal charge arrived${orderRef ? ` (order ${orderRef})` : ''}${captureRef ? ` (capture ${captureRef})` : ''}. The booking was already paid; refund the duplicate manually.`,
-    bodyAr: `Eine zweite bestätigte PayPal-Zahlung ist eingegangen${orderRef ? ` (Bestellung ${orderRef})` : ''}${captureRef ? ` (Erfassung ${captureRef})` : ''}. Die Buchung war bereits bezahlt; bitte die doppelte Zahlung manuell erstatten.`,
+    bodyEn: `A second verified payment charge arrived${orderRef ? ` (order ${orderRef})` : ''}${captureRef ? ` (capture ${captureRef})` : ''}. The booking was already paid; refund the duplicate manually.`,
+    bodyAr: `Eine zweite bestätigte Zahlung ist eingegangen${orderRef ? ` (Bestellung ${orderRef})` : ''}${captureRef ? ` (Erfassung ${captureRef})` : ''}. Die Buchung war bereits bezahlt; bitte die doppelte Zahlung manuell erstatten.`,
   })
 }
 
 /**
- * Idempotent confirmation core shared by the PayPal return handler and the
- * PayPal webhook. Verified money is never silently ignored:
- * - replay on PAID with the same order/capture → already-paid (zero side effects)
+ * Idempotent confirmation core shared by the Stripe return/webhook handlers
+ * and the PayPal return/webhook handlers. Verified money is never silently
+ * ignored:
+ * - replay on PAID with the same charge reference → already-paid (zero side effects)
  * - a second, different order/capture on a PAID booking → flag-refund (evidence kept)
  * - non-PayPal provider → flag-refund (never confirm another provider's booking)
  * - amount/currency mismatch → flag-refund (recorded + admin notified, never confirmed)
@@ -219,14 +272,19 @@ async function flagDuplicateCharge(
  *   taken → money record kept (providerRef) + needsRefund + admin notified
  */
 export async function confirmBookingPaid(
-  bookingId: string, providerRef: string | null, proof: PaymentProof | null = null,
+  bookingId: string,
+  providerRef: string | null,
+  proof: PaymentProof | null = null,
+  expectedProvider: 'stripe' | 'paypal' | null = null,
 ): Promise<ConfirmResult> {
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } })
   if (!booking) return { decision: 'missing', booking: null }
-  // PayPal is the only supported online provider. Rows created before a pay
-  // attempt have an empty provider; a legacy non-PayPal (manual) booking
-  // must never be confirmed — or silently ignored — by a PayPal capture.
-  if (booking.paymentProvider && booking.paymentProvider !== 'paypal') {
+  // Rows created before a pay attempt have an empty provider. A manual booking
+  // or a callback from the other provider must never confirm this payment.
+  const provider = (booking.paymentProvider || '').toLowerCase()
+  const supported = provider === '' || provider === 'stripe' || provider === 'paypal'
+  const providerMismatch = Boolean(provider && expectedProvider && provider !== expectedProvider)
+  if (!supported || providerMismatch) {
     if (booking.paymentStatus === 'PAID') {
       await flagDuplicateCharge(booking.id, booking.bookingNumber, providerRef, proof?.paymentId || null)
     }

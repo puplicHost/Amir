@@ -1,8 +1,8 @@
-// Real deposit refunds via PayPal (Roadmap Phase 8).
+// Real deposit refunds via Stripe or PayPal (Roadmap Phase 8).
 // Every attempt carries an idempotency key so retries and webhook replays
 // never double-refund. Amounts never exceed deposit minus already-refunded.
 
-import { getPaypalConfig } from './booking-payments.ts'
+import { getPaypalConfig, getStripeConfig } from './booking-payments.ts'
 import { paypalAccessToken, paypalBase } from './paypal.ts'
 
 export interface RefundAttempt {
@@ -12,8 +12,9 @@ export interface RefundAttempt {
 }
 
 /**
- * Refund `amountCents` of a paid deposit back to the original PayPal capture.
- * Manual/cash or rows without a capture reference cannot be refunded
+ * Refund `amountCents` of a paid deposit back to the original method.
+ * Stripe: refunds.create on the PaymentIntent. PayPal: refund on the capture.
+ * Manual/cash or rows without a provider reference cannot be refunded
  * automatically and must be handled outside the system.
  */
 export async function refundDeposit(input: {
@@ -27,6 +28,23 @@ export async function refundDeposit(input: {
     return { ok: false, providerRef: null, error: 'Nothing to refund' }
   }
   try {
+    if (input.paymentProvider === 'stripe') {
+      if (!input.providerPaymentId) {
+        return { ok: false, providerRef: null, error: 'Missing Stripe payment reference' }
+      }
+      const stripe = await getStripeConfig()
+      const refund = await stripe.client.refunds.create(
+        {
+          payment_intent: input.providerPaymentId,
+          amount: input.amountCents,
+        },
+        { idempotencyKey: input.idempotencyKey },
+      )
+      if (refund.status === 'failed') {
+        return { ok: false, providerRef: refund.id, error: refund.failure_reason || 'Stripe refund failed' }
+      }
+      return { ok: true, providerRef: refund.id, error: null }
+    }
     if (input.paymentProvider === 'paypal') {
       if (!input.providerPaymentId) {
         return { ok: false, providerRef: null, error: 'Missing PayPal capture reference' }

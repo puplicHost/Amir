@@ -104,6 +104,6 @@ test('legacy staff-cancel state is never a valid target and unknown states are r
   assert.equal(isStatusTransitionAllowed('ASSIGNED', '', paid), false)
 })
 
-test('online payment provider catalog is PayPal-only', () => {
-  assert.deepEqual([...PAYMENT_PROVIDERS], ['paypal'])
+test('online payment provider catalog supports Stripe and PayPal', () => {
+  assert.deepEqual([...PAYMENT_PROVIDERS], ['stripe', 'paypal'])
 })

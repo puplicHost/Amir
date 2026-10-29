@@ -5,7 +5,7 @@
 **Project:** AMIR Frisur & Kosmetik Studio — German hair & beauty salon platform
 **Locations:** Peine & Salzgitter, Germany
 **Stack:** Nuxt 4, Nitro, Prisma, PostgreSQL 16, Tailwind CSS, Docker Compose,
-PayPal deposit payments, FCM push, transactional mail outbox.
+Stripe (test mode) + PayPal deposit payments, FCM push, transactional mail outbox.
 
 The application has two surfaces:
 
@@ -36,8 +36,9 @@ the updated code runs.
   booking reference plus emailed manage/pay tokens are the only customer
   credentials.
 - **Deposit model.** The salon defines a deposit percentage per service price.
-  Online payment is optional per booking; unpaid holds expire. PayPal is the
-  sole provider, verified server-side via capture + webhook.
+  Online payment is optional per booking; unpaid holds expire. Providers are
+  Stripe Checkout (test mode) and PayPal, verified server-side by session/capture
+  retrieval and signed webhooks.
 - **Status catalog.** `UNASSIGNED → ASSIGNED → COMPLETED` plus `CANCELLED`.
   `CANCELLED_BY_STAFF` is legacy-only and never written. Terminal states cannot
   be reassigned or completed; refunds are flagged, never auto-issued.
@@ -61,7 +62,7 @@ the updated code runs.
 |---|---|
 | Public site (home, services, products, about, contact, legal) | Implemented |
 | Guest booking, availability, holds, manage/cancel, pay links | Implemented |
-| PayPal deposits + webhooks | Implemented; sandbox verification pending |
+| Stripe + PayPal deposits + webhooks | Implemented; sandbox verification pending |
 | Admin appointments, calendar, schedule, team, absences | Implemented |
 | Catalogue, product media/documents, categories | Implemented |
 | Expenses, finance overview, CSV export | Implemented |

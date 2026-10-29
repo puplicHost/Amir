@@ -82,7 +82,7 @@ export async function cancelBookingAndRefund(input: {
 
   const reason = input.reason?.trim() || null
   const canAuto = amountToRefund > 0
-    && booking.paymentProvider === 'paypal'
+    && (booking.paymentProvider === 'stripe' || booking.paymentProvider === 'paypal')
     && Boolean((booking as any).providerPaymentId)
 
   // Guarded flip: exactly one concurrent canceller wins; losers replay.

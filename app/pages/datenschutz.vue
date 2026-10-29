@@ -62,8 +62,8 @@ useHead(() => ({
             </li>
             <li>
               {{ isDe
-                ? 'Zahlungsdaten: Die Zahlung wird über PayPal abgewickelt. Wir speichern keine vollständigen Kartendaten, sondern Referenzen und Statusinformationen.'
-                : 'Payment data: payment is processed via PayPal. We do not store full card data, only references and status information.' }}
+                ? 'Zahlungsdaten: Die Zahlung wird über den gewählten Anbieter (Stripe oder PayPal) abgewickelt. Wir speichern keine vollständigen Kartendaten, sondern Referenzen und Statusinformationen.'
+                : 'Payment data: payment is processed by the selected provider (Stripe or PayPal). We do not store full card data, only references and status information.' }}
             </li>
             <li>
               {{ isDe
@@ -120,8 +120,8 @@ useHead(() => ({
           </dl>
           <p class="mt-3">
             {{ isDe
-              ? 'Zahlungsanbieter: PayPal, soweit im Buchungsprozess genutzt. E-Mail-Versand: der im System konfigurierte Versanddienstleister. Metadaten-/Analyseanbieter: Meta Platforms, soweit Sie Marketing-Cookies zugestimmt haben.'
-              : 'Payment provider: PayPal where used during booking. Email delivery: the provider configured in the system. Metadata/analytics: Meta Platforms where you consented to marketing cookies.' }}
+              ? 'Zahlungsanbieter: Stripe und PayPal, soweit im Buchungsprozess genutzt. E-Mail-Versand: der im System konfigurierte Versanddienstleister. Metadaten-/Analyseanbieter: Meta Platforms, soweit Sie Marketing-Cookies zugestimmt haben.'
+              : 'Payment providers: Stripe and PayPal where used during booking. Email delivery: the provider configured in the system. Metadata/analytics: Meta Platforms where you consented to marketing cookies.' }}
           </p>
           <p class="mt-2 text-muted">
             {{ isDe

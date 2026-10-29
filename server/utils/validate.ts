@@ -222,6 +222,10 @@ export const staffUnavailableSchema = z.object({
 
 // ── Salon booking/payment settings (Phase 2b) ──
 export const paymentSettingsSchema = z.object({
+  stripeEnabled: z.boolean().optional(),
+  stripePublishableKey: z.string().trim().max(200).nullable().optional(),
+  stripeSecretKey: z.string().trim().max(500).nullable().optional(),
+  stripeWebhookSecret: z.string().trim().max(500).nullable().optional(),
   paypalEnabled: z.boolean().optional(),
   paypalClientId: z.string().trim().max(200).nullable().optional(),
   paypalSecret: z.string().trim().max(500).nullable().optional(),

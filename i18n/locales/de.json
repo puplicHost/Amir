@@ -170,6 +170,7 @@
     "paidBookings": "Bezahlte Buchungen",
     "users": "Benutzer",
     "settings": "Einstellungen",
+    "settingsDescription": "Marke, Kontakt, Buchung, Zahlungen, Kommunikation und Kontosicherheit.",
     "logout": "Abmelden",
     "notifications": "Benachrichtigungen",
     "activity": "Aktivität",
@@ -261,7 +262,8 @@
     "banners": "Banner",
     "noAccess": "Sie haben keine Berechtigung für diesen Bereich.",
     "teamUsers": "Team & Benutzer",
-    "account": "Konto & Sicherheit"
+    "account": "Konto & Sicherheit",
+    "accountDescription": "Profil, Passwort und angemeldete Geräte verwalten."
   },
   "common": {
     "toggleTheme": "Farbmodus umschalten",
@@ -338,11 +340,14 @@
     "saturday": "Samstag"
   },
   "payment": {
-    "title": "Zahlungsmethode",
-    "description": "PayPal-Zahlung für die 50 % Anzahlung. PayPal benötigt Zugangsdaten und muss aktiviert sein.",
+    "title": "Zahlungsmethoden",
+    "description": "Stripe- (Testmodus) und PayPal-Zahlung für die 50 % Anzahlung. Jedes Gateway benötigt Zugangsdaten und muss aktiviert sein.",
+    "stripe": "Stripe",
     "paypal": "PayPal",
     "enabled": "Aktiviert",
+    "publishableKey": "Publishable Key",
     "secretKey": "Secret Key",
+    "webhookSecret": "Webhook Secret",
     "clientId": "Client-ID",
     "webhookId": "Webhook-ID",
     "mode": "Modus",
@@ -351,7 +356,7 @@
     "saved": "Zahlungseinstellungen gespeichert.",
     "stored": "Gespeichert (verschlüsselt). Leer lassen, um beizubehalten.",
     "notStored": "Noch kein Schlüssel hinterlegt.",
-    "bothOff": "PayPal ist deaktiviert: Online-Buchungen sind gesperrt, bis PayPal aktiviert wird."
+    "bothOff": "Beide Zahlungsanbieter sind deaktiviert: Online-Buchungen sind gesperrt, bis mindestens einer aktiviert wird."
   },
   "salon": {
     "title": "Studio & Buchung",
@@ -408,7 +413,15 @@
     "createBooking": "Buchung anlegen",
     "copy": "Kopieren",
     "notifyCustomer": "Kunden informieren",
-    "date": "Datum"
+    "date": "Datum",
+    "today": "Heute",
+    "monthSummary": "Termine in diesem Monat: {count}",
+    "monthEmpty": "Keine Termine in diesem Monat.",
+    "dayAriaCount": "Termine: {count}",
+    "refundReview": "Erstattung prüfen",
+    "loadError": "Der Kalender konnte nicht geladen werden.",
+    "retry": "Erneut laden",
+    "monthHint": "Tag auswählen, um den Tagesplan zu öffnen."
   },
   "mail": {
     "title": "Kunden-E-Mails",
@@ -476,6 +489,7 @@
     "note": "Hinweise an unser Team (optional)",
     "depositDue": "Fällige Anzahlung (50 %)",
     "payWith": "Anzahlung leisten mit",
+    "stripe": "Kredit- / Debitkarte (Stripe)",
     "paypal": "PayPal",
     "continueToPay": "Weiter zur Zahlung",
     "blocked": "Die Online-Terminbuchung ist derzeit nicht verfügbar. Bitte kontaktieren Sie uns direkt telefonisch.",

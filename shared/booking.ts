@@ -6,7 +6,7 @@
 export const SERVICE_SECTIONS = ['DAMEN', 'HERREN', 'KINDER', 'KOSMETIK'] as const
 export type ServiceSection = (typeof SERVICE_SECTIONS)[number]
 
-export const PAYMENT_PROVIDERS = ['paypal'] as const
+export const PAYMENT_PROVIDERS = ['stripe', 'paypal'] as const
 export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number]
 
 export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] as const

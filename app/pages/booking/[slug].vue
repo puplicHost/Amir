@@ -47,7 +47,7 @@ const creating = ref(false)
 const paying = ref(false)
 const createdToken = ref('')
 const depositCents = ref(0)
-const gateways = ref({ paypal: false })
+const gateways = ref({ stripe: false, paypal: false })
 const currency = ref('EUR')
 // AUDIT P2-04/P2-05: salon-local calendar day and explicit zone from the
 // server. A UTC ISO slice would default to the previous day before ~02:00.
@@ -148,7 +148,7 @@ function slotDay(iso: string): string {
   }, locale.value)
 }
 
-async function payFor(token: string) {
+async function payFor(token: string, provider: 'stripe' | 'paypal') {
   paying.value = true
   trackInitiateCheckout({
     value: depositCents.value ? depositCents.value / 100 : undefined,
@@ -157,7 +157,7 @@ async function payFor(token: string) {
   try {
     const res = await $fetch<{ redirectUrl: string }>(`/api/bookings/${token}/pay`, {
       method: 'POST',
-      body: { provider: 'paypal' },
+      body: { provider },
     })
     if (!res.redirectUrl) throw new Error('no redirect')
     await navigateTo(res.redirectUrl, { external: true })
@@ -220,7 +220,7 @@ async function createBooking() {
       token: string
       depositCents: number
       currency: string
-      gateways: { paypal: boolean }
+      gateways: { stripe: boolean, paypal: boolean }
     }>('/api/bookings', {
       method: 'POST',
       body: {
@@ -456,17 +456,27 @@ async function createBooking() {
       </button>
     </section>
 
-    <!-- Deposit disclosure + PayPal checkout (UX-01: always shown before redirect) -->
-    <section v-if="createdToken && gateways.paypal" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
+    <!-- Deposit disclosure + provider checkout (UX-01: always shown before redirect) -->
+    <section v-if="createdToken && (gateways.stripe || gateways.paypal)" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
       <h2 class="font-heading text-base font-bold text-text mb-2">{{ t('booking.payWith') }}</h2>
       <p class="mb-1 text-sm font-bold text-text">{{ t('booking.depositDue') }}: {{ centsToEur(depositCents) }}</p>
       <p class="mb-4 text-xs text-muted">{{ t('booking.depositNote', { amount: centsToEur(depositCents) }) }}</p>
       <div class="flex flex-wrap gap-3">
         <button
+          v-if="gateways.stripe"
+          type="button"
+          :disabled="paying"
+          class="inline-flex h-11 items-center rounded-xl bg-accent px-6 text-sm font-bold text-on-accent hover:bg-accent-hover active:scale-95 transition disabled:opacity-50"
+          @click="payFor(createdToken, 'stripe')"
+        >
+          {{ t('booking.stripe') }}
+        </button>
+        <button
+          v-if="gateways.paypal"
           type="button"
           :disabled="paying"
           class="inline-flex h-11 items-center rounded-xl border border-border bg-white px-6 text-sm font-bold text-text hover:bg-border/40 active:scale-95 transition disabled:opacity-50 dark:bg-[#0B1520]"
-          @click="payFor(createdToken)"
+          @click="payFor(createdToken, 'paypal')"
         >
           {{ t('booking.paypal') }}
         </button>
@@ -474,7 +484,7 @@ async function createBooking() {
     </section>
 
     <!-- No gateway -->
-    <section v-if="createdToken && !gateways.paypal" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-900 dark:border-yellow-900/40 dark:bg-yellow-950/20 dark:text-yellow-200">
+    <section v-if="createdToken && !gateways.stripe && !gateways.paypal" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-900 dark:border-yellow-900/40 dark:bg-yellow-950/20 dark:text-yellow-200">
       {{ t('booking.blocked') }}
     </section>
   </div>

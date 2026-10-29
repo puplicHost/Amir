@@ -4,6 +4,8 @@
 **Authoritative audit:** `Docs/FULL-WEBSITE-AUDIT.md` — 52 findings (P0: 0, P1: 6, P2: 16, P3: 18, INFO: 12)
 **Status:** Implemented in source; migration unexecuted; runtime unverified.
 **Migration:** `prisma/migrations/20261028120000_audit_remediation/migration.sql` (prepared, not applied)
+> **Update 2026-10-29:** Stripe was reintroduced as a Sandbox provider alongside PayPal. See `Docs/STRIPE-INTEGRATION.md`. Statements below that describe PayPal as the sole provider reflect the earlier remediation baseline.
+
 **Git constraint:** No `.git` access of any kind; historical dump/storage exposure documented, not purged.
 
 ---
