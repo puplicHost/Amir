@@ -1,55 +1,76 @@
-name: CI
 
-# AUDIT P2-10: automated guard for pure booking/timezone/formatting logic plus a
-# production build. Lint, vue-tsc typecheck and Playwright E2E are intentionally
-# NOT wired yet: they require new devDependencies and a lockfile update, which
-# must be done by an operator with registry access. See
-# Docs/FULL-WEBSITE-REMEDIATION.md (P2-10) for the remaining steps.
+name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-  pull_request:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: deploy-amir
+  cancel-in-progress: false
 
 jobs:
-  test-and-build:
+  deploy:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      # Build-time placeholders only; no database or external service is contacted.
-      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
-      NUXT_SESSION_PASSWORD: ci-session-password-at-least-32-characters
-      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
-      NUXT_PUBLIC_SITE_URL: https://example.test
-      NUXT_PUBLIC_LEGAL_REVIEWED: 'false'
     steps:
-      - name: Checkout
+      - name: Checkout tested commit
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: npm
+          ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund --legacy-peer-deps
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Validate Prisma schema
-        run: npx prisma validate
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate Prisma client
-        run: npx prisma generate
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/puplichost/amir:latest
+            ghcr.io/puplichost/amir:${{ github.event.workflow_run.head_sha }}
+          build-args: |
+            NUXT_PUBLIC_LAUNCH_MODE=false
 
-      - name: Unit tests (pure logic)
-        run: npm test
+      - name: Deploy on EC2
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
-      - name: Production build
-        run: npm run build
+          ssh -i ~/.ssh/deploy_key \
+            -o IdentitiesOnly=yes \
+            "$SSH_USER@$SSH_HOST" \
+            'cd /opt/projects/al-amir/Amir &&
+             docker compose pull app migrate &&
+             docker compose up -d db &&
+             docker compose run --rm migrate &&
+             docker compose up -d --no-build --force-recreate app'

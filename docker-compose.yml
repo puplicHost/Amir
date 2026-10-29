@@ -28,10 +28,7 @@ services:
   # AUDIT P2-14: one-shot migration job. Runs once, must succeed before the app
   # starts. Take/verify a backup before running this in production.
   migrate:
-    build:
-      context: .
-      args:
-        NUXT_PUBLIC_LAUNCH_MODE: ${NUXT_PUBLIC_LAUNCH_MODE:-false}
+    image: ghcr.io/puplichost/amir:latest
     container_name: amir-migrate
     restart: "no"
     env_file: .env
@@ -46,23 +43,17 @@ services:
       - internal
 
   app:
-    build:
-      context: .
-      args:
-        # Build-time by design: changing this requires rebuilding the image.
-        NUXT_PUBLIC_LAUNCH_MODE: ${NUXT_PUBLIC_LAUNCH_MODE:-false}
+    image: ghcr.io/puplichost/amir:latest
     container_name: amir-app
     restart: unless-stopped
     env_file: .env
     environment:
-      # Inside Compose the db is reachable by service hostname. The URL must be
-      # URL-encoded if the password contains reserved characters.
       DATABASE_URL: "postgresql://${POSTGRES_USER:-amir}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-amir}?schema=public"
-      NODE_ENV: production
+      NODE_ENV: development
       NITRO_PORT: "3000"
       NITRO_HOST: "0.0.0.0"
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -78,8 +69,6 @@ services:
       - app-storage:/app/storage
     networks:
       - internal
-      - proxy
-
 volumes:
   # Fresh data volume for the amir database. The previous volume
   # (me-project_pgdata, holding mango_electronics_db) is intentionally NOT
