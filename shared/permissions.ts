@@ -18,6 +18,8 @@ export const PERMISSION_GROUPS = {
   categories: ['categories.manage'],
   inbox: ['inbox.manage'],
   banners: ['banners.manage'],
+  // settings.meta is kept for legacy role rows; marketing configuration is
+  // now Super-Admin only and no longer exposed through this permission.
   settings: ['settings.business', 'settings.payment', 'settings.meta'],
   users: ['users.manage'],
   notifications: ['notifications.view'],

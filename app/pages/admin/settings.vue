@@ -4,7 +4,6 @@ import {
   CreditCard,
   Globe,
   Mail,
-  Megaphone,
   Newspaper,
   Phone,
   ShieldCheck,
@@ -20,16 +19,16 @@ definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const localePath = useLocalePath()
 const settingsDirty = useSettingsDirtyFlag()
 
 const canBusiness = useAdminCan('settings.business')
 const canPayment = useAdminCan('settings.payment')
-const canMeta = useAdminCan('settings.meta')
 const canBanners = useAdminCan('banners.manage')
 
-type TabKey = 'general' | 'contact' | 'seo' | 'store' | 'payment' | 'booking' | 'mail' | 'meta' | 'website' | 'account'
+type TabKey = 'general' | 'contact' | 'seo' | 'store' | 'payment' | 'booking' | 'mail' | 'website' | 'account'
 
-type SettingsPermission = 'settings.business' | 'settings.payment' | 'settings.meta' | 'banners.manage'
+type SettingsPermission = 'settings.business' | 'settings.payment' | 'banners.manage'
 
 interface SettingsTab {
   id: TabKey
@@ -42,7 +41,6 @@ interface SettingsTab {
 const permissionGranted = computed<Record<SettingsPermission, boolean>>(() => ({
   'settings.business': canBusiness.value,
   'settings.payment': canPayment.value,
-  'settings.meta': canMeta.value,
   'banners.manage': canBanners.value,
 }))
 
@@ -54,7 +52,6 @@ const ALL_TABS = computed<SettingsTab[]>(() => [
   { id: 'payment', label: t('payment.title'), icon: CreditCard, permissions: ['settings.payment'] },
   { id: 'booking', label: t('salon.title'), icon: Building2, permissions: ['settings.business'] },
   { id: 'mail', label: t('mail.title'), icon: Mail, permissions: ['settings.business'] },
-  { id: 'meta', label: locale.value === 'ar' ? 'تكامل ميتا' : 'Meta Integration', icon: Megaphone, permissions: ['settings.meta'] },
   { id: 'website', label: t('admin.websiteSettings'), icon: Newspaper, permissions: ['banners.manage', 'settings.business'] },
   { id: 'account', label: t('admin.account'), icon: ShieldCheck, separatorBefore: true },
 ].filter(tab => !tab.permissions || tab.permissions.some(p => permissionGranted.value[p])))
@@ -75,6 +72,11 @@ const { confirm: confirmDialog } = useAdminConfirm()
 // allowed section. The old "announcements" tab now lives in Website & Banners.
 watch([requestedTab, allowedTabs], () => {
   if (!import.meta.client) return
+  // Meta tracking now lives on the dedicated Super-Admin marketing page.
+  if (requestedTab.value === 'meta') {
+    router.replace(localePath('/admin/marketing'))
+    return
+  }
   if (requestedTab.value === 'announcements') {
     if (allowedTabs.value.includes('website')) {
       router.replace({ path: route.path, query: { ...route.query, tab: 'website' } })
@@ -144,9 +146,6 @@ async function switchTab(id: string) {
       </div>
       <div v-else-if="activeTab === 'mail'" id="settings-panel-mail" role="tabpanel" aria-labelledby="settings-tab-mail">
         <AdminSettingsMail />
-      </div>
-      <div v-else-if="activeTab === 'meta'" id="settings-panel-meta" role="tabpanel" aria-labelledby="settings-tab-meta">
-        <AdminSettingsMeta />
       </div>
       <div v-else-if="activeTab === 'website'" id="settings-panel-website" role="tabpanel" aria-labelledby="settings-tab-website">
         <AdminSettingsWebsite />

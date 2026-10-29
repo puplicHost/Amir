@@ -8,6 +8,7 @@ import { refundDeposit } from './refunds.ts'
 import { notifyAdmins, notifyUser } from './admin-notifications.ts'
 import { queueCancelMails } from './outbox.ts'
 import { getSiteSettings } from './site-settings.ts'
+import { dispatchBookingMarketingEvent } from './marketing/dispatch.ts'
 
 export type CancelBy = 'CUSTOMER' | 'ADMIN' | 'STAFF'
 export type RefundMode = 'auto' | 'full' | 'none' | 'custom' | 'outside'
@@ -211,6 +212,10 @@ export async function cancelBookingAndRefund(input: {
     refundedCents: refundStatus === 'SUCCEEDED' ? refundedCents : 0,
     currency: (settings as any)?.defaultCurrency || 'EUR',
   })
+
+  // Marketing cancellation events are off by default and never block the
+  // cancellation response. The dispatcher enforces consent and dedupe.
+  void dispatchBookingMarketingEvent('BookingCancelled', booking.id).catch(() => null)
 
   return { alreadyCancelled: false, bookingId: booking.id, refundStatus, refundedCents }
 }

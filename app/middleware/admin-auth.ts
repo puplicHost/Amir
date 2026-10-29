@@ -16,6 +16,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo({ path: localePath('/admin/appointments'), query: { tab: 'my-bookings' } })
   }
 
+  // Super-Admin-only pages (marketing integration testing/configuration).
+  if (to.meta.superAdminOnly && !isSuper) {
+    return navigateTo(isStaffOnly
+      ? { path: localePath('/admin/appointments'), query: { tab: 'my-bookings' } }
+      : localePath('/admin'))
+  }
+
   // Route-level permission gate: pages declare the exact permission they need
   // via `definePageMeta({ requiredPermission: 'products.manage' })`.
   // This is defense-in-depth alongside button visibility + API enforcement.

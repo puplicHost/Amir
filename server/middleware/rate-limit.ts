@@ -19,6 +19,8 @@ const RULES: RateRule[] = [
   { key: 'mail-test', method: 'POST', match: p => p === '/api/admin/settings/mail-test', limit: 5, windowSec: 60 },
   { key: 'manage-cancel', method: 'POST', match: p => p.startsWith('/api/bookings/manage/') && p.endsWith('/cancel'), limit: 10, windowSec: 60 },
   { key: 'expenses-export', method: 'GET', match: p => p === '/api/admin/expenses/export', limit: 10, windowSec: 60 },
+  { key: 'marketing-test', method: 'POST', match: p => p.startsWith('/api/admin/marketing/') && p.endsWith('/test'), limit: 10, windowSec: 60 },
+  { key: 'marketing-save', method: 'PUT', match: p => p.startsWith('/api/admin/marketing/'), limit: 30, windowSec: 60 },
 ]
 
 export default defineEventHandler(async (event) => {

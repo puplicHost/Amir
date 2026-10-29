@@ -156,7 +156,6 @@ const RESOURCE_DEFS: ResourceDef[] = [
     actions: [
       { key: 'business', en: 'Salon & Business', ar: 'إعدادات الصالون', permission: 'settings.business' },
       { key: 'payment', en: 'Payment Gateways', ar: 'بوابات الدفع', permission: 'settings.payment' },
-      { key: 'meta', en: 'Meta Pixel & CAPI', ar: 'تكامل ميتا', permission: 'settings.meta' },
     ],
   },
   {

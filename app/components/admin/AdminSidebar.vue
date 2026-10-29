@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  Megaphone,
   Package,
   Receipt,
   Scissors,
@@ -43,14 +44,14 @@ const canScheduleManage = useAdminCan('schedule.manage')
 const canUsersManage = useAdminCan('users.manage')
 const canSettingsBusiness = useAdminCan('settings.business')
 const canSettingsPayment = useAdminCan('settings.payment')
-const canSettingsMeta = useAdminCan('settings.meta')
 const canBannersManage = useAdminCan('banners.manage')
 const canInboxManage = useAdminCan('inbox.manage')
 const canExpensesView = useAdminCan('expenses.view')
 const canRefunds = useAdminCan(['bookings.refund_handle', 'bookings.refund_issue'])
 
 const canDashboard = computed(() => canBookingsViewAll.value || canServicesManage.value || canProductsManage.value || Boolean(data.value?.user?.isSuper))
-const canSettings = computed(() => canSettingsBusiness.value || canSettingsPayment.value || canSettingsMeta.value || canBannersManage.value || Boolean(data.value?.user?.isSuper))
+const canSettings = computed(() => canSettingsBusiness.value || canSettingsPayment.value || canBannersManage.value || Boolean(data.value?.user?.isSuper))
+const isSuperAdmin = computed(() => Boolean(data.value?.user?.isSuper))
 
 const { data: headerData } = useAdminHeader()
 
@@ -69,6 +70,7 @@ const items = computed<SidebarItem[]>(() => [
   { label: t('admin.catalog'), to: '/admin/catalog', icon: Package, show: canProductsView.value || canCategoriesManage.value },
   { label: t('admin.finance'), to: '/admin/finance', icon: Receipt, show: canExpensesView.value || canRefunds.value },
   { label: t('admin.website'), to: '/admin/website', icon: Mail, show: canInboxManage.value || canBannersManage.value, badge: canInboxManage.value ? (headerData.value?.inbox?.unreadCount || 0) : 0 },
+  { label: t('admin.marketing'), to: '/admin/marketing', icon: Megaphone, show: isSuperAdmin.value },
   { label: t('admin.settings'), to: '/admin/settings', icon: Settings, show: canSettings.value },
   { label: t('admin.account'), to: '/admin/account', icon: UserCog, show: true },
 ])

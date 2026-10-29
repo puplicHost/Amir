@@ -4,7 +4,7 @@
 import Stripe from 'stripe'
 import { decryptData } from './encryption.ts'
 import { decideConfirmation, isExpectedAmount } from './booking-confirm.ts'
-import { sendMetaCapiEvent } from './meta-capi.ts'
+import { dispatchBookingMarketingEvent } from './marketing/dispatch.ts'
 import { notifyAdmins, notifyUser } from './admin-notifications.ts'
 import { queueBookingMail } from './outbox.ts'
 import { overlaps, tzDayStr } from './booking-slots.ts'
@@ -504,22 +504,19 @@ export async function finalizePaidBooking(input: {
     })
     if (!booking) return
 
-    // Meta CAPI is gated on explicit marketing consent: without it we send no
-    // server-side Purchase event and no (hashed) customer identifiers.
-    if (booking.marketingConsent) {
-      await sendMetaCapiEvent({
-        eventName: 'Purchase',
-        eventId: purchaseEventId(booking.id),
+    // Server-side conversions are dispatched only after the booking has been
+    // authoritatively confirmed. Start them alongside the notification/mail
+    // work; awaiting the promise at the end keeps delivery tracked by the
+    // caller's event.waitUntil() without delaying payment acknowledgement.
+    const marketingDelivery = Promise.all([
+      dispatchBookingMarketingEvent('BookingConfirmed', booking.id),
+      dispatchBookingMarketingEvent('DepositPaid', booking.id, {
         value: input.depositCents / 100,
         currency: input.currency,
-        email: booking.customerEmail,
-        phone: booking.customerPhone,
-        fbp: booking.fbp,
-        fbc: booking.fbc,
-        clientIp: (booking as any).metaClientIp,
-        clientUa: (booking as any).metaClientUa,
-      })
-    }
+      }),
+    ]).catch((e) => {
+      console.warn('[marketing] finalize dispatch failed:', (e as Error)?.message || e)
+    })
 
     const dtSalon = new Date(booking.startsAt).toLocaleString('de-DE', {
       timeZone: (await getSiteSettings())?.timezone || 'Europe/Berlin',
@@ -553,6 +550,7 @@ export async function finalizePaidBooking(input: {
     // Roadmap Phase 7: customer confirmation mail (deduplicated outbox;
     // skipped silently when the guest left no email).
     await queueBookingMail(booking.id, 'booking_confirmed')
+    await marketingDelivery
   }
   catch (e) {
     console.warn('[booking] finalize side effects failed:', (e as Error)?.message || e)

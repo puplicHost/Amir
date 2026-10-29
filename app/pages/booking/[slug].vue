@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const slug = String(route.params.slug)
 const { hasMarketingConsent, getMetaCookie } = useCookieConsent()
-const { trackViewContent, trackInitiateCheckout } = useMetaEvents()
+const { trackViewContent, trackBookingStarted, trackInitiateCheckout } = useMetaEvents()
 
 const { data: service, error } = await useAsyncData(`booking-service-${slug}`, () =>
   $fetch<any>(`/api/services/${slug}`),
@@ -153,7 +153,7 @@ async function payFor(token: string, provider: 'stripe' | 'paypal') {
   trackInitiateCheckout({
     value: depositCents.value ? depositCents.value / 100 : undefined,
     currency: currency.value,
-  })
+  }, `booking-started-${token}`)
   try {
     const res = await $fetch<{ redirectUrl: string }>(`/api/bookings/${token}/pay`, {
       method: 'POST',
@@ -245,6 +245,14 @@ async function createBooking() {
     depositCents.value = res.depositCents
     currency.value = res.currency
     gateways.value = res.gateways
+    // The booking now exists server-side and the authoritative deposit amount
+    // is known. Stable per booking token so retries cannot duplicate the event.
+    trackBookingStarted({
+      content_name: serviceDisplayName.value || service.value?.name,
+      content_category: service.value?.section,
+      value: res.depositCents / 100,
+      currency: res.currency,
+    }, `booking-started-${res.token}`)
     // UX-01: never auto-redirect. The deposit is disclosed and the customer
     // explicitly chooses how to pay (even when a single gateway is enabled).
   }

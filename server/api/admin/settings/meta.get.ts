@@ -1,9 +1,9 @@
-import { requirePermission } from '../../../utils/auth'
+import { requireSuperAdmin } from '../../../utils/auth'
 import { getSiteSettings } from '../../../utils/site-settings'
 
 // Returns Meta config with the access token masked (never raw).
 export default defineEventHandler(async (event) => {
-  await requirePermission(event, 'settings.meta')
+  await requireSuperAdmin(event)
   const settings = await getSiteSettings()
   const config = useRuntimeConfig(event).public as Record<string, string>
 

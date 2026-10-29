@@ -29,10 +29,21 @@ export function useCookieConsent() {
     return Boolean(isDecided.value && cookie.value?.marketing)
   })
 
-  function removeMetaCookies() {
+  /**
+   * Clear cookies set by advertising pixels. Extended beyond Meta so consent
+   * withdrawal also removes TikTok/Snapchat/Pinterest/Google advertising
+   * identifiers where those providers stored them on this origin.
+   */
+  function removeMarketingCookies() {
     if (import.meta.client) {
       const domains = [window.location.hostname, `.${window.location.hostname}`]
-      const cookieNames = ['_fbp', '_fbc']
+      const cookieNames = [
+        '_fbp', '_fbc',
+        '_ttp', 'ttclid',
+        '_scid', '_scid_r',
+        '_pin_unauth', '_pinterest_ct_ua', '_epik',
+        '_gcl_au', 'gclid',
+      ]
       for (const name of cookieNames) {
         for (const domain of domains) {
           document.cookie = `${name}=; Max-Age=0; path=/; domain=${domain}`
@@ -40,6 +51,11 @@ export function useCookieConsent() {
         document.cookie = `${name}=; Max-Age=0; path=/`
       }
     }
+  }
+
+  /** Backwards-compatible alias used by existing Meta pixel code. */
+  function removeMetaCookies() {
+    removeMarketingCookies()
   }
 
   function setConsent(marketing: boolean) {
@@ -54,7 +70,7 @@ export function useCookieConsent() {
     settingsModalOpen.value = false
 
     if (!marketing) {
-      removeMetaCookies()
+      removeMarketingCookies()
       if (import.meta.client) {
         const w = window as any
         if (w.fbq) {
@@ -62,9 +78,8 @@ export function useCookieConsent() {
             w.fbq('consent', 'revoke')
           }
           catch {}
-          delete w.fbq
-          delete w._fbq
         }
+        window.dispatchEvent(new CustomEvent('amir:marketing-consent-revoked'))
       }
     }
     else if (import.meta.client) {
@@ -113,6 +128,7 @@ export function useCookieConsent() {
     openSettings,
     closeSettings,
     removeMetaCookies,
+    removeMarketingCookies,
     getMetaCookie,
   }
 }

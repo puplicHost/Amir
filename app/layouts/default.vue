@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// Meta Pixel bootstrap (public layout only — never in the admin panel).
-// Blocking (not lazy) so the snippet is present in SSR <head>, matching
-// Meta's "paste in <head> of every page" requirement. Endpoint is cached.
+// Public marketing pixels (Meta, Google Ads, TikTok, Snapchat, Pinterest).
+// The endpoint is cached and returns only public IDs/options; provider scripts
+// are injected client-side by AppMarketingPixels after marketing consent.
 const route = useRoute()
-const { data: metaPublic } = await useAsyncData('meta-pixel-public', () =>
-  $fetch<{ enabled: boolean, pixelId: string | null }>('/api/settings/meta-public'),
+const { data: marketingPublic } = await useAsyncData('marketing-public-config', () =>
+  $fetch<{ platforms: Record<string, { id: string, events: Record<string, boolean>, options?: Record<string, string> }> }>('/api/marketing/public-config')
+    .catch(() => ({ platforms: {} })),
 )
 // The admin login page also uses the default layout — exclude it explicitly.
 const isAdminRoute = computed(() =>
@@ -14,7 +15,7 @@ const isAdminRoute = computed(() =>
 
 <template>
   <div class="min-h-screen">
-    <AppMetaPixel v-if="!isAdminRoute && metaPublic?.enabled && metaPublic?.pixelId" :pixel-id="metaPublic.pixelId" />
+    <AppMarketingPixels v-if="!isAdminRoute" :platforms="marketingPublic?.platforms || {}" />
     <!-- Top Announcement Bar (Change 11 & 12) -->
     <AppAnnouncementBar v-if="!isAdminRoute" />
     <AppNavbar />

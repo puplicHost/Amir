@@ -10,7 +10,7 @@
     "postinstall": "nuxt prepare",
     "seed": "node prisma/seed.mjs",
     "seed:admin": "node prisma/seed-admin.mjs",
-    "test": "node --test tests/booking-domain.test.ts tests/booking-slots.test.ts tests/content.test.ts tests/format.test.ts tests/booking-confirm.test.ts"
+    "test": "node --test tests/booking-domain.test.ts tests/booking-slots.test.ts tests/content.test.ts tests/format.test.ts tests/booking-confirm.test.ts tests/marketing.test.ts"
   },
   "engines": {
     "node": ">=22.18"

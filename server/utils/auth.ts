@@ -169,6 +169,15 @@ export async function requirePermission(event: H3Event, permission: string | str
   return user
 }
 
+/** Marketing configuration and testing are restricted to Super Admins. */
+export async function requireSuperAdmin(event: H3Event): Promise<SessionUser> {
+  const user = await requireAuth(event)
+  if (!user.isSuper) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+  return user
+}
+
 export async function createSession(event: H3Event, user: SessionUser): Promise<void> {
   // AUDIT P2-08: a random bearer token is sealed in the cookie; only its hash
   // is persisted. Every request verifies the row and the token.

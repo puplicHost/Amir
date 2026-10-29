@@ -16,6 +16,7 @@ import { localizedText } from '../../utils/content.ts'
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
+const { trackViewProduct } = useMetaEvents()
 const route = useRoute()
 const slug = String(route.params.slug)
 
@@ -61,6 +62,19 @@ const copied = ref(false)
 const siteUrl = useSiteUrl()
 
 const pageUrl = computed(() => `${siteUrl}/p/${p.value.slug}`)
+
+onMounted(() => {
+  const product = p.value
+  if (!product) return
+  const price = Number(product.price)
+  trackViewProduct({
+    content_name: name.value,
+    content_category: categoryName.value,
+    content_ids: [product.slug],
+    content_type: 'product',
+    ...(Number.isFinite(price) ? { value: price, currency: 'EUR' } : {}),
+  })
+})
 
 useHead(() => ({
   script: [

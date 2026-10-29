@@ -52,7 +52,7 @@ const { data, pending, refresh } = await useAsyncData<DashboardResponse>(
 const canProductsView = useAdminCan('products.view')
 const canServicesView = useAdminCan('services.manage')
 const canCategoriesManage = useAdminCan('categories.manage')
-const canSettingsView = useAdminCan(['settings.business', 'settings.payment', 'settings.meta', 'banners.manage'])
+const canSettingsView = useAdminCan(['settings.business', 'settings.payment', 'banners.manage'])
 const canRefunds = useAdminCan(['bookings.refund_handle', 'bookings.refund_issue'])
 const canTeamView = useAdminCan(['users.manage', 'schedule.manage'])
 

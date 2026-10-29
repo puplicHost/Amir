@@ -734,3 +734,42 @@ model RateLimitBucket {
 
   @@index([expiresAt])
 }
+
+// ─── Marketing & tracking integrations ───────────────────────
+// Per-platform configuration. Non-secret settings live in `config`; secret
+// values are AES-256-GCM encrypted strings inside `secrets` and are never
+// returned by read APIs. Meta legacy columns in SiteSettings remain the
+// source of truth for Meta and are preserved.
+model MarketingIntegration {
+  id             String    @id @default(cuid())
+  platform       String    @unique
+  enabled        Boolean   @default(false)
+  config         Json?
+  secrets        Json?
+  status         String    @default("NOT_CONFIGURED") // NOT_CONFIGURED | INCOMPLETE | UNVERIFIED | VERIFIED | DISABLED | ERROR
+  lastVerifiedAt DateTime?
+  lastError      String?   @db.Text
+  lastErrorAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([enabled])
+}
+
+// Bounded delivery diagnostics and server-side dedupe. No customer PII or
+// access tokens are stored here; only platform, event name/id, status and a
+// sanitized error.
+model MarketingDelivery {
+  id           String   @id @default(cuid())
+  platform     String
+  eventName    String
+  eventId      String
+  status       String   @default("SENT") // PENDING (claimed) | SENT | FAILED | SKIPPED
+  responseCode Int?
+  error        String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  @@unique([platform, eventName, eventId])
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
