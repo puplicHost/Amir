@@ -32,3 +32,6 @@ backups/
 
 # User-uploaded / generated media (runtime content, not source)
 storage/
+
+# Prisma migrations must be tracked
+!prisma/migrations/**/*.sql
