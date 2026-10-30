@@ -8,7 +8,7 @@
 > `/admin/team` (tabs `?tab=users` / `?tab=staff`).
 
 ## Overview
-This document maps every page, view, component, action, and API endpoint in the Amir Admin Panel (`/admin`). The admin panel is a private, role-based single-page application built with Nuxt 4, Vue 3, Tailwind CSS, and Prisma ORM on PostgreSQL. Access requires an authenticated session with active staff status and specific granular permissions.
+This document maps every page, view, component, action, and API endpoint in the Amir Admin Panel (`/admin`). The admin panel is a private, role-based single-page application built with Nuxt 4, Vue 3, Tailwind CSS, and Prisma ORM on PostgreSQL. Access requires an authenticated session with active  staff ssdfsdfsfdtatus and specific granular permissions.
 
 ---
 
