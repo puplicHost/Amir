@@ -61,8 +61,8 @@ jobs:
           ssh -i ~/.ssh/deploy_key \
             -o IdentitiesOnly=yes \
             "$SSH_USER@$SSH_HOST" \
-            'cd /opt/projects/al-amir/Amir &&
-             docker compose pull app migrate &&
-             docker compose up -d db &&
-             docker compose run --rm migrate &&
-             docker compose up -d --no-build --force-recreate app'
+            'cd /opt/apps/projects/amir &&
+             docker compose -f docker-compose.prod.yml pull app migrate &&
+             docker compose -f docker-compose.prod.yml run --rm migrate &&
+             docker compose -f docker-compose.prod.yml up -d --no-build --force-recreate app &&
+             docker image prune -f'
